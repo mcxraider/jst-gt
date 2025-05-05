@@ -1,13 +1,10 @@
 import hashlib
-import threading
 import concurrent.futures
-import json
 from openai import OpenAI
 from datetime import datetime
+import logging
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-
-import logging
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +12,12 @@ logging.basicConfig(
     filename=f"round_1_{timestamp}.log",
     filemode="w",
 )
+
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv("API_KEY")
+base_url = os.getenv("BASE_URL")
+
 
 
 def generate_hash(text):
@@ -41,23 +44,34 @@ def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
     return completion_output
 
 
-# def form_sys_msg(pe_kb_dic, crs_content, skill):
-#     temp_kb_dic = pe_kb_dic[skill]
-#     system_message = [
-#         {
-#             "role": "system",
-#             "content": """You are a helpful expert in the area of training courses and skills, you are helping me with associating the correct skills proficiency levels to training course contents, based on each skill's performance expectation at various proficiency levels.
-#             You will be given a training course content and the corresponding skill, together with the skill's performance expectations at different levels of proficiency. Help me to identify the closest proficiency level the training course is teaching.
-#             Give your response in JSON format like this: {{'level': <>, 'reason': <>, 'confidence': <high | medium | low>}}"""
-#         },
-#         {
-#             "role": "user",
-#             "content": f"""You are given the training course content {crs_content}, it teaches the skill {skill}, which has performance expectations at different levels of proficiency according to {temp_kb_dic}.
-#             Help me to identify the most appropriate proficiency level of the skill, that the training course is teaching.
-#             Give your response in JSON format like this: {{'level': <proficiency level>, 'reason': <your reason for the output>, 'confidence': <high | medium | low>}}"""
-#         }
-#     ]
-#     return system_message
+PROFICIENCY_LEVEL_TAGGING_SYS_PROMPT = """
+You are a helpful expert in the area of training courses and skills.
+CONTEXT:
+    You need to associate the appropriate proficiency levels to skills taught through training courses.
+GIVEN INFORMATION:
+Use only these 2 sets of information for the tasks
+    1. Knowledge Base that defines the knowledge and abilities associated with each skill at the respective proficiency levels.
+    2. Reference Document that defines the performance expectation for skills at different proficiency levels.
+TASK:
+    1. For each pair of course content and skill taught, identify the most appropriate proficiency level for the skill, using the proficiency level definitions in the Knowledge Base.
+    2. Only when you need additional information, refer to the Reference Document for decision. 
+    3. Only tag a skill with proficiency levels that are found in the Knowledge Base corresponding to it.
+    4. When you are unsure, indicate proficiency level as 0.
+OUTPUT FORMAT:
+Give your response in JSON format like this: 
+{{
+    "proficiency": "integer value of the proficiency level", 
+    "reason": "text string of your reasoning", 
+    "confidence": "high / medium / low"
+}}
+YOUR OUTPUT IS MEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
+"""
+
+PROFICIENCY_LEVEL_TAGGING_USER_PROMPT = """
+For the training course {crs_content}, what is the most appropriate proficiency level to be tagged to the skill {skill}, based on the Knowledge Base {temp_kb_dic}, only if you need more information, refer to the Reference Document {skill_pl_reference_chart}.
+Give your response in JSON format like this: {{'proficiency': <>, 'reason': <>, 'confidence': <high | medium | low>}}
+"""
+
 
 
 def form_sys_msg(kb_dic, crs_content, skill, skill_pl_reference_chart):
@@ -65,32 +79,11 @@ def form_sys_msg(kb_dic, crs_content, skill, skill_pl_reference_chart):
     system_message = [
         {
             "role": "system",
-            "content": """You are a helpful expert in the area of training courses and skills.
-            CONTEXT:
-                You need to associate the appropriate proficiency levels to skills taught through training courses.
-            GIVEN INFORMATION:
-            Use only these 2 sets of information for the tasks
-                1. Knowledge Base that defines the knowledge and abilities associated with each skill at the respective proficiency levels.
-                2. Reference Document that defines the performance expectation for skills at different proficiency levels.
-            TASK:
-                1. For each pair of course content and skill taught, identify the most appropriate proficiency level for the skill, using the proficiency level definitions in the Knowledge Base.
-                2. Only when you need additional information, refer to the Reference Document for decision. 
-                3. Only tag a skill with proficiency levels that are found in the Knowledge Base corresponding to it.
-                4. When you are unsure, indicate proficiency level as 0.
-            OUTPUT FORMAT:
-            Give your response in JSON format like this: 
-            {{
-                "proficiency": "integer value of the proficiency level", 
-                "reason": "text string of your reasoning", 
-                "confidence": "high / medium / low"
-            }}
-            YOUR OUTPUT IS MEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
-            """,
+            "content": PROFICIENCY_LEVEL_TAGGING_SYS_PROMPT,
         },
         {
             "role": "user",
-            "content": f"""For the training course {crs_content}, what is the most appropriate proficiency level to be tagged to the skill {skill}, based on the Knowledge Base {temp_kb_dic}, only if you need more information, refer to the Reference Document {skill_pl_reference_chart}.
-            Give your response in JSON format like this: {{'proficiency': <>, 'reason': <>, 'confidence': <high | medium | low>}}""",
+            "content": PROFICIENCY_LEVEL_TAGGING_USER_PROMPT, #  must edit to .format this prompt
         },
     ]
     return system_message

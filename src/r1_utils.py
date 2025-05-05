@@ -6,9 +6,7 @@ import json
 from datetime import datetime
 import os
 from config import target_sector_alias
-
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-
 import logging
 
 logging.basicConfig(
@@ -17,6 +15,11 @@ logging.basicConfig(
     filename=f"../log_files/round_1_{target_sector_alias}_{timestamp}.log",
     filemode="w",
 )
+
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv("API_KEY")
+base_url = os.getenv("BASE_URL")
 
 
 def get_openai_client(api_key, base_url):

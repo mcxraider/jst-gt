@@ -2,20 +2,16 @@
 from openai import AzureOpenAI
 import pandas as pd
 import pickle as pkl
-import json
-import re
-import hashlib
-import threading
-import concurrent.futures
 from ast import *
-import string
 from datetime import datetime
 import logging
-import openai
 from r2_utils import *
 import sys
 from pathlib import Path
 from config import *
+
+# Load in TSC RAC Chart
+from skill_rac_chart import skill_proficiency_level_details
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 parent_dir = Path.cwd().parent
@@ -61,32 +57,6 @@ all_valid_output_path = (
     f"{r2_output_path}/{target_sector_alias}_all_valid_skill_pl_{timestamp}.csv"
 )
 
-# LLM Config
-def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
-    client = openai.OpenAI(api_key=api_key, base_url=base_url)
-    response = client.chat.completions.create(
-        model=model,
-        messages=sys_msg,
-        response_format={"type": "json_object"},
-        seed=6800,
-        temperature=temperature,
-    )
-    completion_output = literal_eval(response.choices[0].message.content)
-    return completion_output
-
-
-sys_msg = [
-    {
-        "role": "user",
-        "content": "What is the colour of the sky? Reply me in JSON format {'sky_colour': 'colour'}.",
-    }
-]
-
-test_result = get_gpt_completion(sys_msg=sys_msg)
-print(f"Test call on colour of the sky: {test_result}\n")
-
-# Load in TSC RAC Chart
-from skill_rac_chart import skill_proficiency_level_details
 
 data = pd.read_csv(round_1_invalid_output_path, low_memory=False)
 data["course_text"] = (

@@ -1,11 +1,5 @@
 from datetime import datetime
 import os
-
-from dotenv import load_dotenv
-load_dotenv()
-api_key = os.getenv("API_KEY")
-base_url = os.getenv("BASE_URL")
-
 # Sector Pointer
 target_sector = ["Sea Transport"]
 target_sector_alias = "SeaTransport"
