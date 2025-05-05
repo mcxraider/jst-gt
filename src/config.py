@@ -1,6 +1,10 @@
-# OpenAI APIs
-api_key = "sk-" # Input your own
-base_url = "https://ai-api.analytics.gov.sg"
+from datetime import datetime
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv("API_KEY")
+base_url = os.getenv("BASE_URL")
 
 # Sector Pointer
 target_sector = ["Sea Transport"]
@@ -14,7 +18,7 @@ course_data_columns = [
     "Course Title",
     "Skill Title",
     "About This Course",
-    "What You'll Learn"
+    "What You'll Learn",
 ]
 
 # SFw File
@@ -27,4 +31,5 @@ r1_output_path = "../round_1_output"
 r2_output_path = "../round_2_output"
 
 # CHECK FOR R1 OUTPUT TIMESTAMP & UPDATE HERE BEFORE RUNNING R2!!!
-input_file_timestamp = "20250228_0100"
+now = datetime.now()  # Get current date and time
+input_file_timestamp = now.strftime("%Y%m%d_%H%M")
