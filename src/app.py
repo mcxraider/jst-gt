@@ -1,169 +1,50 @@
 import streamlit as st
-
-# Removed: import polars as pl
-import pandas as pd  # Ensure pandas is imported
+import pandas as pd
 import numpy as np
 from typing import Optional, Tuple, List, Any
 import os
+import time
 
-# Placeholder for actual API key handling if needed later
-# OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", "YOUR_DEFAULT_KEY")
-
-
-def configure_page():
-    """Set Streamlit page configuration and title."""
-    page_title = "Proficiency Skills Tagging Processor"
-    st.set_page_config(page_title=page_title, layout="wide")
-    st.title(page_title)
-
-
-def init_session_state():
-    """Initialize session state variables."""
-    for key in ("results", "error_msg"):
-        if key not in st.session_state:
-            st.session_state[key] = None
-
-    if "app_stage" not in st.session_state:
-        st.session_state["app_stage"] = "initial_choice"
-    if "csv_yes" not in st.session_state:
-        st.session_state["csv_yes"] = False
-    if "pkl_yes" not in st.session_state:
-        # Example: Check for a default checkpoint file
-        st.session_state["pkl_yes"] = os.path.exists("my_checkpoint.pkl")
-
-
-def upload_csv() -> Optional[pd.DataFrame]:
-    """Display file uploader, read CSV using Pandas, with error handling."""
-    uploaded = st.file_uploader("Upload a CSV file to process", type=["csv"])
-    if not uploaded:
-        return None
-    try:
-        df = pd.read_csv(uploaded)
-        st.write("**Preview of uploaded data:**")
-        st.dataframe(df.head())
-        return df
-    except Exception as e:
-        st.error(f"Error loading CSV: {e}")
-        return None
-
-
-def get_user_options(df: pd.DataFrame) -> Optional[Tuple[List[str], str, str]]:
-    """Collect processing options: columns, prompt template, and model."""
-    st.subheader("Processing Options")
-    cols = list(df.columns)
-    selected = st.multiselect("Select column(s) to process", cols)
-    prompt_template = st.text_area(
-        "Prompt template (use {text} to insert values if applicable)",
-        "Process the following data: {text}",
-    )
-    model_choice = st.selectbox(
-        "Choose processing model/method", ["Method A", "Method B", "Method C"]
-    )
-    if not selected:
-        st.warning("Please select at least one column.")
-        return None
-    return selected, prompt_template, model_choice
-
-
-def handle_core_processing(
-    *args: Any, **kwargs: Any
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Simulates the core data processing logic using Pandas.
-    Generates and returns three pandas DataFrames.
-    """
-    st.write("Running core processing...")
-    import time
-
-    # prev_state = load_prevstate()
-    progress_bar = st.progress(0)
-    for i in range(4):
-        time.sleep(0.5)
-        progress_bar.progress((i + 1) / 4)
-
-    def random_df(n_rows: int, prefix: str) -> pd.DataFrame:
-        return pd.DataFrame(
-            {
-                "id": range(1, n_rows + 1),
-                f"{prefix}_float": np.random.rand(n_rows),
-                f"{prefix}_int": np.random.randint(1, 100, size=n_rows),
-                f"{prefix}_category": np.random.choice(["X", "Y", "Z"], size=n_rows),
-            }
-        )
-
-    df1 = random_df(10, "res1")
-    df2 = random_df(8, "res2")
-    df3 = random_df(12, "res3")
-    st.success("Core processing complete!")
-    return df1, df2, df3
-
-
-def download_dataframe_as_csv(df: pd.DataFrame, label: str, key_suffix: str):
-    """Provide a download button for a given Pandas DataFrame."""
-    try:
-        csv_string = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label=f"Download {label}",
-            data=csv_string,
-            file_name=f"{label.lower().replace(' ', '_')}.csv",
-            mime="text/csv",
-            key=f"download_{key_suffix}",
-        )
-    except Exception as e:
-        st.error(f"Failed to prepare download for {label}: {e}")
+# import utils file
+from utils.input_handler import *
+from utils.session_handler import *
+from utils.output_handler import *
+from utils.checkpoint_handler import *
+from utils.db import *
 
 
 def upload_new_pipeline():
-    """Simulates the 'Upload New File' pipeline using Pandas."""
-    st.subheader("1. Upload Data")
-    uploaded_df = upload_csv()
+    """Handles two file uploads and proceeds when both are valid."""
+    st.subheader("1. Upload SFW Framework File")
+    sfw_df, sfw_filename = upload_file(
+        label="SFW Framework File", validator=validate_sfw_file_input
+    )
 
-    if uploaded_df is not None:
-        st.subheader("2. Configure Processing")
-        options = get_user_options(uploaded_df)
-        if options:
-            selected_cols, prompt, model = options
-            st.subheader("3. Start Processing")
-            if st.button("Process Uploaded Data"):
-                with st.spinner("Processing..."):
-                    df1, df2, df3 = handle_core_processing()
-                    st.session_state.results = (df1, df2, df3)
-                    st.session_state.csv_yes = True
-                    st.session_state.app_stage = "results_ready"
-                    st.rerun()
-            else:
-                st.session_state.app_stage = "uploading_new"
-                st.session_state.csv_yes = False
-                st.session_state.results = None
-        else:
-            st.session_state.app_stage = "uploading_new"
-            st.session_state.csv_yes = False
-            st.session_state.results = None
+    st.subheader("2. Upload Sector File")
+    sector_df, sector_filename = upload_file(
+        label="Sector File", validator=validate_sector_file_input
+    )
+
+    if sfw_df is not None and sector_df is not None:
+        st.subheader("4. Start Processing")
+        if st.button("Process Uploaded Data"):
+            with st.spinner("Processing..."):
+                # insert data into s3 with the unique name
+                insert_input_to_s3_sync(sfw_filename, sfw_df, sector_filename, sector_df)
+
+                df1, df2, df3 = handle_core_processing(sfw_df, sector_df)
+                st.session_state.results = (df1, df2, df3)
+                st.session_state.csv_yes = True
+                st.session_state.app_stage = "results_ready"
+                st.rerun()
     else:
-        st.session_state.app_stage = "uploading_new"
-        st.session_state.csv_yes = False
-        st.session_state.results = None
+        st.info("Please upload and validate both files to continue.")
 
     if st.button("Back to Choices"):
         st.session_state.app_stage = "initial_choice"
         st.session_state.csv_yes = False
         st.session_state.results = None
         st.rerun()
-
-
-def load_checkpoint_pipeline():
-    """Simulates the 'Load Checkpoint' pipeline, assumes checkpoint yields Pandas DFs."""
-    st.write("Simulating loading from checkpoint...")
-    with st.spinner("Loading checkpoint data..."):
-        import time
-
-        time.sleep(1.5)
-        df1, df2, df3 = handle_core_processing()
-        st.session_state.results = (df1, df2, df3)
-        st.session_state.csv_yes = True
-        st.session_state.app_stage = "results_ready"
-        st.success("Checkpoint loaded successfully!")
-    st.rerun()
 
 
 def main():
@@ -223,9 +104,7 @@ def main():
 
         if not load_checkpoint_enabled and pkl_available:
             already_done_processing_msg = "Your Previous Run Job has already been processed. Download them below or start a new session!"
-            st.info(
-                already_done_processing_msg
-                )
+            st.info(already_done_processing_msg)
         elif not pkl_available:
             st.info("Please upload the files for processing!")
 
