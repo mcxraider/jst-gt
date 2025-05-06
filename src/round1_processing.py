@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from config import *
 import logging
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
 logging.basicConfig(
@@ -204,7 +205,8 @@ for skill, pl_list in zip(
     valid_pl_list = list(
         sfw_pl_compressed_df[sfw_pl_compressed_df.skill_lower == skill.lower().strip()][
             "Proficiency Level"
-        ])[0]
+        ]
+    )[0]
     logging.info(
         f"For skill: {skill}, SFw valid PLs: {valid_pl_list}, AI tagged PLs: {pl_list}"
     )

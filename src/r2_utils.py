@@ -3,6 +3,8 @@ import concurrent.futures
 from openai import OpenAI
 from datetime import datetime
 import logging
+import json
+import os
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
@@ -14,35 +16,10 @@ logging.basicConfig(
 )
 
 from dotenv import load_dotenv
+
 load_dotenv()
 api_key = os.getenv("API_KEY")
 base_url = os.getenv("BASE_URL")
-
-
-
-def generate_hash(text):
-    text = str(text).lower().strip()
-    string_hash = hashlib.sha256(str.encode(text)).hexdigest()
-    return string_hash
-
-
-def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
-    client = openai.OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
-
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=sys_msg,
-            response_format={"type": "json_object"},
-            seed=6800,
-            temperature=temperature,
-        )
-        completion_output = literal_eval(response.choices[0].message.content)
-    except:
-        completion_output = ""
-
-    return completion_output
-
 
 PROFICIENCY_LEVEL_TAGGING_SYS_PROMPT = """
 You are a helpful expert in the area of training courses and skills.
@@ -73,9 +50,54 @@ Give your response in JSON format like this: {{'proficiency': <>, 'reason': <>, 
 """
 
 
+def generate_hash(text):
+    text = str(text).lower().strip()
+    string_hash = hashlib.sha256(str.encode(text)).hexdigest()
+    return string_hash
+
+
+def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
+    client = openai.OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=sys_msg,
+            response_format={"type": "json_object"},
+            seed=6800,
+            temperature=temperature,
+        )
+        completion_output = literal_eval(response.choices[0].message.content)
+    except:
+        completion_output = ""
+
+    return completion_output
+
 
 def form_sys_msg(kb_dic, crs_content, skill, skill_pl_reference_chart):
     temp_kb_dic = kb_dic[skill.lower().strip()]
+    if temp_kb_dic is None:
+        print(f"Warning: Skill '{skill}' not found in the knowledge base.")
+        # Decide how to handle missing KB:
+        # Option 1: Return None or raise an error
+        # return None
+        # Option 2: Proceed with an empty/placeholder KB entry (as shown below)
+        temp_kb_dic_str = "{}"  # Or perhaps "Not available in Knowledge Base"
+    elif isinstance(temp_kb_dic, dict):
+        # Convert dict to a JSON string for cleaner inclusion in the prompt
+        # Adjust indent for readability if desired by the LLM
+        temp_kb_dic_str = json.dumps(temp_kb_dic)
+    else:
+        # Assume it's already a string or convertible to one
+        temp_kb_dic_str = str(temp_kb_dic)
+
+    formatted_user_prompt = PROFICIENCY_LEVEL_TAGGING_USER_PROMPT.format(
+        crs_content=crs_content,
+        skill=skill,
+        temp_kb_dic=temp_kb_dic_str,  # Use the string version
+        skill_pl_reference_chart=skill_pl_reference_chart,
+    )
+
     system_message = [
         {
             "role": "system",
@@ -83,7 +105,7 @@ def form_sys_msg(kb_dic, crs_content, skill, skill_pl_reference_chart):
         },
         {
             "role": "user",
-            "content": PROFICIENCY_LEVEL_TAGGING_USER_PROMPT, #  must edit to .format this prompt
+            "content": formatted_user_prompt,
         },
     ]
     return system_message
