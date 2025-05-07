@@ -12,6 +12,7 @@ def configure_page():
     st.title(page_title)
 
 
+# store these variables in S3.
 def init_session_state():
     """Initialize session state variables."""
     for key in ("results", "error_msg"):

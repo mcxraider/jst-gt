@@ -11,40 +11,7 @@ from utils.session_handler import *
 from utils.output_handler import *
 from utils.checkpoint_handler import *
 from utils.db import *
-
-
-def upload_new_pipeline():
-    """Handles two file uploads and proceeds when both are valid."""
-    st.subheader("1. Upload SFW Framework File")
-    sfw_df, sfw_filename = upload_file(
-        label="SFW Framework File", validator=validate_sfw_file_input
-    )
-
-    st.subheader("2. Upload Sector File")
-    sector_df, sector_filename = upload_file(
-        label="Sector File", validator=validate_sector_file_input
-    )
-
-    if sfw_df is not None and sector_df is not None:
-        st.subheader("4. Start Processing")
-        if st.button("Process Uploaded Data"):
-            with st.spinner("Processing..."):
-                # insert data into s3 with the unique name
-                insert_input_to_s3_sync(sfw_filename, sfw_df, sector_filename, sector_df)
-
-                df1, df2, df3 = handle_core_processing(sfw_df, sector_df)
-                st.session_state.results = (df1, df2, df3)
-                st.session_state.csv_yes = True
-                st.session_state.app_stage = "results_ready"
-                st.rerun()
-    else:
-        st.info("Please upload and validate both files to continue.")
-
-    if st.button("Back to Choices"):
-        st.session_state.app_stage = "initial_choice"
-        st.session_state.csv_yes = False
-        st.session_state.results = None
-        st.rerun()
+from utils.upload_pipeline import *
 
 
 def main():
@@ -100,7 +67,8 @@ def main():
                 disabled=not load_checkpoint_enabled,
                 use_container_width=True,
             ):
-                load_checkpoint_pipeline()
+                st.session_state.app_stage = "load_checkpoint"
+                st.rerun()
 
         if not load_checkpoint_enabled and pkl_available:
             already_done_processing_msg = "Your Previous Run Job has already been processed. Download them below or start a new session!"
@@ -123,6 +91,9 @@ def main():
     # --- Stage for Uploading/Configuring New Process ---
     elif st.session_state.app_stage == "uploading_new":
         upload_new_pipeline()
+
+    elif st.session_state.app_stage == "load_checkpoint":
+        load_checkpoint_pipeline()
 
     # --- Results Ready Stage ---
     elif st.session_state.app_stage == "results_ready":
