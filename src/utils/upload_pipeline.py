@@ -6,9 +6,9 @@ from typing import Optional, Tuple, List, Any
 from utils.input_handler import *
 from utils.session_handler import *
 from utils.output_handler import *
-from utils.checkpoint_handler import *
+from utils.checkpoint_pipeline import *
 from utils.db import *
-
+from utils.processing import *
 
 def prompt_file_upload(
     step: int, label: str, validator: Callable[[Any], asyncio.Future]
@@ -38,9 +38,11 @@ def process_uploaded_files(
     st.subheader("3. Start Processing")
     if st.button("Process Uploaded Data"):
         with st.spinner("Processing..."):
-            insert_input_to_s3_sync(sfw_filename, sfw_df, sector_filename, sector_df)
-            df1, df2, df3 = handle_core_processing(sfw_df, sector_df)
-            st.session_state.results = (df1, df2, df3)
+            async_write_input_to_s3(sfw_filename, sfw_df, sector_filename, sector_df)
+            dfs = handle_core_processing(sfw_df, sector_df)
+            async_write_output_to_s3(dfs)
+            st.session_state.csv_yes = True
+            st.session_state.results = dfs
             st.session_state.csv_yes = True
             st.session_state.app_stage = "results_ready"
             st.rerun()
@@ -50,8 +52,6 @@ def back_to_initial_choices():
     """Display a back button to reset state and return to initial choice."""
     if st.button("Back to Choices"):
         st.session_state.app_stage = "initial_choice"
-        st.session_state.csv_yes = False
-        st.session_state.results = None
         st.rerun()
 
 

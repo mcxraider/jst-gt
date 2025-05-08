@@ -13,8 +13,21 @@ import importlib
 # -------------------------------
 
 
-def delete_all_s3():
-    pass
+def delete_all_s3(dir):
+    time.sleep(5)
+    # Iterate and clear contents of each bucket folder
+    for bucket in dir.iterdir():
+        if bucket.is_dir():
+            for item in bucket.iterdir():
+                try:
+                    if item.is_file():
+                        item.unlink()
+                    elif item.is_dir():
+                        for sub in item.iterdir():
+                            if sub.is_file():
+                                sub.unlink()
+                except Exception as e:
+                    st.warning(f"Failed to delete {item}: {e}")
 
 
 async def wipe_db():
@@ -27,30 +40,13 @@ async def wipe_db():
 
     # Indicate the wipe and reset flags
     st.write("Wiping database now…")
-    time.sleep(5)
-    st.session_state["csv_yes"] = False
-    st.session_state["pkl_yes"] = False
-
     base_dir = Path("../s3_bucket")
-    if not base_dir.exists() or not base_dir.is_dir():
-        return
 
     # logic below should be replaced with this function here
-    delete_all_s3()
+    delete_all_s3(base_dir)
 
-    # Iterate and clear contents of each bucket folder
-    for bucket in base_dir.iterdir():
-        if bucket.is_dir():
-            for item in bucket.iterdir():
-                try:
-                    if item.is_file():
-                        item.unlink()
-                    elif item.is_dir():
-                        for sub in item.iterdir():
-                            if sub.is_file():
-                                sub.unlink()
-                except Exception as e:
-                    st.warning(f"Failed to delete {item}: {e}")
+    st.session_state["csv_yes"] = False
+    st.session_state["pkl_yes"] = False
 
 
 # TODO:

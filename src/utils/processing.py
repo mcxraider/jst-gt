@@ -5,58 +5,44 @@ from typing import Optional, Tuple, List, Any
 import os
 import time
 from datetime import datetime
+import pickle
+from pathlib import Path
 
 
-def random_df(n_rows: int, prefix: str) -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "id": range(1, n_rows + 1),
-            f"{prefix}_float": np.random.rand(n_rows),
-            f"{prefix}_int": np.random.randint(1, 100, size=n_rows),
-            f"{prefix}_category": np.random.choice(["X", "Y", "Z"], size=n_rows),
-        }
-    )
-
+from utils.db import *
 
 def handle_core_processing(
     *args: Any, **kwargs: Any
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+):
     """
     Simulates the core data processing logic using Pandas.
-    Generates and returns three pandas DataFrames.
+    Generates and returns three pandas DataFrames, and checkpoints progress.
     """
+    ckpt_path = "../s3_bucket/s3_checkpoint/ckpt.pkl"
 
     st.write("Running core processing...")
     progress_bar = st.progress(0)
-    num_rows = 20
+    num_rows = 5
+    
+    st.info(f"Checkpoint saved at every 3 min mark")
     for i in range(num_rows):
+        # simulate work
         time.sleep(0.5)
-        progress_bar.progress((i + 1) / num_rows)
+        progress = (i + 1) / num_rows
+        progress_bar.progress(progress)
+        st.session_state.pkl_yes = True
+        # checkpoint every 2 iterations
+        if (i + 1) % 2 == 0:
+            checkpoint_data = {
+                "iteration": i + 1,
+                "progress": progress,
+                # you can add more state here, e.g. partial results
+            }
+            with open(ckpt_path, "wb") as f:
+                pickle.dump(checkpoint_data, f)
 
-    df1 = random_df(10, "res1")
-    df2 = random_df(8, "res2")
-    df3 = random_df(12, "res3")
     st.success("Core processing complete!")
-    return df1, df2, df3
+    
+    df1, df2, df3 = fetch_completed_output()
 
-
-def handle_core_processing(
-    *args: Any, **kwargs: Any
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Simulates the core data processing logic using Pandas.
-    Generates and returns three pandas DataFrames.
-    """
-
-    st.write("Running core processing...")
-    progress_bar = st.progress(0)
-    num_rows = 20
-    for i in range(num_rows):
-        time.sleep(0.5)
-        progress_bar.progress((i + 1) / num_rows)
-
-    df1 = random_df(10, "res1")
-    df2 = random_df(8, "res2")
-    df3 = random_df(12, "res3")
-    st.success("Core processing complete!")
-    return df1, df2, df3
+    return [df1, df2, df3]

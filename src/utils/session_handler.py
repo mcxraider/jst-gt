@@ -21,7 +21,19 @@ def init_session_state():
 
     if "app_stage" not in st.session_state:
         st.session_state["app_stage"] = "initial_choice"
+        
     if "csv_yes" not in st.session_state:
-        st.session_state["csv_yes"] = False
+        output_path = "../s3_bucket/s3_output/"
+        output_files = os.listdir(output_path)
+        num_outputs = len(output_files)
+        if num_outputs==3:
+            st.session_state["csv_yes"] = True
+        else:
+            st.session_state["csv_yes"] = False
+            
     if "pkl_yes" not in st.session_state:
-        st.session_state["pkl_yes"] = os.path.exists("my_checkpoint.pkl")
+        ckpt_path = "../s3_bucket/s3_checkpoint/ckpt.pkl"
+        st.session_state["pkl_yes"] = os.path.exists(ckpt_path)
+        
+    if "exit_halfway" not in st.session_state:
+        st.session_state["exit_halfway"] = False
