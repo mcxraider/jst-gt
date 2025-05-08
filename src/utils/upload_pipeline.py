@@ -9,7 +9,7 @@ from utils.output_handler import *
 from utils.checkpoint_pipeline import *
 from utils.db import *
 from utils.processing import *
-
+from components.buttons import *
 
 def prompt_file_upload(
     step: int, label: str, validator: Callable[[Any], asyncio.Future]
@@ -29,6 +29,9 @@ def both_files_uploaded(
     return sfw_df is not None and sector_df is not None
 
 
+def handle_exit():
+    st.error("Processing was stopped midway. Please adjust settings and try again.")
+
 def process_uploaded_files(
     sfw_df: pd.DataFrame,
     sfw_filename: str,
@@ -39,22 +42,25 @@ def process_uploaded_files(
     st.subheader("3. Start Processing")
     if st.button("Process Uploaded Data"):
         with st.spinner("Processing..."):
+            # 1) upload inputs
             async_write_input_to_s3(sfw_filename, sfw_df, sector_filename, sector_df)
+
+            # 2) core processing (may exit early)
             dfs = handle_core_processing(sfw_df, sector_df)
+
+            # 3) handle early exit
+            if not dfs:
+                handle_exit()
+                return
+
+            # 4) upload outputs
             async_write_output_to_s3(dfs)
-            st.session_state.csv_yes = True
+
+            # 5) update state and rerun
             st.session_state.results = dfs
             st.session_state.csv_yes = True
             st.session_state.app_stage = "results_ready"
-            st.rerun()
-
-
-def back_to_initial_choices():
-    """Display a back button to reset state and return to initial choice."""
-    if st.button("Back to Choices"):
-        st.session_state.app_stage = "initial_choice"
         st.rerun()
-
 
 def upload_new_pipeline():
     """Handles two file uploads with distinct validation logic and proceeds when ready."""
@@ -74,5 +80,5 @@ def upload_new_pipeline():
     else:
         st.info("Please upload and validate both files to continue.")
 
-    # Back button
-    back_to_initial_choices()
+    back_homepage_button()
+
