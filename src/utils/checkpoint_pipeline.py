@@ -8,6 +8,7 @@ from utils.processing import *
 from utils.output_handler import *
 from utils.upload_pipeline import *
 
+
 def retrieve_checkpoint_metadata():
     time.sleep(1)
 
@@ -25,12 +26,12 @@ def load_checkpoint_pipeline():
         st.success("✅ Checkpoint metadata retrieved!")
 
         with st.spinner("Resuming from checkpoint…"):
-            dfs = fetch_completed_output() 
+            dfs = fetch_completed_output()
         st.success("✅ Tagging successful!")
-        
+
         st.session_state.csv_yes = True
-        
+
         st.subheader("View and Download Processed CSVs")
 
         view_download_csvs(dfs)
-        st.balloons()    
+        st.balloons()

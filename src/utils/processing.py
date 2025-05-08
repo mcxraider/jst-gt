@@ -1,19 +1,12 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from typing import Optional, Tuple, List, Any
-import os
+from typing import Any
 import time
-from datetime import datetime
 import pickle
-from pathlib import Path
-
-
 from utils.db import *
 
-def handle_core_processing(
-    *args: Any, **kwargs: Any
-):
+
+def handle_core_processing(*args: Any, **kwargs: Any):
     """
     Simulates the core data processing logic using Pandas.
     Generates and returns three pandas DataFrames, and checkpoints progress.
@@ -22,8 +15,8 @@ def handle_core_processing(
 
     st.write("Running core processing...")
     progress_bar = st.progress(0)
-    num_rows = 5
-    
+    num_rows = 6
+
     st.info(f"Checkpoint saved at every 3 min mark")
     for i in range(num_rows):
         # simulate work
@@ -42,7 +35,7 @@ def handle_core_processing(
                 pickle.dump(checkpoint_data, f)
 
     st.success("Core processing complete!")
-    
+
     df1, df2, df3 = fetch_completed_output()
 
     return [df1, df2, df3]

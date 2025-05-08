@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from typing import Optional, Tuple, List, Any
-import time
 import os
 import datetime
+
 
 def load_checkpoint_ui():
     st.header("🔄 Load Previous Checkpoint")
@@ -16,12 +15,9 @@ def load_checkpoint_ui():
     )
 
 
-# preview the dataframe and also make it available for download 
+# preview the dataframe and also make it available for download
 def show_dataframe(
-    df: pd.DataFrame,
-    title: str,
-    key: str,
-    preview_rows: int | None = None
+    df: pd.DataFrame, title: str, key: str, preview_rows: int | None = None
 ):
     """
     Display a dataframe (or just the first `preview_rows` rows) with a subheader
@@ -51,14 +47,13 @@ def show_dataframe(
         )
 
 
-def view_download_csvs(dfs): # a tuple containing 3 tuples
+def view_download_csvs(dfs):  # a tuple containing 3 tuples
     for i in range(3):
         dataframe_to_display = dfs[0][0]
         display_title = dfs[0][1]
-        show_dataframe(dataframe_to_display, 
-                       title=display_title, 
-                       key=f"res{i+1}",
-                       preview_rows = 4)
+        show_dataframe(
+            dataframe_to_display, title=display_title, key=f"res{i+1}", preview_rows=4
+        )
 
 
 async def rename_output_file(file_name: str) -> str:
@@ -69,4 +64,3 @@ async def rename_output_file(file_name: str) -> str:
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     new_name = f"{base}_{timestamp}_output{ext}"
     return new_name
-

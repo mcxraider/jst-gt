@@ -1,4 +1,5 @@
 import streamlit as st
+
 # import utils app components
 from utils.input_handler import *
 from utils.session_handler import *
@@ -13,8 +14,8 @@ from components.pages import *
 def main():
     configure_page()
     init_session_state()
-    
-    demo_sidebar() # attach only when doing the demo
+
+    demo_sidebar()  # attach only when doing the demo
 
     # --- Initial Choice Stage ---
     if st.session_state.app_stage == "initial_choice":
