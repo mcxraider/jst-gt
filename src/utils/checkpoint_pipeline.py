@@ -26,12 +26,18 @@ def load_checkpoint_pipeline():
         st.success("✅ Checkpoint metadata retrieved!")
 
         with st.spinner("Resuming from checkpoint…"):
-            dfs = fetch_completed_output()
+            results = handle_checkpoint_processing()
+        
+        # handle early exit
+        if not results:
+            handle_exit("exit_from_failed_checkpoint")
+            return
+        
         st.success("✅ Tagging successful!")
 
         st.session_state.csv_yes = True
 
         st.subheader("View and Download Processed CSVs")
 
-        view_download_csvs(dfs)
+        view_download_csvs(results)
         st.balloons()

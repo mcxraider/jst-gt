@@ -5,7 +5,7 @@ import os
 
 def configure_page():
     """Set Streamlit page configuration and title."""
-    page_title = "Proficiency Skills Tagging Processor"
+    page_title = "Proficiency Skills Tagging (AI - Excel sheet) Processor"
     st.set_page_config(page_title=page_title, layout="wide")
     st.title(page_title)
 

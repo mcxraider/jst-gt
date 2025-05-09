@@ -29,8 +29,12 @@ def both_files_uploaded(
     return sfw_df is not None and sector_df is not None
 
 
-def handle_exit():
-    st.error("Processing was stopped midway. Please adjust settings and try again.")
+
+def handle_exit(button_title):
+    st.error("Processing was stopped midway due to a connection issue. If you would like to continue, start over and load from the previous checkpoint!")
+    st.session_state.app_stage = "initial_choice"
+    back_homepage_from_failed_run_button(button_title)
+
 
 def process_uploaded_files(
     sfw_df: pd.DataFrame,
@@ -46,21 +50,23 @@ def process_uploaded_files(
             async_write_input_to_s3(sfw_filename, sfw_df, sector_filename, sector_df)
 
             # 2) core processing (may exit early)
-            dfs = handle_core_processing(sfw_df, sector_df)
+            results = handle_core_processing(sfw_df, sector_df)
 
             # 3) handle early exit
-            if not dfs:
-                handle_exit()
+            if not results:
+                handle_exit("exit_from_failed_upload")
                 return
 
             # 4) upload outputs
-            async_write_output_to_s3(dfs)
+            async_write_output_to_s3(results)
 
             # 5) update state and rerun
-            st.session_state.results = dfs
+            st.session_state.results = results
             st.session_state.csv_yes = True
             st.session_state.app_stage = "results_ready"
         st.rerun()
+        back_homepage_button()
+
 
 def upload_new_pipeline():
     """Handles two file uploads with distinct validation logic and proceeds when ready."""
@@ -79,6 +85,4 @@ def upload_new_pipeline():
         process_uploaded_files(sfw_df, sfw_filename, sector_df, sector_filename)
     else:
         st.info("Please upload and validate both files to continue.")
-
-    back_homepage_button()
 

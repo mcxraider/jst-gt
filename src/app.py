@@ -27,12 +27,10 @@ def main():
 
     elif st.session_state.app_stage == "load_checkpoint":
         load_checkpoint_pipeline()
-        back_homepage_button()
 
     # --- Results Ready Stage ---
     elif st.session_state.app_stage == "results_ready":
         results_page()
-        back_homepage_button()
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils.output_handler import *
 from utils.db import *
-
+from components.buttons import *
 
 def demo_sidebar():
     st.sidebar.header("Demo Controls")
@@ -76,5 +76,7 @@ def results_page():
         st.success("Processing complete. You can now download the results as CSV.")
         dfs = st.session_state.results
         view_download_csvs(dfs)
+        back_homepage_button()
+
     else:
         st.warning("No results available to download.")

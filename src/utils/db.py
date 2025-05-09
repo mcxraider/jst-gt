@@ -4,12 +4,56 @@ import os
 import asyncio
 from typing import Optional, Tuple, List, Any, Callable
 from pathlib import Path
-
-
-from utils.input_handler import rename_input_file
+import time
+import datetime
 from utils.output_handler import rename_output_file
 
+async def rename_input_file(file_name: str) -> str:
+    """
+    Asynchronously renames the file by appending a timestamp and 'input' before the file extension.
+    """
+    base, ext = os.path.splitext(file_name)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    new_name = f"{base}_{timestamp}_input{ext}"
+    return new_name
 
+
+def delete_all_s3(dir):
+    time.sleep(5)
+    # Iterate and clear contents of each bucket folder
+    for bucket in dir.iterdir():
+        if bucket.is_dir():
+            for item in bucket.iterdir():
+                try:
+                    if item.is_file():
+                        item.unlink()
+                    elif item.is_dir():
+                        for sub in item.iterdir():
+                            if sub.is_file():
+                                sub.unlink()
+                except Exception as e:
+                    st.warning(f"Failed to delete {item}: {e}")
+
+
+async def wipe_db():
+    """Completely wipe contents of each folder in the s3_bucket directory only if needed."""
+    # Only wipe if a CSV or checkpoint has been processed
+    if not (
+        st.session_state.get("csv_yes", False) or st.session_state.get("pkl_yes", False)
+    ):
+        return
+
+    # Indicate the wipe and reset flags
+    st.write("Wiping database now…")
+    base_dir = Path("../s3_bucket")
+
+    # logic below should be replaced with this function here
+    delete_all_s3(base_dir)
+
+    st.session_state["csv_yes"] = False
+    st.session_state["pkl_yes"] = False
+    
+    
 def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
     """
     Helper to load a CSV and return the DataFrame along with its base filename (without extension).
