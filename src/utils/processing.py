@@ -101,4 +101,4 @@ def handle_checkpoint_processing(ckpt_meta, ckpt_path = Path("../s3_bucket/s3_ch
 
     # simulate completion and return outputs
     df1, df2, df3 = fetch_completed_output()
-    return [df1, df2, df3]    
+    return [df1, df2, df3] 
