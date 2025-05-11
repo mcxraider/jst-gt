@@ -4,8 +4,6 @@ import os
 import asyncio
 from typing import Optional, Tuple, List, Any, Callable
 from pathlib import Path
-import datetime
-
 from utils.db import wipe_db
 
 

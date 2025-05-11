@@ -11,7 +11,7 @@ def back_homepage_button():
         st.rerun()
 
 def back_homepage_from_failed_run_button(button_title: str):
-    if st.button(f"↩️ Start Over {button_title}", key=button_title):
+    if st.button(f"↩️ Start Over", key=button_title):
         init_session_state()
         st.session_state.pkl_yes = True
         st.session_state.app_stage = "initial_choice"

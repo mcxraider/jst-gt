@@ -1,14 +1,12 @@
 import streamlit as st
-import pandas as pd
 from typing import Any
 import time
 import pickle
 from utils.db import *
-import random
 
 num_rows = 10
 
-def handle_core_processing(*args: Any, **kwargs: Any):
+def handle_core_processing(sfw_df, sector_df, ckpt_path = Path("../s3_bucket/s3_checkpoint/ckpt.pkl").resolve()):
     """
     Simulates the core data processing logic using Pandas.
     Generates and returns three pandas DataFrames, and checkpoints progress.
@@ -30,6 +28,7 @@ def handle_core_processing(*args: Any, **kwargs: Any):
             checkpoint_data = {
                 "iteration": i + 1,
                 "progress": progress,
+                # other meta
             }
             with open(ckpt_path, "wb") as f:
                 pickle.dump(checkpoint_data, f)
@@ -37,23 +36,17 @@ def handle_core_processing(*args: Any, **kwargs: Any):
 
 
         # early exit if toggle is on
-        stop_number = random.randint(1, num_rows)
+        stop_number = 5 
         if st.session_state.get("exit_halfway", False) and i == stop_number:
             return []
-
-    st.success("Core processing complete!")
 
     # simulate completion and return outputs
     df1, df2, df3 = fetch_completed_output()
     return [df1, df2, df3]
 
+def retrieve_checkpoint_metadata(ckpt_path = Path("../s3_bucket/s3_checkpoint/ckpt.pkl").resolve()):
+    time.sleep(1)
 
-def handle_checkpoint_processing(*args: Any, **kwargs: Any):
-    """
-    Resumes processing from the last saved checkpoint in ckpt.pkl.
-    Reads iteration and progress, then continues core processing from that point.
-    Supports early exit via `exit_halfway` toggle.
-    """
     ckpt_path = Path("../s3_bucket/s3_checkpoint/ckpt.pkl").resolve()
 
     # Load existing checkpoint or start fresh
@@ -72,7 +65,19 @@ def handle_checkpoint_processing(*args: Any, **kwargs: Any):
         st.warning("No checkpoint found. Starting from the beginning.")
         start_iter = 0
         last_progress = 0
+    
+    return (last_progress, start_iter)
+        
 
+
+def handle_checkpoint_processing(ckpt_meta, ckpt_path = Path("../s3_bucket/s3_checkpoint/ckpt.pkl").resolve()):
+    """
+    Resumes processing from the last saved checkpoint in ckpt.pkl.
+    Reads iteration and progress, then continues core processing from that point.
+    Supports early exit via `exit_halfway` toggle.
+    """
+    
+    last_progress, start_iter = ckpt_meta
     # Mark checkpoint available
     st.session_state.pkl_yes = True
     progress_bar = st.progress(last_progress)
@@ -90,11 +95,9 @@ def handle_checkpoint_processing(*args: Any, **kwargs: Any):
                 pickle.dump(checkpoint_data, f)
 
         # early exit if toggle is on
-        stop_number = random.randint(1, num_rows)
+        stop_number = 5 
         if st.session_state.get("exit_halfway", False) and i == stop_number:
             return []
-
-    st.success("Core processing complete!")
 
     # simulate completion and return outputs
     df1, df2, df3 = fetch_completed_output()

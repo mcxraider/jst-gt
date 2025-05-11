@@ -1,16 +1,10 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
 from typing import Optional, Tuple, List, Any
-import os
-import time
 from utils.processing import *
 from utils.output_handler import *
 from utils.upload_pipeline import *
 
 
-def retrieve_checkpoint_metadata():
-    time.sleep(1)
 
 
 def load_checkpoint_pipeline():
@@ -22,11 +16,11 @@ def load_checkpoint_pipeline():
     if st.button("Load Checkpoint", use_container_width=True):
 
         with st.spinner("Retrieving data from previously saved checkpoint"):
-            retrieve_checkpoint_metadata()
+            ckpt_meta = retrieve_checkpoint_metadata()
         st.success("✅ Checkpoint metadata retrieved!")
 
         with st.spinner("Resuming from checkpoint…"):
-            results = handle_checkpoint_processing()
+            results = handle_checkpoint_processing(ckpt_meta)
         
         # handle early exit
         if not results:
@@ -40,4 +34,6 @@ def load_checkpoint_pipeline():
         st.subheader("View and Download Processed CSVs")
 
         view_download_csvs(results)
-        st.balloons()
+        
+        st.session_state.app_stage = "initial_choice"
+        back_homepage_button()
