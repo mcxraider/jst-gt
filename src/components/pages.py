@@ -4,6 +4,7 @@ from utils.output_handler import *
 from utils.db import *
 from components.buttons import *
 
+
 def demo_sidebar():
     st.sidebar.header("Demo Controls")
     simulate_pkl = st.sidebar.checkbox(

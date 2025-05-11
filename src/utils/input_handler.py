@@ -51,8 +51,7 @@ async def process_file_upload(uploaded, validator: Callable) -> bool:
 
 # Sync Wrapper
 def upload_file(
-    label: str, 
-    validator: Callable[[Any], asyncio.Future]
+    label: str, validator: Callable[[Any], asyncio.Future]
 ) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """Display file uploader, validate via provided async validator, and read file."""
     uploaded = st.file_uploader(f"Upload {label}", type=["csv", "xlsx"], key=label)
@@ -83,5 +82,3 @@ def upload_file(
     except Exception as e:
         st.error(f"Error reading {label.lower()}: {e}")
         return None, None
-
-

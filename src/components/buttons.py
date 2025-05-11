@@ -10,6 +10,7 @@ def back_homepage_button():
         st.session_state.app_stage = "initial_choice"
         st.rerun()
 
+
 def back_homepage_from_failed_run_button(button_title: str):
     if st.button(f"↩️ Start Over", key=button_title):
         init_session_state()

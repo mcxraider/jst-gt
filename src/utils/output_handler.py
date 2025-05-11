@@ -49,8 +49,8 @@ def show_dataframe(
 
 def view_download_csvs(dfs):  # a tuple containing 3 tuples
     for i in range(3):
-        dataframe_to_display = dfs[0][0]
-        display_title = dfs[0][1]
+        dataframe_to_display = dfs[i][0]
+        display_title = dfs[i][1]
         show_dataframe(
             dataframe_to_display, title=display_title, key=f"res{i+1}", preview_rows=4
         )

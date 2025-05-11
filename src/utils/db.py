@@ -8,6 +8,7 @@ import time
 import datetime
 from utils.output_handler import rename_output_file
 
+
 async def rename_input_file(file_name: str) -> str:
     """
     Asynchronously renames the file by appending a timestamp and 'input' before the file extension.
@@ -52,8 +53,8 @@ async def wipe_db():
 
     st.session_state["csv_yes"] = False
     st.session_state["pkl_yes"] = False
-    
-    
+
+
 def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
     """
     Helper to load a CSV and return the DataFrame along with its base filename (without extension).
@@ -65,7 +66,7 @@ def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
 
 
 def fetch_valid(
-    path: str = "../temp_output/PublicTransport_all_valid_skill_pl_date.csv",
+    path: str = "../temp_output/AirTransport_all_valid_skill_pl_20250228_0103.csv",
 ) -> tuple[pd.DataFrame, str]:
     """
     Fetch the 'valid' skills CSV.
@@ -74,7 +75,7 @@ def fetch_valid(
 
 
 def fetch_irrelevant(
-    path: str = "../temp_output/PubTransport_irrelevant_skills.csv",
+    path: str = "../temp_output/AirTransport_irrelevant_skills.csv",
 ) -> tuple[pd.DataFrame, str]:
     """
     Fetch the 'irrelevant' skills CSV.
@@ -83,7 +84,7 @@ def fetch_irrelevant(
 
 
 def fetch_invalid(
-    path: str = "../temp_output/PubTransport_r2_invalid_skll_pl_date.csv",
+    path: str = "../temp_output/AirTransport_r2_invalid_skill_pl_20250228_0103.csv",
 ) -> tuple[pd.DataFrame, str]:
     """
     Fetch the 'invalid' skills CSV.
@@ -150,7 +151,7 @@ async def write_input_to_s3(
         ),
     )
 
-    st.success(f"✅ Uploaded `{renamed_sfw}` and `{renamed_sector}` to {abs_path}")
+    st.success(f"✅ Uploaded input files to S3")
 
 
 def async_write_input_to_s3(*args, **kwargs):
@@ -179,7 +180,7 @@ async def write_output_to_s3(
 
     # 3. report success in UI
     for new_name in new_names:
-        st.success(f"✅ Wrote `{new_name}` to {abs_path}")
+        st.success(f"✅ Wrote output files to S3")
 
 
 def async_write_output_to_s3(dfs, **kwargs):

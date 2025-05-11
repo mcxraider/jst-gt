@@ -11,6 +11,7 @@ from utils.db import *
 from utils.processing import *
 from components.buttons import *
 
+
 def prompt_file_upload(
     step: int, label: str, validator: Callable[[Any], asyncio.Future]
 ) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
@@ -29,9 +30,10 @@ def both_files_uploaded(
     return sfw_df is not None and sector_df is not None
 
 
-
 def handle_exit(button_title):
-    st.error("Processing was stopped midway due to a connection issue. If you would like to continue, start over and load from the previous checkpoint!")
+    st.error(
+        "Processing was stopped midway due to a connection issue. If you would like to continue, start over and load from the previous checkpoint!"
+    )
     st.session_state.app_stage = "initial_choice"
     back_homepage_from_failed_run_button(button_title)
 
@@ -85,4 +87,3 @@ def upload_new_pipeline():
         process_uploaded_files(sfw_df, sfw_filename, sector_df, sector_filename)
     else:
         st.info("Please upload and validate both files to continue.")
-
