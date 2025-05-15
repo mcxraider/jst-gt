@@ -3,7 +3,7 @@ api_key = 'sk-bD_KAMHxsvCBtYbM60Xiwg'
 base_url = "https://ai-api.analytics.gov.sg"
 
 # — Directory paths
-input_data_path          = "../../input_data/knowledge_transfer"
+input_data_path          = "../../input_data"
 intermediate_output_path = "../../s3_bucket/s3_intermediate"
 output_path              = "../../s3_bucket/s3_output"
 checkpoint_path          = "../../s3_bucket/s3_checkpoint"

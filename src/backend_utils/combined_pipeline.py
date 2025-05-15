@@ -1,7 +1,5 @@
-import os
 import time
 import pickle
-import hashlib
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -12,7 +10,7 @@ from tqdm import tqdm
 # r1 utilities (unchanged)
 from r1_utils import get_openai_client, process_row
 # r2 utilities (unchanged)
-from r2_utils import get_pl_tagging
+from r2_utils import *
 from config import *
 from skill_rac_chart import skill_proficiency_level_details
 
@@ -53,7 +51,8 @@ class CheckpointManager:
         print(f"[Checkpoint] Saved state at {datetime.now()}")
 
 
-def handle_processing():
+
+def handle_core_processing():
     """
     Orchestrates Round 1 and Round 2 with checkpointing.
     """
@@ -513,6 +512,3 @@ def handle_load_from_checkpoint(ckpt):
     """
     state = ckpt.state
     raise NotImplementedError("Resume from checkpoint must be explicitly implemented.")
-
-if __name__ == '__main__':
-    handle_processing()

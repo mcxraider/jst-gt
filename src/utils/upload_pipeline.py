@@ -8,7 +8,7 @@ from utils.session_handler import *
 from utils.output_handler import *
 from utils.checkpoint_pipeline import *
 from utils.db import *
-from utils.processing import *
+from backend_utils.combined_pipeline import *
 from components.buttons import *
 
 
@@ -52,7 +52,7 @@ def process_uploaded_files(
             async_write_input_to_s3(sfw_filename, sfw_df, sector_filename, sector_df)
 
             # 2) core processing (may exit early)
-            results = handle_core_processing(sfw_df, sector_df)
+            results = handle_core_processing()
 
             # 3) handle early exit
             if not results:

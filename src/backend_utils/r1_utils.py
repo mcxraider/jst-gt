@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 import os
 from config import target_sector, target_sector_alias
+import random
 
 # Create logs directory if it doesn't exist
 log_dir = "../log_files"
@@ -74,57 +75,92 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
         formatted_data += "\n"
     return formatted_data
 
+# def get_proficiency_level(skill_title: str, skill_info: dict, course_description: str, course_learning: str, course_title: str, setup: int, client) -> str: # course_learning: str
+#     """Function to call OpenAI API. Setup is called based on the classification type (1,2,3)"""
+#     formatted_data = format_for_openai(skill_info, setup)
+#     sys_messages = [
+#         {"role": "system",
+#          "content": f"""
+#          You are an expert analyst on educational courses and skills.
+#          CONTEXT:
+#          You are given a skill and the description of the course that teaches it. You are also given the proficiency level description, knowledge and abilities requirements for the skill.
+#          Based on the proficiency level description and requirements, associate the skill to one of the proficiency levels, according to how the skill is being taught in the educational course.
+#          GIVEN INFORMATION:
+#                 1. Description of the educational course.
+#                 2. The skill taught through the educational course.
+#                 3. Respective proficiency level description and requirements of the skill.
+#          TASK:
+#                 1. Analyse the given course description.
+#                 2. Analyse how the given skill and how it is taught in the course.
+#                 3. Understand how each of the proficiency level is defined for the given skill.
+#                 4. Determine which proficiency level the skill should be associated with, according to how it is being taught through the educational course. Keep to only the list of available proficiency levels.
+#                 5. Indicate proficiency level as 0 if the skill cannot be associated to any of the given proficiency levels or when you are unsure.
+#                 6. Provide a reason, in less than 30 words, on how you arrived at your conclusion.
+#                 7. Provide a confidence level of your skills to proficiency level association: low / medium / high. Choose only from these 3 words and do not return anything other than these 3 words.
+#         OUTPUT FORMAT:
+#         Return me ONLY ONE DICTIONARY in the following JSON format:
+#         {{
+#             "proficiency_level": "integer value of the proficiency level", 
+#             "reason": "text string of your reasoning", 
+#             "confidence": "low / medium / high"
+#         }}
+#         DO NOT RETURN ANYTHING OTHER THAN THIS JSON. YOUR OUTPUT IS MEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
+#         """
+#         },
+#         {"role": "user", 
+#          "content": f"""Determine the appropriate proficency level for skill: "{skill_title}", based on how it's taught in the following description of a course: {course_title}, Course Description: {course_description} Course Learning Objectives: {course_learning}. And how its proficiency levels are defined: {formatted_data}.
+#         """} # , with the following course learning: {course_learning}
+#     ]
+    
+#     try:
+#         response = client.chat.completions.create(
+#             model="gpt-4o",
+#             messages= sys_messages,
+#             response_format={"type": "json_object"},
+#             seed=6800,
+#             temperature=0.1
+#         )
+    
+#         completion_output = response.choices[0].message.content
+#     except:
+#         completion_output = ""
+    
+#     return completion_output
+
+
+
+# simulated response form chatgpt so no need API key
 def get_proficiency_level(skill_title: str, skill_info: dict, course_description: str, course_learning: str, course_title: str, setup: int, client) -> str: # course_learning: str
-    """Function to call OpenAI API. Setup is called based on the classification type (1,2,3)"""
-    formatted_data = format_for_openai(skill_info, setup)
-    sys_messages = [
-        {"role": "system",
-         "content": f"""
-         You are an expert analyst on educational courses and skills.
-         CONTEXT:
-         You are given a skill and the description of the course that teaches it. You are also given the proficiency level description, knowledge and abilities requirements for the skill.
-         Based on the proficiency level description and requirements, associate the skill to one of the proficiency levels, according to how the skill is being taught in the educational course.
-         GIVEN INFORMATION:
-                1. Description of the educational course.
-                2. The skill taught through the educational course.
-                3. Respective proficiency level description and requirements of the skill.
-         TASK:
-                1. Analyse the given course description.
-                2. Analyse how the given skill and how it is taught in the course.
-                3. Understand how each of the proficiency level is defined for the given skill.
-                4. Determine which proficiency level the skill should be associated with, according to how it is being taught through the educational course. Keep to only the list of available proficiency levels.
-                5. Indicate proficiency level as 0 if the skill cannot be associated to any of the given proficiency levels or when you are unsure.
-                6. Provide a reason, in less than 30 words, on how you arrived at your conclusion.
-                7. Provide a confidence level of your skills to proficiency level association: low / medium / high. Choose only from these 3 words and do not return anything other than these 3 words.
-        OUTPUT FORMAT:
-        Return me ONLY ONE DICTIONARY in the following JSON format:
-        {{
-            "proficiency_level": "integer value of the proficiency level", 
-            "reason": "text string of your reasoning", 
-            "confidence": "low / medium / high"
-        }}
-        DO NOT RETURN ANYTHING OTHER THAN THIS JSON. YOUR OUTPUT IS MEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
-        """
+    """Simulated LLM API call that randomly returns a predefined response."""
+    sample_responses = [
+        {
+            "proficiency": 2,
+            "reason": "The course content involves leadership and resource allocation, which aligns with Level 2: Lead small projects.",
+            "confidence": "high"
         },
-        {"role": "user", 
-         "content": f"""Determine the appropriate proficency level for skill: "{skill_title}", based on how it's taught in the following description of a course: {course_title}, Course Description: {course_description} Course Learning Objectives: {course_learning}. And how its proficiency levels are defined: {formatted_data}.
-        """} # , with the following course learning: {course_learning}
+        {
+            "proficiency": 3,
+            "reason": "Mentions managing resources and leading teams—activities aligned with cross-functional project management in Level 3.",
+            "confidence": "medium"
+        },
+        {
+            "proficiency": 0,
+            "reason": "The course description lacks sufficient detail to confidently map to a defined level in the Knowledge Base.",
+            "confidence": "low"
+        },
+        {
+            "proficiency": 1,
+            "reason": "Basic scheduling and support tasks suggest an assisting role, which fits Level 1.",
+            "confidence": "medium"
+        },
+        {
+            "proficiency": 2,
+            "reason": "Team leadership and task planning imply a supervisory role, typically associated with Level 2.",
+            "confidence": "high"
+        }
     ]
-    
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages= sys_messages,
-            response_format={"type": "json_object"},
-            seed=6800,
-            temperature=0.1
-        )
-    
-        completion_output = response.choices[0].message.content
-    except:
-        completion_output = ""
-    
-    return completion_output
+
+    return random.choice(sample_responses)
 
 
 def process_row(row, skill_info_dict, knowledge_df, lock, client):

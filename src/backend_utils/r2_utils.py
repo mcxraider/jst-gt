@@ -1,8 +1,4 @@
 import hashlib
-import threading
-import concurrent.futures
-import json
-from openai import OpenAI
 import openai
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,6 +8,7 @@ import os
 from ast import literal_eval
 from config import *
 from tqdm import tqdm  # make sure you’ve installed tqdm (pip install tqdm)
+import random
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
@@ -30,22 +27,57 @@ def generate_hash(text):
     string_hash = hashlib.sha256(str.encode(text)).hexdigest()
     return string_hash
 
-def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
-    client = openai.OpenAI(api_key=api_key,base_url="https://ai-api.analytics.gov.sg")
+# def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
+#     client = openai.OpenAI(api_key=api_key,base_url="https://ai-api.analytics.gov.sg")
 
-    try:
-        response = client.chat.completions.create(
-            model=model, 
-            messages = sys_msg,
-            response_format={"type": "json_object"},
-            seed=6800,
-            temperature=temperature
-        )
-        completion_output = literal_eval(response.choices[0].message.content)
-    except:
-        completion_output = ""
+#     try:
+#         response = client.chat.completions.create(
+#             model=model, 
+#             messages = sys_msg,
+#             response_format={"type": "json_object"},
+#             seed=6800,
+#             temperature=temperature
+#         )
+#         completion_output = literal_eval(response.choices[0].message.content)
+#     except:
+#         completion_output = ""
         
-    return completion_output
+#     return completion_output
+
+
+# simulated response form chatgpt so no need API key
+def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
+    """Simulated LLM API call that randomly returns a predefined response."""
+    sample_responses = [
+        {
+            "proficiency": 2,
+            "reason": "The course content involves leadership and resource allocation, which aligns with Level 2: Lead small projects.",
+            "confidence": "high"
+        },
+        {
+            "proficiency": 3,
+            "reason": "Mentions managing resources and leading teams—activities aligned with cross-functional project management in Level 3.",
+            "confidence": "medium"
+        },
+        {
+            "proficiency": 0,
+            "reason": "The course description lacks sufficient detail to confidently map to a defined level in the Knowledge Base.",
+            "confidence": "low"
+        },
+        {
+            "proficiency": 1,
+            "reason": "Basic scheduling and support tasks suggest an assisting role, which fits Level 1.",
+            "confidence": "medium"
+        },
+        {
+            "proficiency": 2,
+            "reason": "Team leadership and task planning imply a supervisory role, typically associated with Level 2.",
+            "confidence": "high"
+        }
+    ]
+
+    return random.choice(sample_responses)
+
 
 SYSTEM_PROMPT = textwrap.dedent("""
     You are a helpful expert in the area of training courses and skills.
