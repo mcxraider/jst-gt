@@ -22,7 +22,7 @@ def handle_core_processing(
 
     for i in range(num_rows):
         # simulate work
-        time.sleep(2)
+        time.sleep(0.5)
         progress = (i + 1) / num_rows
         progress_bar.progress(progress)
 
@@ -50,7 +50,7 @@ def handle_core_processing(
 def retrieve_checkpoint_metadata(
     ckpt_path=Path("../s3_bucket/s3_checkpoint/ckpt.pkl").resolve(),
 ):
-    time.sleep(3)
+    time.sleep(1)
 
     ckpt_path = Path("../s3_bucket/s3_checkpoint/ckpt.pkl").resolve()
 
@@ -92,7 +92,7 @@ def handle_checkpoint_processing(
 
     # Continue processing from last checkpoint
     for i in range(start_iter, num_rows):
-        time.sleep(2)
+        time.sleep(0.5)
         progress = (i + 1) / num_rows
         progress_bar.progress(progress)
 
