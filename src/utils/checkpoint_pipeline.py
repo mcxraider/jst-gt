@@ -3,7 +3,7 @@ from typing import Optional, Tuple, List, Any
 from utils.processing import *
 from utils.output_handler import *
 from utils.upload_pipeline import *
-
+from backend_utils.combined_pipeline_claude import handle_checkpoint_processing
 
 def load_checkpoint_pipeline():
     """Simulates the 'Load Checkpoint' pipeline, assumes checkpoint yields Pandas DFs."""
