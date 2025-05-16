@@ -2,11 +2,9 @@ import streamlit as st
 import pandas as pd
 import os
 import asyncio
-from typing import Optional, Tuple, List, Any, Callable
 from pathlib import Path
 import time
 import datetime
-from utils.output_handler import rename_output_file
 
 
 async def rename_input_file(file_name: str) -> str:
@@ -16,6 +14,17 @@ async def rename_input_file(file_name: str) -> str:
     base, ext = os.path.splitext(file_name)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     new_name = f"{base}_{timestamp}_input{ext}"
+    return new_name
+
+
+
+async def rename_output_file(file_name: str) -> str:
+    """
+    Asynchronously renames the file by appending a timestamp and 'output' before the file extension.
+    """
+    base, ext = os.path.splitext(file_name)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    new_name = f"{base}_{timestamp}_output{ext}"
     return new_name
 
 
@@ -45,7 +54,8 @@ async def wipe_db():
         return
 
     # Indicate the wipe and reset flags
-    st.write("Wiping database now…")
+
+    st.info("Wiping database now…")
     base_dir = Path("../s3_bucket")
 
     # logic below should be replaced with this function here
@@ -158,7 +168,6 @@ def async_write_input_to_s3(*args, **kwargs):
     return asyncio.run(write_input_to_s3(*args, **kwargs))
 
 
-# this is the rpoblem
 async def write_output_to_s3(
     dfs: list[tuple[pd.DataFrame, str]],
     S3_OUTPUT_DIR_PATH: str = "../s3_bucket/s3_output",
@@ -166,21 +175,27 @@ async def write_output_to_s3(
     abs_path = Path(S3_OUTPUT_DIR_PATH).resolve()
     abs_path.mkdir(parents=True, exist_ok=True)
 
-    # 1. kick off all the renames in parallel
+
+    # Debug check
+    for i, item in enumerate(dfs):
+        if not isinstance(item, tuple) or len(item) != 2:
+            raise ValueError(
+                f"[ERROR] dfs[{i}] must be a tuple (DataFrame, str), but got: {item}"
+            )
+
+    # 1. Rename tasks in parallel
     rename_tasks = [rename_output_file(fname) for _, fname in dfs]
     new_names = await asyncio.gather(*rename_tasks)
 
     loop = asyncio.get_running_loop()
-    # 2. kick off all the writes in parallel
     write_tasks = [
         loop.run_in_executor(None, write_output_file, abs_path, df, new_name)
         for (df, _), new_name in zip(dfs, new_names)
     ]
     await asyncio.gather(*write_tasks)
 
-    # 3. report success in UI
-    for new_name in new_names:
-        st.success(f"✅ Wrote output files to S3")
+
+    st.success(f"✅ Wrote all {len(dfs)} output files to S3")
 
 
 def async_write_output_to_s3(dfs, **kwargs):

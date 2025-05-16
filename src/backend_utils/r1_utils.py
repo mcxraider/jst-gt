@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 from datetime import datetime
 import os
+<<<<<<< HEAD
 from config import target_sector, target_sector_alias
 import random
 
@@ -48,6 +49,59 @@ def get_skill_info(skill_title: str, skill_df: pd.DataFrame) -> dict:
     logging.info(f"get_skill_info: {skill_title}")
     return proficiency_dict
 
+=======
+import random
+
+# Generate timestamped log filename
+timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+
+def get_openai_client(api_key, base_url):
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    return client
+
+
+def get_skill_info(skill_title: str, skill_df: pd.DataFrame) -> dict:
+    """Function that filters for skill_title"""
+    skill_info = skill_df[
+        skill_df["TSC_CCS Title"] == skill_title
+    ]  # extracts all dataframe with the skill title
+    proficiency_dict = {}
+    levels = skill_info[
+        "Proficiency Level"
+    ].unique()  # get the all proficiency levels of skill
+
+    for level in levels:
+        level_info = skill_info[
+            skill_info["Proficiency Level"] == level
+        ]  # extracts all dataframes with the proficiency level
+        knowledge_items = (
+            level_info[level_info["Knowledge / Ability Classification"] == "knowledge"][
+                "Knowledge / Ability Items"
+            ]
+            .unique()
+            .tolist()
+        )  # extract all knowledge of proficiency into skill
+        ability_items = (
+            level_info[level_info["Knowledge / Ability Classification"] == "ability"][
+                "Knowledge / Ability Items"
+            ]
+            .unique()
+            .tolist()
+        )  # extract all ability of proficiency into skill
+        proficiency_description = level_info["Proficiency Description"].iloc[
+            0
+        ]  # extract proficiency description
+        proficiency_dict[level] = {
+            "knowledge": knowledge_items,
+            "ability": ability_items,
+            "proficiency_description": proficiency_description,
+        }
+    # print(f"get_skill_info: {skill_title}")
+    return proficiency_dict
+
+
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 def format_for_openai(proficiency_info: dict, setup: int) -> str:
     """
     Formats data for OpenAI prompt
@@ -57,6 +111,7 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
     3: Use Proficiency Description + Knowledge + Ability Items
     """
     formatted_data = ""
+<<<<<<< HEAD
     
     for level, items in proficiency_info.items():   #format data for LLM parsing
         formatted_data += f"Proficiency Level: {level}\n"
@@ -75,6 +130,73 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
         formatted_data += "\n"
     return formatted_data
 
+=======
+
+    for level, items in proficiency_info.items():  # format data for LLM parsing
+        formatted_data += f"Proficiency Level: {level}\n"
+        formatted_data += (
+            f"Proficiency Description: {items['proficiency_description']}\n"
+        )
+
+        if setup == 1 or setup == 3:
+            formatted_data += "Knowledge Items:\n"
+            for item in items["knowledge"]:
+                formatted_data += f"- {item}\n"
+
+        if setup == 2 or setup == 3:
+            formatted_data += "Ability Items:\n"
+            for item in items["ability"]:
+                formatted_data += f"- {item}\n"
+
+        formatted_data += "\n"
+    return formatted_data
+
+
+def get_proficiency_level(
+    skill_title: str,
+    skill_info: dict,
+    course_description: str,
+    course_learning: str,
+    course_title: str,
+    setup: int,
+    client=None,
+) -> str:
+    """
+    Simulated GPT call: randomly returns one of five example proficiency-level predictions.
+    Signature matches get_proficiency_level, so you can swap them out easily.
+    """
+    examples = [
+        {
+            "proficiency_level": 0,
+            "reason": "Course doesn’t cover this skill explicitly.",
+            "confidence": "low",
+        },
+        {
+            "proficiency_level": 1,
+            "reason": "Introduces foundational concepts only.",
+            "confidence": "high",
+        },
+        {
+            "proficiency_level": 2,
+            "reason": "Includes guided exercises applying the skill.",
+            "confidence": "medium",
+        },
+        {
+            "proficiency_level": 3,
+            "reason": "Covers advanced theory and case studies.",
+            "confidence": "medium",
+        },
+        {
+            "proficiency_level": 2,
+            "reason": "Skill used in group project settings.",
+            "confidence": "high",
+        },
+    ]
+    # pick one at random and return as JSON string
+    return json.dumps(random.choice(examples))
+
+
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 # def get_proficiency_level(skill_title: str, skill_info: dict, course_description: str, course_learning: str, course_title: str, setup: int, client) -> str: # course_learning: str
 #     """Function to call OpenAI API. Setup is called based on the classification type (1,2,3)"""
 #     formatted_data = format_for_openai(skill_info, setup)
@@ -100,18 +222,31 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
 #         OUTPUT FORMAT:
 #         Return me ONLY ONE DICTIONARY in the following JSON format:
 #         {{
+<<<<<<< HEAD
 #             "proficiency_level": "integer value of the proficiency level", 
 #             "reason": "text string of your reasoning", 
+=======
+#             "proficiency_level": "integer value of the proficiency level",
+#             "reason": "text string of your reasoning",
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 #             "confidence": "low / medium / high"
 #         }}
 #         DO NOT RETURN ANYTHING OTHER THAN THIS JSON. YOUR OUTPUT IS MEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
 #         """
 #         },
+<<<<<<< HEAD
 #         {"role": "user", 
 #          "content": f"""Determine the appropriate proficency level for skill: "{skill_title}", based on how it's taught in the following description of a course: {course_title}, Course Description: {course_description} Course Learning Objectives: {course_learning}. And how its proficiency levels are defined: {formatted_data}.
 #         """} # , with the following course learning: {course_learning}
 #     ]
     
+=======
+#         {"role": "user",
+#          "content": f"""Determine the appropriate proficency level for skill: "{skill_title}", based on how it's taught in the following description of a course: {course_title}, Course Description: {course_description} Course Learning Objectives: {course_learning}. And how its proficiency levels are defined: {formatted_data}.
+#         """} # , with the following course learning: {course_learning}
+#     ]
+
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 #     try:
 #         response = client.chat.completions.create(
 #             model="gpt-4o",
@@ -120,6 +255,7 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
 #             seed=6800,
 #             temperature=0.1
 #         )
+<<<<<<< HEAD
     
 #         completion_output = response.choices[0].message.content
 #     except:
@@ -163,6 +299,16 @@ def get_proficiency_level(skill_title: str, skill_info: dict, course_description
     return random.choice(sample_responses)
 
 
+=======
+
+#         completion_output = response.choices[0].message.content
+#     except:
+#         completion_output = ""
+
+#     return completion_output
+
+
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 def process_row(row, skill_info_dict, knowledge_df, lock, client):
     bad_course_filepath = "./bad_course_list.txt"
     skill_title = row["Skill Title"]
@@ -177,6 +323,7 @@ def process_row(row, skill_info_dict, knowledge_df, lock, client):
             proficiency_info = get_skill_info(skill_title, knowledge_df)
             skill_info_dict[skill_title] = proficiency_info
 
+<<<<<<< HEAD
     proficiency_level_with_reason = get_proficiency_level(skill_title, proficiency_info, course_description, course_learning, course_title, 3, client) 
     if proficiency_level_with_reason == "":
         if not os.path.exists(bad_course_filepath):
@@ -184,6 +331,23 @@ def process_row(row, skill_info_dict, knowledge_df, lock, client):
                 file.write(f"""{row["Course Reference Number"]}\n""")
         else:
             with open(bad_course_filepath, 'a') as fi:
+=======
+    proficiency_level_with_reason = get_proficiency_level(
+        skill_title,
+        proficiency_info,
+        course_description,
+        course_learning,
+        course_title,
+        3,
+        client,
+    )
+    if proficiency_level_with_reason == "":
+        if not os.path.exists(bad_course_filepath):
+            with open(bad_course_filepath, "w") as file:
+                file.write(f"""{row["Course Reference Number"]}\n""")
+        else:
+            with open(bad_course_filepath, "a") as fi:
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
                 fi.write(f"""{row["Course Reference Number"]}\n""")
         pass
 
@@ -196,16 +360,36 @@ def process_row(row, skill_info_dict, knowledge_df, lock, client):
         res_dict = {}
         res_dict["Skill Title"] = row["Skill Title"]
         res_dict["Course Reference Number"] = row["Course Reference Number"]
+<<<<<<< HEAD
     
     return res_dict
 
+=======
+
+    return res_dict
+
+
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 def run_in_parallel(course_df, knowledge_df, client):
     skill_info_dict = {}
     results = []
     lock = Lock()
     with ThreadPoolExecutor(max_workers=15) as executor:
+<<<<<<< HEAD
         futures = [executor.submit(process_row, row, skill_info_dict, knowledge_df, lock, client) for ind, row in course_df.iterrows()]
         for future in futures:
             results.append(future.result())
     results_df = pd.DataFrame(results)
     return results_df
+=======
+        futures = [
+            executor.submit(
+                process_row, row, skill_info_dict, knowledge_df, lock, client
+            )
+            for ind, row in course_df.iterrows()
+        ]
+        for future in futures:
+            results.append(future.result())
+    results_df = pd.DataFrame(results)
+    return results_df
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)

@@ -54,13 +54,3 @@ def view_download_csvs(dfs):  # a tuple containing 3 tuples
         show_dataframe(
             dataframe_to_display, title=display_title, key=f"res{i+1}", preview_rows=4
         )
-
-
-async def rename_output_file(file_name: str) -> str:
-    """
-    Asynchronously renames the file by appending a timestamp and 'output' before the file extension.
-    """
-    base, ext = os.path.splitext(file_name)
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    new_name = f"{base}_{timestamp}_output{ext}"
-    return new_name

@@ -1,15 +1,17 @@
 # OpenAI APIs
-api_key = 'sk-bD_KAMHxsvCBtYbM60Xiwg'
+
+api_key = "sk-"
 base_url = "https://ai-api.analytics.gov.sg"
 
 # — Directory paths
-input_data_path          = "../../input_data"
-intermediate_output_path = "../../s3_bucket/s3_intermediate"
-output_path              = "../../s3_bucket/s3_output"
-checkpoint_path          = "../../s3_bucket/s3_checkpoint"
+input_data_path = "../temp_input"
+intermediate_output_path = "../s3_bucket/s3_intermediate"
+output_path = "../s3_bucket/s3_output"
+misc_output_path = "../s3_bucket/s3_misc_output"
+checkpoint_path = "../s3_bucket/s3_checkpoint"
 
 # — Sector parameters
-target_sector       = ["Human Resource"] # can have multiple
+target_sector = ["Human Resource"]  # can have multiple
 target_sector_alias = "HR"
 
 # — Master course file
@@ -26,12 +28,13 @@ course_data_columns  = [
 
 # — SFW (supplemental) raw data
 input_sfw_filename = "SFw_HR_Listing_v01.xlsx"
-sfw_raw_data_path  = f"{input_data_path}/{input_sfw_filename}"
-sfw_raw_data_sheet = "Sheet1"
+
+sfw_raw_data_path = f"{input_data_path}/{input_sfw_filename}"
+sfw_raw_data_sheet = "SFW_HR"
 
 # — Course‐specific column lists
 course_raw_data_sheet = target_sector_alias
-course_raw_data_cols  = [
+course_raw_data_cols = [
     "Course Reference Number",
     "Skill Title",
     "Course Title",
@@ -39,6 +42,7 @@ course_raw_data_cols  = [
     "What You'll Learn",
 ]
 course_descr_cols     = [
+
     "Course Reference Number",
     "Course Title",
     "About This Course",

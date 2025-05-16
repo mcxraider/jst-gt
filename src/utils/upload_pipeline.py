@@ -8,7 +8,8 @@ from utils.session_handler import *
 from utils.output_handler import *
 from utils.checkpoint_pipeline import *
 from utils.db import *
-from backend_utils.combined_pipeline import *
+
+from backend_utils.combined_pipeline_claude import handle_core_processing
 from components.buttons import *
 
 

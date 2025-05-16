@@ -1,4 +1,11 @@
 .env
 .DS_Store
 venv/
+<<<<<<< HEAD
 *__pycache__
+=======
+*__pycache__
+s3_bucket/
+temp_input/
+temp_output/
+>>>>>>> b51c457 (improved r1 and r2 processing pipeline)
