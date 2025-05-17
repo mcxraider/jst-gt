@@ -32,4 +32,5 @@ def load_checkpoint_pipeline():
         st.session_state.app_stage = "results_ready"
 
         st.rerun()
-        back_homepage_button()
+
+    back_homepage_button()

@@ -11,6 +11,7 @@ from utils.db import *
 
 from backend_utils.combined_pipeline_claude import handle_core_processing
 from components.buttons import *
+from components.ui import *
 
 
 def prompt_file_upload(
@@ -36,7 +37,6 @@ def handle_exit(button_title):
         "Processing was stopped midway due to a connection issue. If you would like to continue, start over and load from the previous checkpoint!"
     )
     st.session_state.app_stage = "initial_choice"
-    back_homepage_from_failed_run_button(button_title)
 
 
 def process_uploaded_files(
@@ -46,8 +46,10 @@ def process_uploaded_files(
     sector_filename: str,
 ):
     """Render the process button, upload to S3, run core processing, and update state."""
-    st.subheader("3. Start Processing")
-    if st.button("Process Uploaded Data"):
+    selected_sector = st.session_state.selected_process[2:]
+
+    st.subheader(f"3. Start Processing for {selected_sector} sector")
+    if st.button("Process Data"):
         with st.spinner("Processing..."):
             # 1) upload inputs
             async_write_input_to_s3(sfw_filename, sfw_df, sector_filename, sector_df)
@@ -68,19 +70,33 @@ def process_uploaded_files(
             st.session_state.csv_yes = True
             st.session_state.app_stage = "results_ready"
         st.rerun()
-        back_homepage_button()
 
 
 def upload_new_pipeline():
+    create_header()
+
+    st.markdown(
+        """
+    <div class="css-card">
+        <h2 style="margin-top: 0;">Upload Files</h2>
+        <p>Please upload the required files for your selected process.</p>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
     """Handles two file uploads with distinct validation logic and proceeds when ready."""
     # Step 1: SFW framework file
+    selected_sector = st.session_state.selected_process[2:]
+
     sfw_df, sfw_filename = prompt_file_upload(
-        step=1, label="SFW Framework File", validator=validate_sfw_file_input
+        step=1,
+        label=f"{selected_sector} SFW Framework",
+        validator=validate_sfw_file_input,
     )
 
     # Step 2: Sector file
     sector_df, sector_filename = prompt_file_upload(
-        step=2, label="Sector File", validator=validate_sector_file_input
+        step=2, label=f"{selected_sector} File", validator=validate_sector_file_input
     )
 
     # Step 3: Check uploads and process or warn
@@ -88,3 +104,5 @@ def upload_new_pipeline():
         process_uploaded_files(sfw_df, sfw_filename, sector_df, sector_filename)
     else:
         st.info("Please upload and validate both files to continue.")
+
+    back_homepage_button()
