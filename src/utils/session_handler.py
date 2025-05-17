@@ -6,9 +6,10 @@ from pathlib import Path
 
 def configure_page():
     """Set Streamlit page configuration and title."""
-    page_title = "Proficiency Skills Tagging Processor"
-    st.set_page_config(page_title=page_title, layout="wide")
-    st.title(page_title)
+    st.set_page_config(
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
 
 
 def check_pkl_existence() -> bool:
@@ -42,3 +43,6 @@ def init_session_state():
 
     if "exit_halfway" not in st.session_state:
         st.session_state["exit_halfway"] = False
+
+    if "selected_process" not in st.session_state:
+        st.session_state["selected_process"] = "None"

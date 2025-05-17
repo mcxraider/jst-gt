@@ -55,6 +55,7 @@ def upload_file(
 ) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """Display file uploader, validate via provided async validator, and read file."""
     uploaded = st.file_uploader(f"Upload {label}", type=["csv", "xlsx"], key=label)
+
     if uploaded is None:
         return None, None
 

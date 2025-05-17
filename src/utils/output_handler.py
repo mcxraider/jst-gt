@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-from typing import Optional, Tuple, List, Any
-import os
-import datetime
+from components.ui import *
 
 
 def load_checkpoint_ui():
+    create_header()
     st.header("🔄 Load Previous Checkpoint")
     st.markdown(
         """
@@ -15,36 +14,48 @@ def load_checkpoint_ui():
     )
 
 
-# preview the dataframe and also make it available for download
+# Enhanced function to show dataframe with better styling
 def show_dataframe(
     df: pd.DataFrame, title: str, key: str, preview_rows: int | None = None
 ):
     """
     Display a dataframe (or just the first `preview_rows` rows) with a subheader
-    and a CSV download button.
-
-    Args:
-      df: full DataFrame
-      title: title displayed above the table
-      key: Streamlit key for the download button
-      preview_rows: if set, only df.head(preview_rows) will be shown.
+    and a CSV download button with enhanced styling.
     """
-    # choose what to show
+    # Choose what to show
     preview_df = df if preview_rows is None else df.head(preview_rows)
+
+    st.markdown(
+        f"""
+    <div class="css-card">
+        <h3 style="margin-top: 0;">{title}</h3>
+    """,
+        unsafe_allow_html=True,
+    )
 
     col_display, col_download = st.columns([3, 1])
     with col_display:
-        st.subheader(title)
-        st.dataframe(preview_df)
+        st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
+        st.dataframe(preview_df, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if preview_rows is not None and len(df) > preview_rows:
+            st.caption(f"Showing {preview_rows} of {len(df)} records")
 
     with col_download:
+        st.markdown("<br>", unsafe_allow_html=True)
+        csv = df.to_csv(index=False).encode("utf-8")
+
         st.download_button(
-            label="Download CSV",
-            data=df.to_csv(index=False).encode("utf-8"),  # downloads the full df
+            label="📥 Download CSV",
+            data=csv,
             file_name=f"{title}.csv",
             mime="text/csv",
             key=key,
+            use_container_width=True,
         )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def view_download_csvs(dfs):  # a tuple containing 3 tuples
