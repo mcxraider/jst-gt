@@ -1,10 +1,7 @@
 import streamlit as st
 from typing import Optional, Tuple, List, Any
 import os
-<<<<<<< HEAD
-=======
 from pathlib import Path
->>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 
 
 def configure_page():
@@ -14,8 +11,6 @@ def configure_page():
     st.title(page_title)
 
 
-<<<<<<< HEAD
-=======
 def check_pkl_existence() -> bool:
     checkpoint_dir = Path("../s3_bucket/s3_checkpoint")
     if not checkpoint_dir.exists():
@@ -23,7 +18,6 @@ def check_pkl_existence() -> bool:
     return any(checkpoint_dir.glob("*.pkl"))
 
 
->>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 # store these variables in S3.
 def init_session_state():
     """Initialize session state variables."""
@@ -44,12 +38,7 @@ def init_session_state():
             st.session_state["csv_yes"] = False
 
     if "pkl_yes" not in st.session_state:
-<<<<<<< HEAD
-        ckpt_path = "../s3_bucket/s3_checkpoint/ckpt.pkl"
-        st.session_state["pkl_yes"] = os.path.exists(ckpt_path)
-=======
         st.session_state["pkl_yes"] = check_pkl_existence()
->>>>>>> b51c457 (improved r1 and r2 processing pipeline)
 
     if "exit_halfway" not in st.session_state:
         st.session_state["exit_halfway"] = False

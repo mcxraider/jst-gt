@@ -45,15 +45,21 @@ irrelevant_output_path = (
 
 
 def wrap_valid_df_with_name(df):
-    return (df, f"{target_sector_alias}_r2_valid_skill_pl_{timestamp}.csv")
+    # name = f"{target_sector_alias}_valid_skill_pl_{timestamp}"
+    name = f"Valid Skills for {target_sector_alias} sector"
+    return (df, name)
 
 
 def wrap_invalid_df_with_name(df):
-    return (df, f"{target_sector_alias}_r2_invalid_skill_pl_{timestamp}.csv")
+    # name = f"{target_sector_alias}_invalid_skill_pl_{timestamp} sector"
+    name = f"Invalid Skills for {target_sector_alias}"
+    return (df, name)
 
 
 def wrap_all_df_with_name(df):
-    return (df, f"{target_sector_alias}_all_skill_pl_{timestamp}.csv")
+    # name = f"{target_sector_alias}_all_skill_pl_{timestamp}"
+    name = f"All Tagged Skills for {target_sector_alias} sector"
+    return (df, name)
 
 
 class CheckpointManager:
@@ -72,10 +78,11 @@ class CheckpointManager:
 
     def load(self) -> bool:
         if self.checkpoint_path.exists():
-            with open(self.checkpoint_path, "rb") as f:
-                self.state = pickle.load(f)
-            print(f"[Checkpoint] Loaded state from {self.checkpoint_path}")
-            st.info(f"Loaded checkpoint from {self.checkpoint_path}")
+            with st.spinner("Retrieving data from previously saved checkpoint"):
+                with open(self.checkpoint_path, "rb") as f:
+                    self.state = pickle.load(f)
+                print(f"[Checkpoint] Loaded state from {self.checkpoint_path}")
+                st.success("✅ Checkpoint metadata retrieved!")
 
             # Extract progress information if available
             if "progress" in self.state:
@@ -640,10 +647,6 @@ def resume_round2(
         columns=["invalid_pl"], errors="ignore"
     )
 
-    r2_invalid.to_csv(r2_invalid_output_path, index=False, encoding="utf-8")
-    r2_valid.to_csv(r2_valid_output_path, index=False, encoding="utf-8")
-    all_valid.to_csv(all_valid_output_path, index=False, encoding="utf-8")
-
     # i) Poor-data-quality courses
     orig = pd.read_excel(course_descr_data_path, engine="openpyxl")
 
@@ -715,12 +718,28 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             .reset_index(drop=True)
         )
 
-        # Get the working dataframe
-        work_df = (
-            course_df[course_df["Sector Relevance"] == "In Sector"]
-            .reset_index(drop=True)
-            .head(num_rows)
-        )
+        def get_work_df(course_df: pd.DataFrame, num_rows: int = 100) -> pd.DataFrame:
+            try:
+                # TODO Fix this error
+                if "Sector Relevance" not in course_df.columns:
+                    raise KeyError(
+                        "'Sector Relevance' column not found in the DataFrame."
+                    )
+
+                filtered_df = course_df[course_df["Sector Relevance"] == "In Sector"]
+
+                if filtered_df.empty:
+                    raise ValueError(
+                        "No rows found with 'Sector Relevance' == 'In Sector'."
+                    )
+
+                return filtered_df.reset_index(drop=True).head(num_rows)
+
+            except Exception as e:
+                print(f"[Error] Failed to extract working DataFrame: {e}")
+                return pd.DataFrame()  # Return empty DataFrame on error
+
+        work_df = get_work_df(course_df, num_rows)
 
         # Resume Round 1
         r1_results = resume_round1(work_df, sfw, ckpt, progress_bar)
@@ -753,7 +772,7 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
         df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
         st.success(
-            f"Round 1 complete: {len(df_valid1)} valid, {len(df_invalid1)} invalid."
+            f"Round 1 complete after checkpointing: {len(df_valid1)} valid, {len(df_invalid1)} invalid."
         )
 
         # Continue with Round 2 setup and processing
@@ -849,7 +868,7 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             st.warning("Processing halted due to exit_halfway toggle.")
             return []
 
-        st.success(f"Round 2 complete, all files saved in S3.")
+        st.success(f"Round 2 complete after checkpointing, all files saved in S3.")
         ret_r2_valid = wrap_valid_df_with_name(r2_valid)
         ret_r2_invalid = wrap_invalid_df_with_name(r2_invalid)
         ret_all_valid = wrap_all_df_with_name(all_valid)
