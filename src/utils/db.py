@@ -17,14 +17,12 @@ async def rename_input_file(file_name: str) -> str:
     return new_name
 
 
-
 async def rename_output_file(file_name: str) -> str:
     """
     Asynchronously renames the file by appending a timestamp and 'output' before the file extension.
     """
     base, ext = os.path.splitext(file_name)
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    new_name = f"{base}_{timestamp}_output{ext}"
+    new_name = f"{base}_output{ext}"
     return new_name
 
 
@@ -65,50 +63,45 @@ async def wipe_db():
     st.session_state["pkl_yes"] = False
 
 
-def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
+BASE_DIR = Path("/Users/Spare/Desktop/jst-gt/s3_bucket/s3_output")
+
+
+def _fetch_df(path: Path) -> tuple[pd.DataFrame, str]:
     """
     Helper to load a CSV and return the DataFrame along with its base filename (without extension).
     """
-    filepath = Path(path)
-    df = pd.read_csv(filepath)
-    name = filepath.stem
+    df = pd.read_csv(path)
+    name = path.stem
     return df, name
 
 
-def fetch_valid(
-    path: str = "../temp_output/AirTransport_all_valid_skill_pl_20250228_0103.csv",
-) -> tuple[pd.DataFrame, str]:
+def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
     """
-    Fetch the 'valid' skills CSV.
+    Fetches the first CSV file in BASE_DIR starting with the given prefix.
     """
-    return _fetch_df(path)
+    matches = list(BASE_DIR.glob(f"{prefix}*.csv"))
+    if not matches:
+        raise FileNotFoundError(f"No file starting with '{prefix}' found in {BASE_DIR}")
+    return _fetch_df(matches[0])
 
 
-def fetch_irrelevant(
-    path: str = "../temp_output/AirTransport_irrelevant_skills.csv",
-) -> tuple[pd.DataFrame, str]:
-    """
-    Fetch the 'irrelevant' skills CSV.
-    """
-    return _fetch_df(path)
+def fetch_valid() -> tuple[pd.DataFrame, str]:
+    return fetch_by_prefix("Valid Skills")
 
 
-def fetch_invalid(
-    path: str = "../temp_output/AirTransport_r2_invalid_skill_pl_20250228_0103.csv",
-) -> tuple[pd.DataFrame, str]:
-    """
-    Fetch the 'invalid' skills CSV.
-    """
-    return _fetch_df(path)
+def fetch_invalid() -> tuple[pd.DataFrame, str]:
+    return fetch_by_prefix("Invalid Skills")
+
+
+def fetch_all_tagged() -> tuple[pd.DataFrame, str]:
+    return fetch_by_prefix("All Tagged Skills")
 
 
 def fetch_completed_output():
-    # generate final DataFrames
     valid = fetch_valid()
     invalid = fetch_invalid()
-    irrelevant = fetch_irrelevant()
-
-    return valid, invalid, irrelevant
+    all_tagged = fetch_all_tagged()
+    return valid, invalid, all_tagged
 
 
 def write_input_file(abs_path, df, file_name):
@@ -175,7 +168,6 @@ async def write_output_to_s3(
     abs_path = Path(S3_OUTPUT_DIR_PATH).resolve()
     abs_path.mkdir(parents=True, exist_ok=True)
 
-
     # Debug check
     for i, item in enumerate(dfs):
         if not isinstance(item, tuple) or len(item) != 2:
@@ -193,7 +185,6 @@ async def write_output_to_s3(
         for (df, _), new_name in zip(dfs, new_names)
     ]
     await asyncio.gather(*write_tasks)
-
 
     st.success(f"✅ Wrote all {len(dfs)} output files to S3")
 

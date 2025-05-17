@@ -45,15 +45,21 @@ irrelevant_output_path = (
 
 
 def wrap_valid_df_with_name(df):
-    return (df, f"{target_sector_alias}_r2_valid_skill_pl_{timestamp}.csv")
+    # name = f"{target_sector_alias}_valid_skill_pl_{timestamp}"
+    name = f"Valid Skills for {target_sector_alias} sector"
+    return (df, name)
 
 
 def wrap_invalid_df_with_name(df):
-    return (df, f"{target_sector_alias}_r2_invalid_skill_pl_{timestamp}.csv")
+    # name = f"{target_sector_alias}_invalid_skill_pl_{timestamp} sector"
+    name = f"Invalid Skills for {target_sector_alias}"
+    return (df, name)
 
 
 def wrap_all_df_with_name(df):
-    return (df, f"{target_sector_alias}_all_skill_pl_{timestamp}.csv")
+    # name = f"{target_sector_alias}_all_skill_pl_{timestamp}"
+    name = f"All Tagged Skills for {target_sector_alias} sector"
+    return (df, name)
 
 
 class CheckpointManager:
@@ -72,10 +78,11 @@ class CheckpointManager:
 
     def load(self) -> bool:
         if self.checkpoint_path.exists():
-            with open(self.checkpoint_path, "rb") as f:
-                self.state = pickle.load(f)
-            print(f"[Checkpoint] Loaded state from {self.checkpoint_path}")
-            st.info(f"Loaded checkpoint from {self.checkpoint_path}")
+            with st.spinner("Retrieving data from previously saved checkpoint"):
+                with open(self.checkpoint_path, "rb") as f:
+                    self.state = pickle.load(f)
+                print(f"[Checkpoint] Loaded state from {self.checkpoint_path}")
+                st.success("✅ Checkpoint metadata retrieved!")
 
             # Extract progress information if available
             if "progress" in self.state:
@@ -181,7 +188,7 @@ def handle_core_processing(
     work_df = (
         course_df[course_df["Sector Relevance"] == "In Sector"]
         .reset_index(drop=True)
-        .head(60)
+        .head(90)
     )  # remove the head(90) this if need testing
 
     # Initialize Round 1 checkpoint state
@@ -640,10 +647,6 @@ def resume_round2(
         columns=["invalid_pl"], errors="ignore"
     )
 
-    r2_invalid.to_csv(r2_invalid_output_path, index=False, encoding="utf-8")
-    r2_valid.to_csv(r2_valid_output_path, index=False, encoding="utf-8")
-    all_valid.to_csv(all_valid_output_path, index=False, encoding="utf-8")
-
     # i) Poor-data-quality courses
     orig = pd.read_excel(course_descr_data_path, engine="openpyxl")
 
@@ -715,11 +718,22 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             .reset_index(drop=True)
         )
 
-        # Get the working dataframe
+        # Add these lines to match the preprocessing in handle_core_processing
+        course_df["skill_lower"] = course_df["Skill Title"].str.lower().str.strip()
+        skill_set = set(sfw["skill_lower"])
+        course_df["Sector Relevance"] = course_df["skill_lower"].apply(
+            lambda x: "In Sector" if x in skill_set else "Not in sector"
+        )
+
+        # Save immediately out-of-sector skills if needed
+        irrelevant_initial = course_df[course_df["Sector Relevance"] == "Not in sector"]
+        # Save irrelevant skills
+        irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
+
         work_df = (
             course_df[course_df["Sector Relevance"] == "In Sector"]
             .reset_index(drop=True)
-            .head(num_rows)
+            .head(90)  # Keep the same limit as in original function
         )
 
         # Resume Round 1
@@ -753,30 +767,11 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
         df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
         st.success(
-            f"Round 1 complete: {len(df_valid1)} valid, {len(df_invalid1)} invalid."
+            f"Round 1 complete after checkpointing: {len(df_valid1)} valid, {len(df_invalid1)} invalid."
         )
 
-        # Continue with Round 2 setup and processing
-        return handle_core_processing()  # Start fresh with Round 2
-
-    elif state.get("round") == "r2":
-        st.info("Resuming from Round 2 checkpoint")
-
-        # Load necessary files for Round 2
-        load_sfw_file()
-        sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
-        sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
-
-        # Load the Round 1 invalid data that's used for Round 2
-        try:
-            df_invalid1 = pd.read_csv(
-                round_1_invalid_output_path, low_memory=False, encoding="utf-8"
-            )
-        except Exception as e:
-            st.error(f"Failed to load Round 1 invalid data: {e}")
-            return []
-
-        # Load course descriptions
+        # === Round 2 Setup ===
+        # Load course descriptions from original input (full load, then pick columns)
         all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
         # strip any accidental leading/trailing spaces in the headers
         all_descr.columns = all_descr.columns.str.strip()
@@ -818,7 +813,7 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             elif y in df_r2_input.columns:
                 df_r2_input.rename(columns={y: base}, inplace=True)
 
-        # Generate course_text and unique_id
+        # Now you can safely do:
         df_r2_input["course_text"] = (
             df_r2_input["Course Title"]
             + " |: "
@@ -826,6 +821,8 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             + " | "
             + df_r2_input["What You'll Learn"]
         )
+
+        # ——— Generate unique_id to match resume_round2() logic ———
         df_r2_input["unique_text"] = (
             df_r2_input["course_text"] + df_r2_input["Skill Title"]
         )
@@ -835,11 +832,20 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             .apply(lambda t: hashlib.sha256(t.encode()).hexdigest())
         )
 
-        # Resume Round 2 processing
-        if progress_bar is not None:
-            # Reset progress bar for visual consistency
+        # Reset progress bar for Round 2
+        if progress_bar:
             progress_bar.progress(0)
+        st.info("Starting Round 2 processing")
 
+        # Initialize Round 2 checkpoint
+        ckpt.state = {
+            "round": "r2",
+            "r2_pending": list(df_r2_input.index),
+            "r2_results": [],
+        }
+        ckpt.save()
+
+        # Start Round 2 processing
         r2_valid, r2_invalid, all_valid = resume_round2(
             df_r2_input, sfw, ckpt, progress_bar
         )
@@ -855,6 +861,91 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         ret_all_valid = wrap_all_df_with_name(all_valid)
 
         return [ret_r2_valid, ret_r2_invalid, ret_all_valid]
-    else:
-        st.error(f"Unknown checkpoint round: {state.get('round')}")
-        return []
+
+    elif state.get("round") == "r2":
+        st.info("Resuming from Round 2 checkpoint")
+
+        # Load necessary files (similar to Round 1 but for Round 2)
+        load_sfw_file()
+        sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
+        sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
+
+        # Load the df_r2_input from r2 checkpoint state
+        # We need to recreate the input DataFrame from Round 1 invalid results
+        # First, load the invalid results from Round 1
+        df_invalid1 = pd.read_csv(round_1_invalid_output_path)
+
+        # Load course descriptions
+        all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
+        all_descr.columns = all_descr.columns.str.strip()
+        descr_df = (
+            all_descr[
+                [
+                    "Course Reference Number",
+                    "Course Title",
+                    "About This Course",
+                    "What You'll Learn",
+                ]
+            ]
+            .dropna(subset=["Course Reference Number"])
+            .drop_duplicates("Course Reference Number")
+        )
+
+        # Merge invalid1 with descriptions
+        df_r2_input = df_invalid1.merge(
+            descr_df, on="Course Reference Number", how="left"
+        )
+
+        # Fix duplicate columns and process as in Round 1->2 transition
+        # ——— Fix duplicate Skill Title columns ———
+        if "Skill Title" not in df_r2_input.columns:
+            skill_cols = [c for c in df_r2_input.columns if c.startswith("Skill Title")]
+            if skill_cols:
+                df_r2_input["Skill Title"] = df_r2_input[skill_cols[0]]
+                df_r2_input.drop(columns=skill_cols, inplace=True)
+
+        # ——— Coalesce Course Title, About This Course, What You'll Learn ———
+        for base in ["Course Title", "About This Course", "What You'll Learn"]:
+            x, y = f"{base}_x", f"{base}_y"
+            if x in df_r2_input.columns and y in df_r2_input.columns:
+                df_r2_input[base] = df_r2_input[y].fillna(df_r2_input[x])
+                df_r2_input.drop(columns=[x, y], inplace=True)
+            elif x in df_r2_input.columns:
+                df_r2_input.rename(columns={x: base}, inplace=True)
+            elif y in df_r2_input.columns:
+                df_r2_input.rename(columns={y: base}, inplace=True)
+
+        # Recreate course_text and unique_id
+        df_r2_input["course_text"] = (
+            df_r2_input["Course Title"]
+            + " |: "
+            + df_r2_input["About This Course"]
+            + " | "
+            + df_r2_input["What You'll Learn"]
+        )
+
+        df_r2_input["unique_text"] = (
+            df_r2_input["course_text"] + df_r2_input["Skill Title"]
+        )
+        df_r2_input["unique_id"] = (
+            df_r2_input["unique_text"]
+            .str.lower()
+            .apply(lambda t: hashlib.sha256(t.encode()).hexdigest())
+        )
+
+        # Resume Round 2 processing
+        r2_valid, r2_invalid, all_valid = resume_round2(
+            df_r2_input, sfw, ckpt, progress_bar
+        )
+
+        # Check if early exit was triggered
+        if st.session_state.get("exit_halfway", False) and ckpt.state["r2_pending"]:
+            st.warning("Processing halted due to exit_halfway toggle.")
+            return []
+
+        st.success(f"Round 2 complete after resuming from checkpoint, all files saved.")
+        ret_r2_valid = wrap_valid_df_with_name(r2_valid)
+        ret_r2_invalid = wrap_invalid_df_with_name(r2_invalid)
+        ret_all_valid = wrap_all_df_with_name(all_valid)
+
+        return [ret_r2_valid, ret_r2_invalid, ret_all_valid]
