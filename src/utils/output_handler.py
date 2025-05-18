@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from components.ui import *
+from components.header import *
 
 
 def load_checkpoint_ui():

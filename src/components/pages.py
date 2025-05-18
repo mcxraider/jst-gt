@@ -3,28 +3,30 @@ import pandas as pd
 from utils.output_handler import *
 from utils.db import *
 from components.buttons import *
-from components.ui import *
+from components.header import *
+import streamlit_shadcn_ui as ui
 
 
 def demo_sidebar():
     st.sidebar.header("Demo Controls (for Beta)")
-    simulate_pkl = st.sidebar.checkbox(
-        "Simulate Checkpoint Available (pkl_yes)", value=st.session_state.pkl_yes
-    )
-    st.session_state.pkl_yes = simulate_pkl
-
-    simulate_csv = st.sidebar.checkbox(
-        "Simulate All 3 CSVs Processed (csv_yes)", value=st.session_state.csv_yes
-    )
-    st.session_state.csv_yes = simulate_csv
-
-    exit_halfway = st.sidebar.checkbox(
-        "Simulate User/system exit (exit_halfway)",
-        value=st.session_state.exit_halfway,
-    )
-    st.session_state.exit_halfway = exit_halfway
-
     with st.sidebar:
+        st.session_state.pkl_yes = ui.switch(
+            default_checked=st.session_state.get("pkl_yes", False),
+            label="Checkpoint Available (pkl_yes)",
+            key="toggle_pkl_yes",
+        )
+
+        st.session_state.csv_yes = ui.switch(
+            default_checked=st.session_state.get("csv_yes", False),
+            label="All 3 CSVs Processed (csv_yes)",
+            key="toggle_csv_yes",
+        )
+
+        st.session_state.exit_halfway = ui.switch(
+            default_checked=st.session_state.get("exit_halfway", False),
+            label="Simulate Exit (exit_halfway)",
+            key="toggle_exit_halfway",
+        )
         st.markdown("## Navigation")
 
         if st.button("🏠 Home", use_container_width=True):
@@ -41,13 +43,12 @@ def demo_sidebar():
         st.markdown("### Session Info")
         if st.session_state.pkl_yes:
             st.markdown("✅ Checkpoint available")
+            if st.session_state.csv_yes:
+                st.markdown("✅ Results ready")
+            else:
+                st.markdown("⏳ Processing pending")
         else:
-            st.markdown("Checkpoint Unavailable")
-
-        if st.session_state.csv_yes:
-            st.markdown("✅ Results ready")
-        else:
-            st.markdown("⏳ Processing pending")
+            st.markdown("No active runs")
 
         # Add help section
         st.markdown("---")
@@ -68,23 +69,11 @@ def demo_sidebar():
         **Need help?**  
         Please contact:
 
-        - 📧 jerry@ssg.gov.sg
-        - 📧 lois@ssg.gov.sg
-        - 📧 yee_sen@ssg.gov.sg
+        - jerry_yang@ssg.gov.sg
+        - lois@ssg.gov.sg
+        - yee_sen@ssg.gov.sg
             """
             )
-            # Add credits section
-
-        st.markdown("---")
-        st.markdown(
-            """
-        <div style='text-align: center;'>
-            <span style='font-size: 12px;'>❤️ Built with love by</span><br>
-            <strong style='font-size: 20px;'>SSG FDT Team</strong>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
 
 
 # Enhanced homepage with visual appeal
@@ -166,9 +155,9 @@ def homepage():
         """
         )
     elif pkl_available:
-        st.markdown(
+        st.error(
             """
-ℹ️ You may choose to start a new run or resume from your previous checkpoint!
+Your previous run stopped midway. Please start a new run or resume from your previous checkpoint!
         """
         )
 
@@ -180,7 +169,6 @@ def results_page():
         """
     <div class="css-card">
         <h2 style="margin-top: 0;">Results</h2>
-        <p>Review and download your processed data.</p>
     </div>
     """,
         unsafe_allow_html=True,
@@ -189,7 +177,7 @@ def results_page():
     if st.session_state.csv_yes and st.session_state.results:
         st.info(
             """
-            ✅ Processing complete. You can now download the results as CSV.
+            ✅ Preview and download your results
         """
         )
 
