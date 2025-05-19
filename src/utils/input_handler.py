@@ -44,12 +44,11 @@ async def validate_sector_file_input(uploaded) -> bool:
 
 
 async def process_file_upload(uploaded, validator: Callable) -> bool:
-    """Run file validation and wipe_db concurrently during file upload."""
-    valid, _ = await asyncio.gather(validator(uploaded), wipe_db())
+    """Run file validation during file upload."""
+    valid = await validator(uploaded)
     return valid
 
 
-# Sync Wrapper
 def upload_file(
     label: str, validator: Callable[[Any], asyncio.Future]
 ) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
@@ -76,10 +75,9 @@ def upload_file(
             df = pd.read_csv(uploaded)
         else:
             df = pd.read_excel(uploaded)
-        st.success(f"{label} loaded and validated successfully.")
-        st.write(f"**Preview of {label.lower()}:**")
+        st.write(f"**Preview of {label}:**")
         st.dataframe(df.head())
         return df, uploaded.name
     except Exception as e:
-        st.error(f"Error reading {label.lower()}: {e}")
+        st.error(f"Error reading {label}: {e}")
         return None, None

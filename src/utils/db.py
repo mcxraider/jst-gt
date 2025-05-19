@@ -6,6 +6,8 @@ from pathlib import Path
 import time
 import datetime
 
+BASE_DIR = Path("/Users/Spare/Desktop/jst-gt/s3_bucket/s3_output")
+
 
 async def rename_input_file(file_name: str) -> str:
     """
@@ -43,17 +45,17 @@ def delete_all_s3(dir):
                     st.warning(f"Failed to delete {item}: {e}")
 
 
-async def wipe_db():
+def wipe_db(caption):
     """Completely wipe contents of each folder in the s3_bucket directory only if needed."""
+
+    st.session_state.caption_placeholder.caption("Erasing data from previous run...")
+
     # Only wipe if a CSV or checkpoint has been processed
     if not (
         st.session_state.get("csv_yes", False) or st.session_state.get("pkl_yes", False)
     ):
         return
 
-    # Indicate the wipe and reset flags
-
-    st.info("Wiping database now…")
     base_dir = Path("../s3_bucket")
 
     # logic below should be replaced with this function here
@@ -61,9 +63,6 @@ async def wipe_db():
 
     st.session_state["csv_yes"] = False
     st.session_state["pkl_yes"] = False
-
-
-BASE_DIR = Path("/Users/Spare/Desktop/jst-gt/s3_bucket/s3_output")
 
 
 def _fetch_df(path: Path) -> tuple[pd.DataFrame, str]:
@@ -136,6 +135,7 @@ async def write_input_to_s3(
     sector_df: pd.DataFrame,
     S3_INPUT_DIR_PATH: str = "../s3_bucket/s3_input",
 ):
+
     abs_path = Path(S3_INPUT_DIR_PATH).resolve()
     abs_path.mkdir(parents=True, exist_ok=True)
 
@@ -154,10 +154,9 @@ async def write_input_to_s3(
         ),
     )
 
-    st.success(f"✅ Uploaded input files to S3")
 
-
-def async_write_input_to_s3(*args, **kwargs):
+def async_write_input_to_s3(caption, *args, **kwargs):
+    caption.caption("Saving input files to database...")
     return asyncio.run(write_input_to_s3(*args, **kwargs))
 
 
@@ -189,9 +188,10 @@ async def write_output_to_s3(
     st.success(f"✅ Wrote all {len(dfs)} output files to S3")
 
 
-def async_write_output_to_s3(dfs, **kwargs):
+def async_write_output_to_s3(caption, dfs):
     """
     Synchronous entrypoint: runs the async writer under the hood.
     dfs should be a list of (DataFrame, original_filename) tuples.
     """
-    return asyncio.run(write_output_to_s3(dfs, **kwargs))
+    caption.caption("Results are ready, saving files to database...")
+    return asyncio.run(write_output_to_s3(dfs))

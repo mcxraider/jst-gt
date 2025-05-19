@@ -20,7 +20,7 @@ from utils.db import *
 
 pd.set_option("future.no_silent_downcasting", True)
 
-num_rows = 60
+num_rows = 200
 
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -116,25 +116,20 @@ class CheckpointManager:
 
 def load_sfw_file():
     print("Loading in sfw file for processing...\n")
-    st.info("Loading SFW data file for processing...")
     return
 
 
 def load_sector_file():
     print("Loading sector file for processing...\n")
-    st.info("Loading sector file for processing...")
     return
 
 
-def handle_core_processing(
-    sfw_df=None,
-    sector_df=None,
-    ckpt_path=Path("../../s3_bucket/s3_checkpoint/ckpt.pkl").resolve(),
-):
+def handle_core_processing(caption):
     """
     Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
     """
-    st.info("Starting core processing. Checkpoints will be saved regularly.")
+    caption.caption("Processing input files...")
+    st.toast("File processing started. Checkpoints will be saved regularly.")
     progress_bar = st.progress(0)
 
     ckpt = CheckpointManager(target_sector_alias, timestamp)
@@ -145,12 +140,6 @@ def handle_core_processing(
             f"Resuming from checkpoint. Current progress: {ckpt.last_progress*100:.1f}%"
         )
         progress_bar.progress(ckpt.last_progress)
-
-        # Check if early exit toggle is on
-        if st.session_state.get("exit_halfway", False):
-            st.warning(
-                "Exit halfway toggle is ON. Processing will stop at the halfway point."
-            )
 
         try:
             return handle_checkpoint_processing(ckpt, progress_bar)
@@ -188,22 +177,18 @@ def handle_core_processing(
     work_df = (
         course_df[course_df["Sector Relevance"] == "In Sector"]
         .reset_index(drop=True)
-        .head(90)
+        .head(num_rows)
     )  # remove the head(90) this if need testing
 
     # Initialize Round 1 checkpoint state
     ckpt.state = {"round": "r1", "r1_pending": list(work_df.index), "r1_results": []}
     ckpt.save()
 
-    # Update UI
-    st.info("Starting Round 1 processing")
-
     # === Round 1 Execution ===
     r1_results = resume_round1(work_df, sfw, ckpt, progress_bar)
 
     # Check if early exit was triggered
     if st.session_state.get("exit_halfway", False) and len(r1_results) < len(work_df):
-        st.warning("Processing halted due to exit_halfway toggle.")
         return []
 
     # === Round 1 Post-processing ===
@@ -226,7 +211,6 @@ def handle_core_processing(
     df_invalid1 = pd.DataFrame(invalid1)
     df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
     df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
-    st.success(f"Round 1 complete: {len(df_valid1)} valid, {len(df_invalid1)} invalid.")
 
     # === Round 2 Setup ===
     # Load course descriptions from original input (full load, then pick columns)
@@ -288,7 +272,6 @@ def handle_core_processing(
 
     # Reset progress bar for Round 2
     progress_bar.progress(0)
-    st.info("Starting Round 2 processing")
 
     # Initialize Round 2 checkpoint
     ckpt.state = {
@@ -304,7 +287,6 @@ def handle_core_processing(
 
     # Check if early exit was triggered
     if st.session_state.get("exit_halfway", False) and ckpt.state["r2_pending"]:
-        st.warning("Processing halted due to exit_halfway toggle.")
         return []
 
     st.success(f"Round 2 complete, all files saved in S3.")
@@ -345,7 +327,6 @@ def resume_round1(work_df, sfw_df, ckpt, progress_bar=None):
     while pending:
         # Check for early exit toggle
         if st.session_state.get("exit_halfway", False) and processed >= stop_number:
-            st.warning("Exiting halfway through processing as requested.")
             break
 
         batch = pending[:10]
@@ -376,7 +357,6 @@ def resume_round1(work_df, sfw_df, ckpt, progress_bar=None):
                         print(
                             "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
                         )
-                        st.info("Pausing for 10s to avoid API rate limits...")
                         time.sleep(1)
 
                     if processed % 30 == 0:
@@ -384,7 +364,7 @@ def resume_round1(work_df, sfw_df, ckpt, progress_bar=None):
                         ckpt.state["r1_pending"] = pending
                         ckpt.state["r1_results"] = results
                         ckpt.save()
-                        st.info(
+                        print(
                             f"Checkpoint saved at {processed}/{total} rows processed."
                         )
                 except Exception as e:
@@ -396,7 +376,6 @@ def resume_round1(work_df, sfw_df, ckpt, progress_bar=None):
     ckpt.state["r1_pending"] = pending
     ckpt.state["r1_results"] = results
     ckpt.save()
-    st.info("Final Round 1 checkpoint saved.")
 
     pbar.close()
     return results
@@ -466,7 +445,6 @@ def resume_round2(
     while pending:
         # Check for early exit toggle
         if st.session_state.get("exit_halfway", False) and processed >= stop_number:
-            st.warning("Exiting halfway through Round 2 processing as requested.")
             break
 
         batch_idx = pending[:10]
@@ -518,7 +496,6 @@ def resume_round2(
                     print(
                         "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
                     )
-                    st.info("Pausing for 10s to avoid API rate limits...")
                     time.sleep(1)
 
                 # checkpoint every 30 rows
@@ -526,13 +503,13 @@ def resume_round2(
                     ckpt.state["r2_pending"] = pending
                     ckpt.state["r2_results"] = results
                     ckpt.save()
-                    st.info(f"Checkpoint saved at {processed}/{total} rows processed.")
+                    print(f"Checkpoint saved at {processed}/{total} rows processed.")
 
     # final checkpoint
     ckpt.state["r2_pending"] = pending
     ckpt.state["r2_results"] = results
     ckpt.save()
-    st.info("Final Round 2 checkpoint saved.")
+    print("Final Round 2 checkpoint saved.")
 
     pbar.close()
 
@@ -698,7 +675,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
     state = ckpt.state
 
     if state.get("round") == "r1":
-        st.info("Resuming from Round 1 checkpoint")
 
         # Load necessary files
         load_sfw_file()
@@ -733,7 +709,7 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         work_df = (
             course_df[course_df["Sector Relevance"] == "In Sector"]
             .reset_index(drop=True)
-            .head(90)  # Keep the same limit as in original function
+            .head(num_rows)  # Keep the same limit as in original function
         )
 
         # Resume Round 1
@@ -743,7 +719,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         if st.session_state.get("exit_halfway", False) and len(r1_results) < len(
             work_df
         ):
-            st.warning("Processing halted due to exit_halfway toggle.")
             return []
 
         # === Round 1 Post-processing ===
@@ -835,7 +810,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         # Reset progress bar for Round 2
         if progress_bar:
             progress_bar.progress(0)
-        st.info("Starting Round 2 processing")
 
         # Initialize Round 2 checkpoint
         ckpt.state = {
@@ -852,7 +826,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
 
         # Check if early exit was triggered
         if st.session_state.get("exit_halfway", False) and ckpt.state["r2_pending"]:
-            st.warning("Processing halted due to exit_halfway toggle.")
             return []
 
         st.success(f"Round 2 complete, all files saved in S3.")
@@ -863,7 +836,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         return [ret_r2_valid, ret_r2_invalid, ret_all_valid]
 
     elif state.get("round") == "r2":
-        st.info("Resuming from Round 2 checkpoint")
 
         # Load necessary files (similar to Round 1 but for Round 2)
         load_sfw_file()
@@ -940,7 +912,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
 
         # Check if early exit was triggered
         if st.session_state.get("exit_halfway", False) and ckpt.state["r2_pending"]:
-            st.warning("Processing halted due to exit_halfway toggle.")
             return []
 
         st.success(f"Round 2 complete after resuming from checkpoint, all files saved.")

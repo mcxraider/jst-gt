@@ -11,7 +11,7 @@ from utils.db import *
 
 from backend_utils.combined_pipeline_claude import handle_core_processing
 from components.buttons import *
-from components.ui import *
+from components.header import *
 
 
 def prompt_file_upload(
@@ -51,21 +51,30 @@ def process_uploaded_files(
     st.subheader(f"3. Start Processing for {selected_sector} sector")
     if st.button("Process Data"):
         with st.spinner("Processing..."):
-            # 1) upload inputs
-            async_write_input_to_s3(sfw_filename, sfw_df, sector_filename, sector_df)
+            caption = st.empty()
 
-            # 2) core processing (may exit early)
-            results = handle_core_processing()
+            # caption.caption(f"⏱ Estimated time remaining: 50 mins")
 
-            # 3) handle early exit
+            # 1) Wipe DB before uploading new data
+            wipe_db(caption)
+
+            # 2) upload inputs
+            async_write_input_to_s3(
+                caption, sfw_filename, sfw_df, sector_filename, sector_df
+            )
+
+            # 3) core processing (may exit early)
+            results = handle_core_processing(caption)
+
+            # 4) handle early exit
             if not results:
                 handle_exit("exit_from_failed_upload")
                 return
 
-            # 4) upload outputs
-            async_write_output_to_s3(results)
+            # 5) upload outputs
+            async_write_output_to_s3(caption, results)
 
-            # 5) update state and rerun
+            # 6) update state and rerun
             st.session_state.results = results
             st.session_state.csv_yes = True
             st.session_state.app_stage = "results_ready"
