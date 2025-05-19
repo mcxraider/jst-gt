@@ -72,9 +72,9 @@ def homepage():
     st.markdown("<h3>Select a Sector:</h3>", unsafe_allow_html=True)
 
     process_choices = [
-        "👥 HR (Human Resource)",
-        "🍽️ FS (Food Services)",
-        "💰 FS (Financial Services)",
+        "HR (Human Resource)",
+        "FS (Food Services)",
+        "FS (Financial Services)",
     ]
 
     # Create a styled dropdown for process selection
@@ -86,8 +86,8 @@ def homepage():
     )
 
     # Update the session state with the selected process
-    st.session_state.selected_process = selected_process[2:5]
-
+    st.session_state.selected_process_alias = selected_process[:2]
+    st.session_state.selected_process = [selected_process[4:-1]]
     # Action selection section
     st.markdown(
         """
@@ -104,7 +104,7 @@ def homepage():
     with col1:
         st.markdown('<div class="primary-button">', unsafe_allow_html=True)
         if st.button(
-            f"⬆️ Upload New File & Run {st.session_state.selected_process} Process",
+            f"⬆️ Upload New File & Run {st.session_state.selected_process_alias} Process",
             key="upload_new",
             use_container_width=True,
         ):

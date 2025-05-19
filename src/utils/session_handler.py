@@ -45,7 +45,10 @@ def init_session_state():
         st.session_state["exit_halfway"] = False
 
     if "selected_process" not in st.session_state:
-        st.session_state["selected_process"] = "None"
+        st.session_state["selected_process"] = ["None"]
+
+    if "selected_process_alias" not in st.session_state:
+        st.session_state["selected_process_alias"] = "None"
 
     if "caption_placeholder" not in st.session_state:
         st.session_state.caption_placeholder = st.empty()

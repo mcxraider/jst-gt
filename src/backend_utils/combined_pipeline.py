@@ -7,6 +7,7 @@ from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from tqdm import tqdm
+from typing import Optional, Union, List
 
 # r1 utilities (unchanged)
 from backend_utils.r1_utils import *
@@ -23,6 +24,7 @@ pd.set_option("future.no_silent_downcasting", True)
 num_rows = 200
 
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
 
 def wrap_valid_df_with_name(df, target_sector_alias):
     # name = f"{target_sector_alias}_valid_skill_pl_{timestamp}"
@@ -94,42 +96,38 @@ class CheckpointManager:
 
 
 def load_sfw_file() -> pd.DataFrame:
-    """
-    Finds the single Excel file in `input_data_path` whose
-    name starts with 'SFW', prints its name, and returns it.
-    """
+
     input_dir = Path(input_data_path)
     for fp in input_dir.glob("*.xlsx"):
         if fp.name.startswith("SFW"):
-            print(f"Loading in SFW file for processing: {fp.name}")
             return pd.read_excel(fp)
     raise FileNotFoundError(f"No file starting with 'SFW' in {input_data_path}")
 
 
-def load_sector_file() -> pd.DataFrame:
+def load_sector_file(cols=None) -> pd.DataFrame:
     """
     Finds the single Excel file in `input_data_path` whose
     name does NOT start with 'SFW', prints its name, and returns it.
     """
+
     input_dir = Path(input_data_path)
     for fp in input_dir.glob("*.xlsx"):
         if not fp.name.startswith("SFW"):
-            print(f"Loading sector file for processing: {fp.name}")
-            return pd.read_excel(fp)
+            return pd.read_excel(
+                fp,
+                # sheet_name=target_sector_alias,
+                usecols=cols,
+            )
     raise FileNotFoundError(f"No sector file found in {input_data_path}")
 
 
-
-def handle_core_processing(caption, target_sector_alias):
+def handle_core_processing(caption, target_sector, target_sector_alias):
     """
     Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
     """
     round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
     round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
-    irrelevant_output_path = (
-        f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
-    )
-    sfw_raw_data_sheet = f"SFW_{target_sector_alias}"
+    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
     progress_bar = st.progress(0)
 
     ckpt = CheckpointManager(target_sector_alias, timestamp)
@@ -142,7 +140,9 @@ def handle_core_processing(caption, target_sector_alias):
 
         caption.caption("[Status] Processing input files from last checkpoint...")
         try:
-            return handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_bar)
+            return handle_checkpoint_processing(
+                caption, target_sector, target_sector_alias, ckpt, progress_bar
+            )
         except Exception as e:
             st.error(f"Error resuming from checkpoint: {e}")
             st.info("Restarting processing from the beginning.")
@@ -154,16 +154,19 @@ def handle_core_processing(caption, target_sector_alias):
 
     st.toast("File processing started. Checkpoints will be saved regularly.")
     # === Round 1 Setup ===
-    load_sfw_file()
-    sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
+    # load_sfw_file()
+    sfw = load_sfw_file()
     sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
     sfw["skill_lower"] = sfw["TSC_CCS Title"].str.lower().str.strip()
 
-    load_sector_file()
-    course_df = pd.read_excel(
-        course_raw_data_path,
-        sheet_name=target_sector_alias,
-        usecols=course_data_columns,
+    course_df = load_sector_file(
+        cols=[
+            "Course Reference Number",
+            "Course Title",
+            "Skill Title",
+            "About This Course",
+            "What You'll Learn",
+        ],
     )
     course_df = (
         course_df.drop_duplicates(subset=["Course Reference Number", "Skill Title"])
@@ -224,7 +227,16 @@ def handle_core_processing(caption, target_sector_alias):
     print("\n" + "-" * 80 + "\n")
     print("ROUND 2 PROCESS STARTING")
     print("\n" + "-" * 80 + "\n")
-    all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
+    # load sector file
+    all_descr = load_sector_file(
+        cols=[
+            "Course Reference Number",
+            "Course Title",
+            "Skill Title",
+            "About This Course",
+            "What You'll Learn",
+        ],
+    )
     # strip any accidental leading/trailing spaces in the headers
     all_descr.columns = all_descr.columns.str.strip()
     # now slice out exactly the four description columns
@@ -293,7 +305,7 @@ def handle_core_processing(caption, target_sector_alias):
     caption.caption("[Status] Processing 2nd Stage...")
 
     r2_valid, r2_invalid, all_valid = resume_round2(
-        df_r2_input, sfw, ckpt, progress_bar
+        target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
     )
 
     # Check if early exit was triggered
@@ -393,6 +405,8 @@ def resume_round1(work_df, sfw_df, ckpt, progress_bar=None):
 
 
 def resume_round2(
+    target_sector: str,
+    target_sector_alias: str,
     df_invalid: pd.DataFrame,
     sfw_raw: pd.DataFrame,
     ckpt: CheckpointManager,
@@ -407,8 +421,6 @@ def resume_round2(
     r2_raw_output_path = (
         f"{misc_output_path}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
     )
-
-    course_descr_data_path = course_raw_data_path
 
     # 1) Reconstruct the original "data"
     data = df_invalid.copy()
@@ -642,14 +654,10 @@ def resume_round2(
     )
 
     # i) Poor-data-quality courses
-    orig = pd.read_excel(course_descr_data_path, engine="openpyxl")
+    orig = load_sector_file()
 
     # raw_course is now an .xlsx, so use read_excel
-    raw_course = pd.read_excel(
-        course_raw_data_path,
-        engine="openpyxl",
-        usecols=["Skill Title", "Course Reference Number"],
-    )
+    raw_course = load_sector_file(cols=["Skill Title", "Course Reference Number"])
 
     # merge on the shared key
     merged_crs = pd.merge(orig, raw_course, on="Course Reference Number", how="inner")
@@ -685,15 +693,15 @@ def resume_round2(
     return r2_valid, r2_invalid, all_valid
 
 
-def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_bar=None):
+def handle_checkpoint_processing(
+    caption, target_sector, target_sector_alias, ckpt, progress_bar=None
+):
     """
     Resumes processing from the checkpoint based on which round was active.
     """
     round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
     round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
-    irrelevant_output_path = (
-        f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
-    )
+    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
     state = ckpt.state
 
     if state.get("round") == "r1":
@@ -702,16 +710,18 @@ def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_ba
         print("\n" + "-" * 80 + "\n")
         print("ROUND 1 PROCESS STARTING")
         print("\n" + "-" * 80 + "\n")
-        load_sfw_file()
-        sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
+        sfw = load_sfw_file()
         sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
         sfw["skill_lower"] = sfw["TSC_CCS Title"].str.lower().str.strip()
 
-        load_sector_file()
-        course_df = pd.read_excel(
-            course_raw_data_path,
-            sheet_name=target_sector_alias,
-            usecols=course_data_columns,
+        course_df = load_sector_file(
+            cols=[
+                "Course Reference Number",
+                "Course Title",
+                "Skill Title",
+                "About This Course",
+                "What You'll Learn",
+            ],
         )
         course_df = (
             course_df.drop_duplicates(subset=["Course Reference Number", "Skill Title"])
@@ -773,7 +783,15 @@ def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_ba
         print("ROUND 2 PROCESS STARTING")
         print("\n" + "-" * 80 + "\n")
         # Load course descriptions from original input (full load, then pick columns)
-        all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
+        all_descr = load_sector_file(
+            cols=[
+                "Course Reference Number",
+                "Course Title",
+                "Skill Title",
+                "About This Course",
+                "What You'll Learn",
+            ],
+        )
         # strip any accidental leading/trailing spaces in the headers
         all_descr.columns = all_descr.columns.str.strip()
         # now slice out exactly the four description columns
@@ -848,7 +866,7 @@ def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_ba
 
         # Start Round 2 processing
         r2_valid, r2_invalid, all_valid = resume_round2(
-            df_r2_input, sfw, ckpt, progress_bar
+            target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
         )
 
         # Check if early exit was triggered
@@ -865,8 +883,7 @@ def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_ba
     elif state.get("round") == "r2":
 
         # Load necessary files (similar to Round 1 but for Round 2)
-        load_sfw_file()
-        sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
+        sfw = load_sfw_file()
         sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
 
         # Load the df_r2_input from r2 checkpoint state
@@ -875,7 +892,15 @@ def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_ba
         df_invalid1 = pd.read_csv(round_1_invalid_output_path)
 
         # Load course descriptions
-        all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
+        all_descr = load_sector_file(
+            cols=[
+                "Course Reference Number",
+                "Course Title",
+                "Skill Title",
+                "About This Course",
+                "What You'll Learn",
+            ],
+        )
         all_descr.columns = all_descr.columns.str.strip()
         descr_df = (
             all_descr[
@@ -934,7 +959,7 @@ def handle_checkpoint_processing(caption, target_sector_alias, ckpt, progress_ba
 
         # Resume Round 2 processing
         r2_valid, r2_invalid, all_valid = resume_round2(
-            df_r2_input, sfw, ckpt, progress_bar
+            target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
         )
 
         # Check if early exit was triggered
