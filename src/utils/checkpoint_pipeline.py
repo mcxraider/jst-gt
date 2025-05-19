@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.output_handler import *
 from utils.upload_pipeline import *
-from backend_utils.combined_pipeline_claude import handle_core_processing
+from backend_utils.combined_pipeline import handle_core_processing
 from components.buttons import *
 from utils.db import *
 

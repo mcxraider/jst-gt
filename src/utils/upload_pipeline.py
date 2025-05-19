@@ -9,7 +9,7 @@ from utils.output_handler import *
 from utils.checkpoint_pipeline import *
 from utils.db import *
 
-from backend_utils.combined_pipeline_claude import handle_core_processing
+from backend_utils.combined_pipeline import handle_core_processing
 from components.buttons import *
 from components.header import *
 
@@ -46,8 +46,7 @@ def process_uploaded_files(
     sector_filename: str,
 ):
     """Render the process button, upload to S3, run core processing, and update state."""
-    selected_sector = st.session_state.selected_process[2:]
-
+    selected_sector = st.session_state.selected_process
     st.subheader(f"3. Start Processing for {selected_sector} sector")
     disabled = st.session_state.processing  # this is initialised to False
 
@@ -68,7 +67,7 @@ def process_uploaded_files(
             )
 
             # 3) core processing (may exit early)
-            results = handle_core_processing(caption)
+            results = handle_core_processing(caption, selected_sector)
 
             # 4) handle early exit
             if not results:
@@ -77,7 +76,7 @@ def process_uploaded_files(
                 return
 
             # 5) upload outputs
-            async_write_output_to_s3(caption, results)
+            async_write_output_to_s3(caption, selected_sector, results)
 
             # 6) update state and rerun
             st.session_state.results = results
@@ -102,17 +101,16 @@ def upload_new_pipeline():
     )
     """Handles two file uploads with distinct validation logic and proceeds when ready."""
     # Step 1: SFW framework file
-    selected_sector = st.session_state.selected_process[2:]
 
     sfw_df, sfw_filename = prompt_file_upload(
         step=1,
-        label=f"{selected_sector} SFW Framework",
+        label=f"{st.session_state.selected_process} SFW Framework",
         validator=validate_sfw_file_input,
     )
 
     # Step 2: Sector file
     sector_df, sector_filename = prompt_file_upload(
-        step=2, label=f"{selected_sector} File", validator=validate_sector_file_input
+        step=2, label=f"{st.session_state.selected_process} File", validator=validate_sector_file_input
     )
 
     # Step 3: Check uploads and process or warn
