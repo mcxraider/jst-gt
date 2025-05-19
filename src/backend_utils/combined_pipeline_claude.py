@@ -114,12 +114,12 @@ class CheckpointManager:
 
 
 def load_sfw_file():
-    print("Loading in sfw file for processing...\n")
+    print("Loading in sfw file for processing...")
     return
 
 
 def load_sector_file():
-    print("Loading sector file for processing...\n")
+    print("Loading sector file for processing...")
     return
 
 
@@ -146,6 +146,10 @@ def handle_core_processing(caption):
             st.info("Restarting processing from the beginning.")
 
     caption.caption("[Status] Processing input files...")
+    print("\n" + "-" * 80 + "\n")
+    print("ROUND 1 PROCESS STARTING")
+    print("\n" + "-" * 80 + "\n")
+
     st.toast("File processing started. Checkpoints will be saved regularly.")
     # === Round 1 Setup ===
     load_sfw_file()
@@ -215,6 +219,9 @@ def handle_core_processing(caption):
 
     # === Round 2 Setup ===
     # Load course descriptions from original input (full load, then pick columns)
+    print("\n" + "-" * 80 + "\n")
+    print("ROUND 2 PROCESS STARTING")
+    print("\n" + "-" * 80 + "\n")
     all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
     # strip any accidental leading/trailing spaces in the headers
     all_descr.columns = all_descr.columns.str.strip()
@@ -679,6 +686,9 @@ def handle_checkpoint_processing(caption, ckpt, progress_bar=None):
     if state.get("round") == "r1":
 
         # Load necessary files
+        print("\n" + "-" * 80 + "\n")
+        print("ROUND 1 PROCESS STARTING")
+        print("\n" + "-" * 80 + "\n")
         load_sfw_file()
         sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
         sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
@@ -746,6 +756,9 @@ def handle_checkpoint_processing(caption, ckpt, progress_bar=None):
         df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
 
         # === Round 2 Setup ===
+        print("\n" + "-" * 80 + "\n")
+        print("ROUND 2 PROCESS STARTING")
+        print("\n" + "-" * 80 + "\n")
         # Load course descriptions from original input (full load, then pick columns)
         all_descr = pd.read_excel(course_raw_data_path, sheet_name=target_sector_alias)
         # strip any accidental leading/trailing spaces in the headers
