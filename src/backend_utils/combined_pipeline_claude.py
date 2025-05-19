@@ -82,7 +82,6 @@ class CheckpointManager:
                 with open(self.checkpoint_path, "rb") as f:
                     self.state = pickle.load(f)
                 print(f"[Checkpoint] Loaded state from {self.checkpoint_path}")
-                st.success("✅ Checkpoint metadata retrieved!")
 
             # Extract progress information if available
             if "progress" in self.state:
@@ -128,25 +127,26 @@ def handle_core_processing(caption):
     """
     Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
     """
-    caption.caption("Processing input files...")
-    st.toast("File processing started. Checkpoints will be saved regularly.")
+
     progress_bar = st.progress(0)
 
     ckpt = CheckpointManager(target_sector_alias, timestamp)
 
     # If checkpoint exists, try to load it
     if ckpt.load():
-        st.info(
-            f"Resuming from checkpoint. Current progress: {ckpt.last_progress*100:.1f}%"
-        )
+        caption.caption("[Status] Retrieving Checkpoint Metadata...")
+
         progress_bar.progress(ckpt.last_progress)
 
+        caption.caption("[Status] Processing input files from last checkpoint...")
         try:
-            return handle_checkpoint_processing(ckpt, progress_bar)
+            return handle_checkpoint_processing(caption, ckpt, progress_bar)
         except Exception as e:
             st.error(f"Error resuming from checkpoint: {e}")
             st.info("Restarting processing from the beginning.")
 
+    caption.caption("[Status] Processing input files...")
+    st.toast("File processing started. Checkpoints will be saved regularly.")
     # === Round 1 Setup ===
     load_sfw_file()
     sfw = pd.read_excel(sfw_raw_data_path, sheet_name=sfw_raw_data_sheet)
@@ -185,6 +185,7 @@ def handle_core_processing(caption):
     ckpt.save()
 
     # === Round 1 Execution ===
+    caption.caption("[Status] Processing 1st Stage...")
     r1_results = resume_round1(work_df, sfw, ckpt, progress_bar)
 
     # Check if early exit was triggered
@@ -280,6 +281,7 @@ def handle_core_processing(caption):
         "r2_results": [],
     }
     ckpt.save()
+    caption.caption("[Status] Processing 2nd Stage...")
 
     r2_valid, r2_invalid, all_valid = resume_round2(
         df_r2_input, sfw, ckpt, progress_bar
@@ -668,7 +670,7 @@ def resume_round2(
     return r2_valid, r2_invalid, all_valid
 
 
-def handle_checkpoint_processing(ckpt, progress_bar=None):
+def handle_checkpoint_processing(caption, ckpt, progress_bar=None):
     """
     Resumes processing from the checkpoint based on which round was active.
     """
@@ -713,6 +715,7 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         )
 
         # Resume Round 1
+        caption.caption("[Status] Processing 1st Stage...")
         r1_results = resume_round1(work_df, sfw, ckpt, progress_bar)
 
         # Check if early exit was triggered
@@ -741,9 +744,6 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
         df_invalid1 = pd.DataFrame(invalid1)
         df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
         df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
-        st.success(
-            f"Round 1 complete after checkpointing: {len(df_valid1)} valid, {len(df_invalid1)} invalid."
-        )
 
         # === Round 2 Setup ===
         # Load course descriptions from original input (full load, then pick columns)
@@ -818,6 +818,7 @@ def handle_checkpoint_processing(ckpt, progress_bar=None):
             "r2_results": [],
         }
         ckpt.save()
+        caption.caption("[Status] Processing 2nd Stage...")
 
         # Start Round 2 processing
         r2_valid, r2_invalid, all_valid = resume_round2(

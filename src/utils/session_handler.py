@@ -49,3 +49,6 @@ def init_session_state():
 
     if "caption_placeholder" not in st.session_state:
         st.session_state.caption_placeholder = st.empty()
+
+    if "processing" not in st.session_state:
+        st.session_state.processing = False

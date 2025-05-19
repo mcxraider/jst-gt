@@ -48,7 +48,7 @@ def delete_all_s3(dir):
 def wipe_db(caption):
     """Completely wipe contents of each folder in the s3_bucket directory only if needed."""
 
-    st.session_state.caption_placeholder.caption("Erasing data from previous run...")
+    caption.caption("[Status] Erasing data from previous run...")
 
     # Only wipe if a CSV or checkpoint has been processed
     if not (
@@ -156,7 +156,7 @@ async def write_input_to_s3(
 
 
 def async_write_input_to_s3(caption, *args, **kwargs):
-    caption.caption("Saving input files to database...")
+    caption.caption("[Status] Saving input files to database...")
     return asyncio.run(write_input_to_s3(*args, **kwargs))
 
 
@@ -193,5 +193,5 @@ def async_write_output_to_s3(caption, dfs):
     Synchronous entrypoint: runs the async writer under the hood.
     dfs should be a list of (DataFrame, original_filename) tuples.
     """
-    caption.caption("Results are ready, saving files to database...")
+    caption.caption("[Status] Results are ready, saving files to database...")
     return asyncio.run(write_output_to_s3(dfs))

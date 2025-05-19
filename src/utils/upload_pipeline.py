@@ -49,7 +49,11 @@ def process_uploaded_files(
     selected_sector = st.session_state.selected_process[2:]
 
     st.subheader(f"3. Start Processing for {selected_sector} sector")
-    if st.button("Process Data"):
+    disabled = st.session_state.processing  # this is initialised to False
+
+    if st.button("Process Data", disabled=disabled):
+        st.session_state.processing = True  # Lock processing button
+
         with st.spinner("Processing..."):
             caption = st.empty()
 
@@ -68,6 +72,7 @@ def process_uploaded_files(
 
             # 4) handle early exit
             if not results:
+                st.session_state.processing = False  # Unlock the button again
                 handle_exit("exit_from_failed_upload")
                 return
 
@@ -78,6 +83,8 @@ def process_uploaded_files(
             st.session_state.results = results
             st.session_state.csv_yes = True
             st.session_state.app_stage = "results_ready"
+            st.session_state.processing = False  # Unlock the button again
+
         st.rerun()
 
 

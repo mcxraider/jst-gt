@@ -11,23 +11,29 @@ def load_checkpoint_pipeline():
 
     load_checkpoint_ui()
 
+    disabled = st.session_state.processing
+
     # Load Checkpoint Button
-    if st.button("Load Checkpoint", use_container_width=True):
+    if st.button("Load Checkpoint", use_container_width=True, disabled=disabled):
+        st.session_state.processing = True  # Lock button
 
         with st.spinner("Resuming from checkpoint…"):
-            results = handle_core_processing()
+            caption = st.empty()
+            results = handle_core_processing(caption)
 
         # handle early exit
         if not results:
+            st.session_state.processing = False  # Unlock the button again
             handle_exit("exit_from_failed_checkpoint")
             return
 
-        async_write_output_to_s3(results)
+        async_write_output_to_s3(caption, results)
 
         # 5) update state and rerun
         st.session_state.results = results
         st.session_state.csv_yes = True
         st.session_state.app_stage = "results_ready"
+        st.session_state.processing = False  # Unlock button
 
         st.rerun()
 

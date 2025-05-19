@@ -38,18 +38,6 @@ def demo_sidebar():
                 st.session_state.app_stage = "results_ready"
                 st.rerun()
 
-        # Add session info
-        st.markdown("---")
-        st.markdown("### Session Info")
-        if st.session_state.pkl_yes:
-            st.markdown("✅ Checkpoint available")
-            if st.session_state.csv_yes:
-                st.markdown("✅ Results ready")
-            else:
-                st.markdown("⏳ Processing pending")
-        else:
-            st.markdown("No active runs")
-
         # Add help section
         st.markdown("---")
         with st.expander("📝 How To Use"):
