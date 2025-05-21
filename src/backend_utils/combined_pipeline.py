@@ -7,7 +7,6 @@ from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from tqdm import tqdm
-from typing import Optional, Union, List
 
 # r1 utilities (unchanged)
 from backend_utils.r1_utils import *
@@ -967,8 +966,8 @@ def handle_checkpoint_processing(
             return []
 
         st.success(f"Round 2 complete after resuming from checkpoint, all files saved.")
-        ret_r2_valid = wrap_valid_df_with_name(r2_valid)
-        ret_r2_invalid = wrap_invalid_df_with_name(r2_invalid)
-        ret_all_valid = wrap_all_df_with_name(all_valid)
+        ret_r2_valid = wrap_valid_df_with_name(r2_valid, target_sector_alias)
+        ret_r2_invalid = wrap_invalid_df_with_name(r2_invalid, target_sector_alias)
+        ret_all_valid = wrap_all_df_with_name(all_valid, target_sector_alias)
 
         return [ret_r2_valid, ret_r2_invalid, ret_all_valid]

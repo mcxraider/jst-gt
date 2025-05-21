@@ -161,7 +161,6 @@ def async_write_input_to_s3(caption, *args, **kwargs):
 
 
 async def write_output_to_s3(
-    sector_alias: str,
     dfs: list[tuple[pd.DataFrame, str]],
     S3_OUTPUT_DIR_PATH: str = "../s3_bucket/s3_output",
 ):
@@ -189,10 +188,10 @@ async def write_output_to_s3(
     st.success(f"✅ Wrote all {len(dfs)} output files to S3")
 
 
-def async_write_output_to_s3(caption, sector_alias, dfs):
+def async_write_output_to_s3(caption, dfs):
     """
     Synchronous entrypoint: runs the async writer under the hood.
     dfs should be a list of (DataFrame, original_filename) tuples.
     """
     caption.caption("[Status] Results are ready, saving files to database...")
-    return asyncio.run(write_output_to_s3(sector_alias, dfs))
+    return asyncio.run(write_output_to_s3(dfs))

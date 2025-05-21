@@ -12,6 +12,7 @@ from utils.db import *
 from backend_utils.combined_pipeline import handle_core_processing
 from components.buttons import *
 from components.header import *
+from backend_utils.config import process_choices
 
 
 def prompt_file_upload(
@@ -32,7 +33,7 @@ def both_files_uploaded(
     return sfw_df is not None and sector_df is not None
 
 
-def handle_exit(button_title):
+def handle_exit():
     st.error(
         "Processing was stopped midway due to a connection issue. If you would like to continue, start over and load from the previous checkpoint!"
     )
@@ -75,11 +76,11 @@ def process_uploaded_files(
             # 4) handle early exit
             if not results:
                 st.session_state.processing = False  # Unlock the button again
-                handle_exit("exit_from_failed_upload")
+                handle_exit()
                 return
 
             # 5) upload outputs
-            async_write_output_to_s3(caption, selected_sector_alias, results)
+            async_write_output_to_s3(caption, results)
 
             # 6) update state and rerun
             st.session_state.results = results
@@ -93,18 +94,7 @@ def process_uploaded_files(
 def upload_new_pipeline():
     create_header()
 
-    st.markdown(
-        """
-    <div class="css-card">
-        <h2 style="margin-top: 0;">Upload Files</h2>
-        <p>Please upload the required files for your selected process.</p>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
-    """Handles two file uploads with distinct validation logic and proceeds when ready."""
     # Step 1: SFW framework file
-
     sfw_df, sfw_filename = prompt_file_upload(
         step=1,
         label=f"{st.session_state.selected_process[0]} SFW Framework",

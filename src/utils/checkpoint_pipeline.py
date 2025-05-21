@@ -19,12 +19,16 @@ def load_checkpoint_pipeline():
 
         with st.spinner("Resuming from checkpoint…"):
             caption = st.empty()
-            results = handle_core_processing(caption)
+            target_sector = st.session_state.selected_process
+            target_sector_alias = st.session_state.selected_process_alias
+            results = handle_core_processing(
+                caption, target_sector, target_sector_alias
+            )
 
         # handle early exit
         if not results:
-            st.session_state.processing = False  # Unlock the button again
-            handle_exit("exit_from_failed_checkpoint")
+            st.session_state.processing = False
+            handle_exit()
             return
 
         async_write_output_to_s3(caption, results)

@@ -1,7 +1,4 @@
-import streamlit as st
-
 # OpenAI APIs
-
 api_key = "sk-"
 base_url = "https://ai-api.analytics.gov.sg"
 
@@ -20,7 +17,6 @@ course_data_columns = [
     "What You'll Learn",
 ]
 
-# — Course‐specific column lists
 course_raw_data_cols = [
     "Course Reference Number",
     "Skill Title",
@@ -28,9 +24,16 @@ course_raw_data_cols = [
     "About This Course",
     "What You'll Learn",
 ]
+
 course_descr_cols = [
     "Course Reference Number",
     "Course Title",
     "About This Course",
     "What You'll Learn",
+]
+
+process_choices = [
+    "HR (Human Resource)",
+    "FS (Food Services)",
+    "FS (Financial Services)",
 ]

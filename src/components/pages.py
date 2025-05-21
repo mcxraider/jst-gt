@@ -10,23 +10,22 @@ import streamlit_shadcn_ui as ui
 def demo_sidebar():
     st.sidebar.header("Demo Controls (for Beta)")
     with st.sidebar:
-        st.session_state.pkl_yes = ui.switch(
-            default_checked=st.session_state.get("pkl_yes", False),
-            label="Checkpoint Available (pkl_yes)",
-            key="toggle_pkl_yes",
+        simulate_pkl = st.sidebar.checkbox(
+            "Simulate Checkpoint Available (pkl_yes)", value=st.session_state.pkl_yes
         )
+        st.session_state.pkl_yes = simulate_pkl
 
-        st.session_state.csv_yes = ui.switch(
-            default_checked=st.session_state.get("csv_yes", False),
-            label="All 3 CSVs Processed (csv_yes)",
-            key="toggle_csv_yes",
+        simulate_csv = st.sidebar.checkbox(
+            "Simulate All 3 CSVs Processed (csv_yes)", value=st.session_state.csv_yes
         )
+        st.session_state.csv_yes = simulate_csv
 
-        st.session_state.exit_halfway = ui.switch(
-            default_checked=st.session_state.get("exit_halfway", False),
-            label="Simulate Exit (exit_halfway)",
-            key="toggle_exit_halfway",
+        exit_halfway = st.sidebar.checkbox(
+            "Simulate User/system exit (exit_halfway)",
+            value=st.session_state.exit_halfway,
         )
+        st.session_state.exit_halfway = exit_halfway
+
         st.markdown("## Navigation")
 
         if st.button("🏠 Home", use_container_width=True):
@@ -88,6 +87,7 @@ def homepage():
     # Update the session state with the selected process
     st.session_state.selected_process_alias = selected_process[:2]
     st.session_state.selected_process = [selected_process[4:-1]]
+
     # Action selection section
     st.markdown(
         """
@@ -104,7 +104,7 @@ def homepage():
     with col1:
         st.markdown('<div class="primary-button">', unsafe_allow_html=True)
         if st.button(
-            f"⬆️ Upload New File & Run {st.session_state.selected_process_alias} Process",
+            f"⬆️ Upload New File & Run New Process",
             key="upload_new",
             use_container_width=True,
         ):
