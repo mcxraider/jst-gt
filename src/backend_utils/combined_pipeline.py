@@ -74,14 +74,6 @@ class CheckpointManager:
 
         # Console debug: pretty-print the raw contents
         print(f"[Checkpoint] Loaded state from {latest_file}")
-        # print("[Checkpoint] Full contents of self.state:")
-        # pp = pprint.PrettyPrinter(indent=2)
-        # pp.pprint(self.state.get("sector", self.sector))
-
-        # # In-app debug: render JSON in Streamlit
-        # st.markdown("**🔍 Checkpoint contents:**")
-        # st.json(self.state)
-
         # Pull out any saved progress info
         self.last_progress = self.state.get("progress", self.last_progress)
         self.current_round = self.state.get("round", self.current_round)
@@ -133,10 +125,34 @@ def load_sector_file(cols=None) -> pd.DataFrame:
         if not fp.name.startswith("SFW"):
             return pd.read_excel(
                 fp,
-                # sheet_name=target_sector_alias,
                 usecols=cols,
             )
     raise FileNotFoundError(f"No sector file found in {input_data_path}")
+
+
+def load_r1_invalid() -> pd.DataFrame:
+    """
+    Finds the single CSV in `intermediate_output_path` whose
+    name contains 'r1_irrelevant', reads it, and returns it.
+    """
+    intermediate_dir = Path(intermediate_output_path)
+    for fp in intermediate_dir.glob("*.csv"):
+        if "r1_invalid" in fp.name:
+            print(f"Loading r1 invalid file named: {fp.name}")
+            return pd.read_csv(fp, low_memory=False, encoding="utf-8")
+    raise FileNotFoundError(
+        f"No file containing 'r1_invalid' in {intermediate_output_path}"
+    )
+
+
+def load_r1_valid():
+    intermediate_dir = Path(intermediate_output_path)
+    for fp in intermediate_dir.glob("*.csv"):
+        if "r1_valid" in fp.name:
+            return pd.read_csv(fp, low_memory=False, encoding="utf-8")
+    raise FileNotFoundError(
+        f"No file containing 'r1_valid' in {intermediate_output_path}"
+    )
 
 
 def handle_core_processing(caption, target_sector, target_sector_alias):
@@ -650,9 +666,11 @@ def resume_round2(
         r2_invalid = pd.concat([r2_untagged, bad2], ignore_index=True)
 
     # h) Merge with R1 valid, save all three files
-    r1_valid = pd.read_csv(
-        round_1_valid_output_path, low_memory=False, encoding="utf-8"
-    )
+    r1_valid = load_r1_valid()
+
+    # r1_valid = pd.read_csv(
+    #     round_1_valid_output_path, low_memory=False, encoding="utf-8"
+    # )
     r2_vout = r2_valid.copy()
     r2_vout["proficiency_level"] = r2_vout["proficiency_level_rac_chart"]
     r2_vout["reason"] = r2_vout["reason_rac_chart"]
@@ -906,7 +924,9 @@ def handle_checkpoint_processing(
         # Load the df_r2_input from r2 checkpoint state
         # We need to recreate the input DataFrame from Round 1 invalid results
         # First, load the invalid results from Round 1
-        df_invalid1 = pd.read_csv(round_1_invalid_output_path)
+        df_invalid1 = load_r1_invalid()
+
+        # df_invalid1 = pd.read_csv(round_1_invalid_output_path)
 
         # Load course descriptions
         all_descr = load_sector_file(

@@ -1,57 +1,73 @@
-import streamlit as st
-from typing import Optional, Tuple, List, Any
-import os
 from pathlib import Path
+from backend_utils.config import *
+import streamlit as st
 
 
-def configure_page():
-    """Set Streamlit page configuration and title."""
+# --- Configuration ---
+
+
+def configure_page_settings() -> None:
+    """
+    Configure the Streamlit page layout and initial sidebar state.
+    """
     st.set_page_config(
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
 
+# --- Utility Functions ---
+
+
 def check_pkl_existence() -> bool:
-    checkpoint_dir = Path("../s3_bucket/s3_checkpoint")
-    if not checkpoint_dir.exists():
-        return False
-    return any(checkpoint_dir.glob("*.pkl"))
+    """
+    Check whether any .pkl files exist in the checkpoint directory.
+    """
+    s3_checkpoint_dir = Path("../s3_bucket/s3_checkpoint")
+    return s3_checkpoint_dir.exists() and any(s3_checkpoint_dir.glob("*.pkl"))
 
 
-# store these variables in S3.
-def init_session_state():
-    """Initialize session state variables."""
-    for key in ("results", "error_msg"):
-        if key not in st.session_state:
-            st.session_state[key] = None
+# --- Session State Initialization ---
 
-    if "app_stage" not in st.session_state:
-        st.session_state["app_stage"] = "initial_choice"
 
-    if "csv_yes" not in st.session_state:
-        output_path = "../s3_bucket/s3_output/"
-        output_files = os.listdir(output_path)
-        num_outputs = len(output_files)
-        if num_outputs == 3:
-            st.session_state["csv_yes"] = True
-        else:
-            st.session_state["csv_yes"] = False
+def init_session_state() -> None:
+    """
+    Initialize Streamlit session state variables if not already set.
+    """
+    # Defaults for generic result tracking
+    default_none_keys = ("results", "error_msg")
+    for key in default_none_keys:
+        st.session_state.setdefault(key, None)
 
-    if "pkl_yes" not in st.session_state:
-        st.session_state["pkl_yes"] = check_pkl_existence()
+    # Defaults for app state tracking
+    st.session_state.setdefault("app_stage", "initial_choice")
+    st.session_state.setdefault("exit_halfway", False)
+    st.session_state.setdefault("selected_process", ["None"])
+    st.session_state.setdefault("selected_process_alias", "")
+    st.session_state.setdefault("processing", False)
 
-    if "exit_halfway" not in st.session_state:
-        st.session_state["exit_halfway"] = False
-
-    if "selected_process" not in st.session_state:
-        st.session_state["selected_process"] = ["None"]
-
-    if "selected_process_alias" not in st.session_state:
-        st.session_state["selected_process_alias"] = ""
-
+    # Placeholder for dynamic captions
     if "caption_placeholder" not in st.session_state:
         st.session_state.caption_placeholder = st.empty()
 
-    if "processing" not in st.session_state:
-        st.session_state.processing = False
+    # Check existence of output CSV files
+    if "csv_yes" not in st.session_state:
+        s3_output_path = Path(output_path)
+        output_files = (
+            list(s3_output_path.glob("*.csv")) if s3_output_path.exists() else []
+        )
+        st.session_state["csv_yes"] = len(output_files) == 3
+
+    # Check for existing checkpoints
+    st.session_state.setdefault("pkl_yes", check_pkl_existence())
+
+
+# --- Entry Point ---
+
+
+def configure_page() -> None:
+    """
+    Set up the Streamlit page and initialize session state.
+    """
+    configure_page_settings()
+    init_session_state()
