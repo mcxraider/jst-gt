@@ -37,3 +37,9 @@ process_choices = [
     "FS (Food Services)",
     "FS (Financial Services)",
 ]
+
+process_alias_mapping = {
+    "HR": ["Human Resource"],
+    "FS": ["Food Services"],
+    "FS": ["Financial Services"],
+}

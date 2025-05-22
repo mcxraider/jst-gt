@@ -51,27 +51,43 @@ class CheckpointManager:
     def __init__(self, alias: str, timestamp: str):
         BASE_CHECKPOINT_DIR = Path("../s3_bucket/s3_checkpoint")
         filename = f"{alias}_checkpoint_{timestamp}.pkl"
+        self.base_checkpoint_path = BASE_CHECKPOINT_DIR
         self.checkpoint_path = BASE_CHECKPOINT_DIR / filename
         self.state = {}
         # Store progress for Streamlit display
         self.last_progress = 0
         self.current_round = None
+        self.sector = alias
 
     def load(self) -> bool:
-        if self.checkpoint_path.exists():
-            with st.spinner("Retrieving data from previously saved checkpoint"):
-                with open(self.checkpoint_path, "rb") as f:
-                    self.state = pickle.load(f)
-                print(f"[Checkpoint] Loaded state from {self.checkpoint_path}")
+        # Find all .pkl files in the checkpoint directory
+        pkl_files = list(self.base_checkpoint_path.glob("*.pkl"))
+        if not pkl_files:
+            return False
 
-            # Extract progress information if available
-            if "progress" in self.state:
-                self.last_progress = self.state["progress"]
-            if "round" in self.state:
-                self.current_round = self.state["round"]
+        latest_file = max(pkl_files, key=lambda p: p.stat().st_mtime)
+        self.checkpoint_path = latest_file
 
-            return True
-        return False
+        with st.spinner("Retrieving data from previously saved checkpoint"):
+            with open(latest_file, "rb") as f:
+                self.state = pickle.load(f)
+
+        # Console debug: pretty-print the raw contents
+        print(f"[Checkpoint] Loaded state from {latest_file}")
+        # print("[Checkpoint] Full contents of self.state:")
+        # pp = pprint.PrettyPrinter(indent=2)
+        # pp.pprint(self.state.get("sector", self.sector))
+
+        # # In-app debug: render JSON in Streamlit
+        # st.markdown("**🔍 Checkpoint contents:**")
+        # st.json(self.state)
+
+        # Pull out any saved progress info
+        self.last_progress = self.state.get("progress", self.last_progress)
+        self.current_round = self.state.get("round", self.current_round)
+        self.sector = self.state.get("sector", self.sector)
+        st.session_state.selected_process_alias = self.sector
+        return True
 
     def save(self):
         # Calculate and store progress information
@@ -80,11 +96,14 @@ class CheckpointManager:
             if total > 0:
                 self.last_progress = len(self.state["r1_results"]) / total
                 self.state["progress"] = self.last_progress
+
         elif "r2_pending" in self.state and "r2_results" in self.state:
             total = len(self.state["r2_pending"]) + len(self.state["r2_results"])
             if total > 0:
                 self.last_progress = len(self.state["r2_results"]) / total
                 self.state["progress"] = self.last_progress
+
+        self.state["sector"] = st.session_state.selected_process_alias
 
         with open(self.checkpoint_path, "wb") as f:
             pickle.dump(self.state, f)
@@ -134,7 +153,6 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     # If checkpoint exists, try to load it
     if ckpt.load():
         caption.caption("[Status] Retrieving Checkpoint Metadata...")
-
         progress_bar.progress(ckpt.last_progress)
 
         caption.caption("[Status] Processing input files from last checkpoint...")
@@ -702,7 +720,7 @@ def handle_checkpoint_processing(
     round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
     irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
     state = ckpt.state
-
+    print("handle checkpoint is being run")
     if state.get("round") == "r1":
 
         # Load necessary files
