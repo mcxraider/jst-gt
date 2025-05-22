@@ -29,19 +29,11 @@ def upload_file_page():
     # Update the session state with the selected process
     st.session_state.selected_process_alias = selected_process[:2]
     st.session_state.selected_process = [selected_process[4:-1]]
-    # Step 1: SFW framework file
-    sfw_df, sfw_filename = prompt_file_upload(
-        step=1,
-        label=f"{st.session_state.selected_process[0]} SFW Framework",
-        validator=validate_sfw_file_input,
-    )
 
-    # Step 2: Sector file
-    sector_df, sector_filename = prompt_file_upload(
-        step=2,
-        label=f"{st.session_state.selected_process[0]} File",
-        validator=validate_sector_file_input,
-    )
+    sfw_df, sfw_filename = upload_sfw_file()
+
+    # Upload and validate sector file immediately (with preprocessing if needed)
+    sector_df, sector_filename = upload_sector_file()
 
     # Step 3: Check uploads and process or warn
     if both_files_uploaded(sfw_df, sector_df):

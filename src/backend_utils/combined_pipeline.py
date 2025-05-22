@@ -20,25 +20,24 @@ from utils.db import *
 
 pd.set_option("future.no_silent_downcasting", True)
 
-num_rows = 200
-
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+NUM_ROWS = 200
+TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def wrap_valid_df_with_name(df, target_sector_alias):
-    # name = f"{target_sector_alias}_valid_skill_pl_{timestamp}"
+    # name = f"{target_sector_alias}_valid_skill_pl_{TIMESTAMP}"
     name = f"Valid Skills for {target_sector_alias} sector"
     return (df, name)
 
 
 def wrap_invalid_df_with_name(df, target_sector_alias):
-    # name = f"{target_sector_alias}_invalid_skill_pl_{timestamp} sector"
+    # name = f"{target_sector_alias}_invalid_skill_pl_{TIMESTAMP} sector"
     name = f"Invalid Skills for {target_sector_alias}"
     return (df, name)
 
 
 def wrap_all_df_with_name(df, target_sector_alias):
-    # name = f"{target_sector_alias}_all_skill_pl_{timestamp}"
+    # name = f"{target_sector_alias}_all_skill_pl_{TIMESTAMP}"
     name = f"All Tagged Skills for {target_sector_alias} sector"
     return (df, name)
 
@@ -48,9 +47,9 @@ class CheckpointManager:
     Manages saving and loading of pipeline state to a pickle file.
     """
 
-    def __init__(self, alias: str, timestamp: str):
+    def __init__(self, alias: str, TIMESTAMP: str):
         BASE_CHECKPOINT_DIR = Path("../s3_bucket/s3_checkpoint")
-        filename = f"{alias}_checkpoint_{timestamp}.pkl"
+        filename = f"{alias}_checkpoint_{TIMESTAMP}.pkl"
         self.base_checkpoint_path = BASE_CHECKPOINT_DIR
         self.checkpoint_path = BASE_CHECKPOINT_DIR / filename
         self.state = {}
@@ -159,12 +158,12 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     """
     Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
     """
-    round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
-    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
-    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
+    round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
+    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
+    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{TIMESTAMP}.csv"
     progress_bar = st.progress(0)
 
-    ckpt = CheckpointManager(target_sector_alias, timestamp)
+    ckpt = CheckpointManager(target_sector_alias, TIMESTAMP)
 
     # If checkpoint exists, try to load it
     if ckpt.load():
@@ -219,7 +218,7 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     work_df = (
         course_df[course_df["Sector Relevance"] == "In Sector"]
         .reset_index(drop=True)
-        .head(num_rows)
+        .head(NUM_ROWS)
     )  # remove the head(90) this if need testing
 
     # Initialize Round 1 checkpoint state
@@ -450,7 +449,7 @@ def resume_round2(
     with batching (10 at a time), a 50s pause every 40 API calls, a checkpoint every 30 rows,
     and a tqdm progress bar plus Streamlit progress updates.
     """
-    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
+    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
     r2_raw_output_path = (
         f"{misc_output_path}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
     )
@@ -712,12 +711,12 @@ def resume_round2(
 
     # write out as UTF-8 CSVs
     missing.to_csv(
-        f"{misc_output_path}/{target_sector_alias}_missing_content_course_{timestamp}.csv",
+        f"{misc_output_path}/{target_sector_alias}_missing_content_course_{TIMESTAMP}.csv",
         index=False,
         encoding="utf-8",
     )
     rest.to_csv(
-        f"{misc_output_path}/{target_sector_alias}_poor_content_quality_course_{timestamp}.csv",
+        f"{misc_output_path}/{target_sector_alias}_poor_content_quality_course_{TIMESTAMP}.csv",
         index=False,
         encoding="utf-8",
     )
@@ -734,9 +733,9 @@ def handle_checkpoint_processing(
     """
     Resumes processing from the checkpoint based on which round was active.
     """
-    round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
-    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{timestamp}.csv"  # Check for the timestamp on file version used
-    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{timestamp}.csv"
+    round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
+    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
+    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{TIMESTAMP}.csv"
     state = ckpt.state
     print("handle checkpoint is being run")
     if state.get("round") == "r1":
@@ -779,7 +778,7 @@ def handle_checkpoint_processing(
         work_df = (
             course_df[course_df["Sector Relevance"] == "In Sector"]
             .reset_index(drop=True)
-            .head(num_rows)  # Keep the same limit as in original function
+            .head(NUM_ROWS)  # Keep the same limit as in original function
         )
 
         # Resume Round 1

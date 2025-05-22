@@ -1,131 +1,119 @@
+import sys
+from pathlib import Path
+from ast import literal_eval
 import pandas as pd
+from typing import Optional, Tuple, Any, Callable
+
 from config import (
-    target_sector,
     target_sector_alias,
     course_file_path,
     sheet_name,
     course_data_columns,
-    api_key,
-    base_url,
+    course_descr_cols,
 )
-import sys
-from pathlib import Path
-from ast import literal_eval
 
-from config import (
-    target_sector,
-    target_sector_alias,
-    course_file_path,
-    sheet_name,
-    course_data_columns,
-    api_key,
-    base_url,
-)
-import sys
-from pathlib import Path
-from ast import literal_eval
-
+# allow imports from parent directory
 parent_dir = Path.cwd().parent
 sys.path.append(str(parent_dir))
 
-# Reference config file for information
-raw_file_path = course_file_path
-sheet_name = sheet_name
-sector_abbrev = target_sector_alias
-cols_to_use = course_data_columns
+# --- Cleaning Steps ---
 
-raw_file = pd.read_excel(raw_file_path, sheet_name=sheet_name, usecols=cols_to_use)
 
-uploaded_file_rows = raw_file.shape[0]
-print(f"Course Training file uploaded has {uploaded_file_rows} rows.")
+def drop_empty_and_dedup(
+    df: pd.DataFrame,
+    subset: list[str],
+) -> pd.DataFrame:
+    """
+    1) Drop rows with any NA in-place.
+    2) Drop duplicate rows based on `subset`, keeping first.
+    Returns the cleaned DataFrame.
+    """
+    df = df.dropna().drop_duplicates(subset=subset, keep="first").reset_index(drop=True)
+    return df
 
-# dropna for raw file
-raw_file.dropna(inplace=True)
-post_dropna_file_rows = raw_file.shape[0]
-empty_row_count = uploaded_file_rows - post_dropna_file_rows
-print(f"There were {empty_row_count} empty rows removed.")
 
-# Dedup for raw file
-raw_file.drop_duplicates(
-    subset=["Course Reference Number", "Skill Title"], keep="first", inplace=True
-)
-raw_file.reset_index(drop=True, inplace=True)
-post_dedup_file_rows = raw_file.shape[0]
-dup_row_count = post_dropna_file_rows - post_dedup_file_rows
-print(f"There were {dup_row_count} duplicated rows removed.")
+# --- Complex Formatting ---
 
-# Complex Format Issues in Uploaded File
-user_input = input("Does the file need complex reformatting? Y/N")
-if user_input == "Y":
-    # Create course ref file
-    crs_list = raw_file.copy()
-    crs_list = crs_list[
-        [
-            "Course Reference Number",
-            "Course Title",
-            "About This Course",
-            "What You'll Learn",
-        ]
-    ]
-    crs_list.drop_duplicates(keep="first", inplace=True)
 
-    # Loop through skill content for format issues
-    to_tag_crs_ref_list = []
-    to_tag_skill_list = []
-
-    tp_tag_crs_ref_list = []
-    tp_tag_skill_list = []
-
-    for _, row in raw_file.iterrows():
-        skill_content = row["Skill Title"]
-        course_ref = row["Course Reference Number"]
-        if skill_content.startswith("["):
-            if len(literal_eval(skill_content)) > 0:
-                to_tag_crs_ref_list.append(course_ref)
-                to_tag_skill_list.append(skill_content)
-            else:
-                pass
-        else:
-            tagged_skill_raw = skill_content.split(", ", 1)[0]
-            tp_tag_crs_ref_list.append(course_ref)
-            tp_tag_skill_list.append(tagged_skill_raw)
-
-    # Create separate files to track TGS skill PL tags and skills for LLM
-    to_be_tagged_df = pd.DataFrame(
-        data={
-            "Course Reference Number": to_tag_crs_ref_list,
-            "Skill Title": to_tag_skill_list,
-        }
+def extract_complex_skills(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    From rows whose Skill Title starts with '[':
+    • literal_eval the list, explode it into separate rows.
+    • preserve Course Reference Number and course metadata.
+    """
+    # keep only the course metadata for merging later
+    crs_list = df[course_descr_cols].drop_duplicates(
+        subset=["Course Reference Number"], keep="first"
     )
-    tp_tagged_df = pd.DataFrame(
-        data={
-            "Course Reference Number": tp_tag_crs_ref_list,
-            "Skill Title Raw": tp_tag_skill_list,
+
+    # build lists of (course_ref, raw_skill_list)
+    tag_refs, tag_skills = [], []
+    for _, row in df.iterrows():
+        skill = row["Skill Title"]
+        crs_ref = row["Course Reference Number"]
+        if isinstance(skill, str) and skill.startswith("["):
+            parsed = literal_eval(skill)
+            if parsed:
+                tag_refs.append(crs_ref)
+                tag_skills.append(parsed)
+
+    tagged_df = pd.DataFrame(
+        {
+            "Course Reference Number": tag_refs,
+            "Skill Title": tag_skills,
         }
     )
 
-    # Merge only skills for LLM with course ref file
-    raw_file_clean = to_be_tagged_df.merge(
-        crs_list, on="Course Reference Number", how="left"
+    # explode the list-of-skills into individual rows
+    exploded = (
+        tagged_df.merge(crs_list, on="Course Reference Number", how="left")
+        .explode("Skill Title")
+        .reset_index(drop=True)
+    )
+    return exploded
+
+
+# --- Column Renaming ---
+
+
+def safe_rename_skill_column(
+    df: pd.DataFrame,
+    old: str = "Skills Title 2K",
+    new: str = "Skill Title",
+) -> pd.DataFrame:
+    """
+    Rename `old` column to `new` if it exists.
+    """
+    if old in df.columns:
+        return df.rename(columns={old: new})
+    return df
+
+
+def build_course_skill_dataframe(
+    df: pd.DataFrame,
+    complex_format: bool = False,
+) -> pd.DataFrame:
+    """
+    Orchestrates the full pipeline:
+    1) Load raw data
+    2) Drop empty rows & dedupe
+    3) Optionally handle complex formatting
+    4) Rename skill column if needed
+    Returns the final DataFrame.
+    """
+    # 2) Clean
+    df = drop_empty_and_dedup(
+        df,
+        subset=["Course Reference Number", "Skill Title"],
     )
 
-    # Convert string to list using ast.literal_eval
-    raw_file_clean["Skill Title"] = raw_file_clean["Skill Title"].apply(literal_eval)
-    # Explode the 'skills' column
-    course_skill_df = raw_file_clean.explode("Skill Title").reset_index(drop=True)
+    # 3) Complex formatting (if requested)
+    if complex_format:
+        df = extract_complex_skills(df)
 
-else:
-    course_skill_df = raw_file.copy()
-course_skill_df = raw_file.copy()
+    # 4) Ensure correct column name
+    df = safe_rename_skill_column(df)
 
-try:
-    course_skill_df.rename(columns={"Skills Title 2K": "Skill Title"}, inplace=True)
-except Exception as e:
-    print(f"No column transformation needed: {e}")
-    pass
-
-course_skill_df.to_excel(
-    f"../input_data/knowledge_transfer/{sector_abbrev}_course_pl_tagging_cleaned.xlsx",
-    sheet_name=sector_abbrev,
-    index=False,
-)
+    return df
