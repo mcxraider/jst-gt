@@ -1,10 +1,8 @@
 import streamlit as st
-import pandas as pd
 from utils.output_handler import *
 from utils.db import *
 from components.buttons import *
 from components.header import *
-import streamlit_shadcn_ui as ui
 
 
 def demo_sidebar():
@@ -30,6 +28,9 @@ def demo_sidebar():
 
         if st.button("🏠 Home", use_container_width=True):
             st.session_state.app_stage = "initial_choice"
+            current_pkl_state = st.session_state.pkl_yes
+            init_session_state()
+            st.session_state.pkl_yes = current_pkl_state
             st.rerun()
 
         if st.session_state.csv_yes and st.session_state.results:
@@ -66,27 +67,6 @@ def demo_sidebar():
 # Enhanced homepage with visual appeal
 def homepage():
     create_header()
-
-    # Department selection with dropdown
-    st.markdown("<h3>Select a Sector:</h3>", unsafe_allow_html=True)
-
-    process_choices = [
-        "HR (Human Resource)",
-        "FS (Food Services)",
-        "FS (Financial Services)",
-    ]
-
-    # Create a styled dropdown for process selection
-    selected_process = st.selectbox(
-        "Select a process:",
-        process_choices,
-        key="process_choice",
-        help="Pick which pipeline you want to run.",
-    )
-
-    # Update the session state with the selected process
-    st.session_state.selected_process_alias = selected_process[:2]
-    st.session_state.selected_process = [selected_process[4:-1]]
 
     # Action selection section
     st.markdown(
@@ -133,8 +113,9 @@ def homepage():
             Download the results below or start a new session!
         """
         )
-        dfs = fetch_completed_output()
-        view_download_csvs(dfs)
+        with st.expander("📂 Preview & Download Results"):
+            dfs = fetch_completed_output()
+            view_download_csvs(dfs)
     elif not pkl_available:
         st.info(
             """
@@ -167,10 +148,11 @@ def results_page():
             ✅ Preview and download your results
         """
         )
+        with st.expander("📂 Preview Results"):
 
-        dfs = st.session_state.results
-        view_download_csvs(dfs)
-        back_homepage_button()
+            dfs = st.session_state.results
+            view_download_csvs(dfs)
+            back_homepage_button()
 
     else:
         st.error(

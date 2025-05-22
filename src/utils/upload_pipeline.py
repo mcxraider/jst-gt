@@ -58,8 +58,6 @@ def process_uploaded_files(
         with st.spinner("Processing..."):
             caption = st.empty()
 
-            # caption.caption(f"⏱ Estimated time remaining: 50 mins")
-
             # 1) Wipe DB before uploading new data
             wipe_db(caption)
 
@@ -93,7 +91,20 @@ def process_uploaded_files(
 
 def upload_new_pipeline():
     create_header()
+    # Department selection with dropdown
+    st.markdown("<h3>Select a Sector:</h3>", unsafe_allow_html=True)
 
+    # Create a styled dropdown for process selection
+    selected_process = st.selectbox(
+        "Select a process:",
+        process_choices,
+        key="process_choice",
+        help="Pick which pipeline you want to run.",
+    )
+
+    # Update the session state with the selected process
+    st.session_state.selected_process_alias = selected_process[:2]
+    st.session_state.selected_process = [selected_process[4:-1]]
     # Step 1: SFW framework file
     sfw_df, sfw_filename = prompt_file_upload(
         step=1,
@@ -114,4 +125,4 @@ def upload_new_pipeline():
     else:
         st.info("Please upload and validate both files to continue.")
 
-    back_homepage_button()
+    # back_homepage_button()
