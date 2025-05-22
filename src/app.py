@@ -4,16 +4,18 @@ import streamlit as st
 from utils.input_handler import *
 from utils.session_handler import *
 from utils.output_handler import *
-from utils.checkpoint_pipeline import *
 from utils.db import *
 from utils.upload_pipeline import *
+from utils.checkpoint_pipeline import load_checkpoint_page
 from components.buttons import *
-from components.pages import *
+from components.sidebar_page import demo_sidebar
+from components.homepage import homepage
+from components.results_page import results_page
+from components.upload_page import upload_file_page
 
 
 def main():
     configure_page()
-    init_session_state()
 
     demo_sidebar()  # attach only when doing the demo
 
@@ -23,10 +25,10 @@ def main():
 
     # --- Stage for Uploading/Configuring New Process ---
     elif st.session_state.app_stage == "uploading_new":
-        upload_new_pipeline()
+        upload_file_page()
 
     elif st.session_state.app_stage == "load_checkpoint":
-        load_checkpoint_pipeline()
+        load_checkpoint_page()
 
     # --- Results Ready Stage ---
     elif st.session_state.app_stage == "results_ready":

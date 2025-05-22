@@ -1,17 +1,6 @@
 import streamlit as st
 import pandas as pd
-from components.header import *
-
-
-def load_checkpoint_ui():
-    create_header()
-    st.header("🔄 Load Previous Checkpoint")
-    st.markdown(
-        """
-        Resume your work by loading your previously saved checkpoint.
-        Click the button below to retrieve and restore your last session.
-        """
-    )
+from components.page_header import *
 
 
 # Enhanced function to show dataframe with better styling

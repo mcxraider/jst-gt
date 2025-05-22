@@ -129,6 +129,7 @@ def load_sector_file(cols=None) -> pd.DataFrame:
             )
     raise FileNotFoundError(f"No sector file found in {input_data_path}")
 
+
 def load_r1_invalid() -> pd.DataFrame:
     """
     Finds the single CSV in `intermediate_output_path` whose
@@ -152,7 +153,8 @@ def load_r1_valid():
     raise FileNotFoundError(
         f"No file containing 'r1_valid' in {intermediate_output_path}"
     )
-    
+
+
 def handle_core_processing(caption, target_sector, target_sector_alias):
     """
     Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
@@ -665,7 +667,7 @@ def resume_round2(
 
     # h) Merge with R1 valid, save all three files
     r1_valid = load_r1_valid()
-    
+
     # r1_valid = pd.read_csv(
     #     round_1_valid_output_path, low_memory=False, encoding="utf-8"
     # )
@@ -923,7 +925,7 @@ def handle_checkpoint_processing(
         # We need to recreate the input DataFrame from Round 1 invalid results
         # First, load the invalid results from Round 1
         df_invalid1 = load_r1_invalid()
-        
+
         # df_invalid1 = pd.read_csv(round_1_invalid_output_path)
 
         # Load course descriptions
