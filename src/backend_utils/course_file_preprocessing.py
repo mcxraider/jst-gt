@@ -2,15 +2,8 @@ import sys
 from pathlib import Path
 from ast import literal_eval
 import pandas as pd
-from typing import Optional, Tuple, Any, Callable
 
-from config import (
-    target_sector_alias,
-    course_file_path,
-    sheet_name,
-    course_data_columns,
-    course_descr_cols,
-)
+from backend_utils.config import course_descr_cols
 
 # allow imports from parent directory
 parent_dir = Path.cwd().parent
@@ -91,6 +84,7 @@ def safe_rename_skill_column(
     return df
 
 
+# equivalent to run processing in input_handler.py
 def build_course_skill_dataframe(
     df: pd.DataFrame,
     complex_format: bool = False,

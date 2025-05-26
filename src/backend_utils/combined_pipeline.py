@@ -722,7 +722,7 @@ def resume_round2(
     )
 
     # these are the completed outputs
-    st.success("All processing complete, results saved to files.")
+    print("[Round 2 Complete] All processing complete, results saved to files.")
     r2_invalid = pd.concat([r2_untagged, r2_invalid], ignore_index=True)
     return r2_valid, r2_invalid, all_valid
 
