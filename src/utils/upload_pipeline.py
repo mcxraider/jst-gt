@@ -15,17 +15,6 @@ from backend_utils.config import process_choices
 from utils.checkpoint_pipeline import handle_exit
 
 
-def prompt_file_upload(
-    step: int, label: str, validator: Callable[[Any], asyncio.Future]
-) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
-    """
-    Display a numbered subheader and file uploader for a given label and validator.
-    Returns the DataFrame and the original filename if successful.
-    """
-    st.subheader(f"{step}. Upload {label}")
-    return upload_file(label=label, validator=validator)
-
-
 def both_files_uploaded(
     sfw_df: Optional[pd.DataFrame], sector_df: Optional[pd.DataFrame]
 ) -> bool:
