@@ -1,6 +1,6 @@
 import time
 from pathlib import Path
-import datetime
+from datetime import datetime
 import pandas as pd
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -13,15 +13,14 @@ from backend_utils.r2_utils import *
 from config import *
 from backend_utils.skill_rac_chart import skill_proficiency_level_details
 import streamlit as st
-from services.db.db import *
-from services.storage.storage import save_pickle
-
+from services.db import *
+from services.storage import *
 
 
 pd.set_option("future.no_silent_downcasting", True)
 
 NUM_ROWS = 200
-TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def wrap_valid_df_with_name(df, target_sector_alias):
@@ -102,7 +101,7 @@ class CheckpointManager:
         self.state["sector"] = st.session_state.selected_process_alias
 
         save_pickle(self.state, self.checkpoint_path)
-        print(f"[Checkpoint] Saved state at {datetime.datetime.now()}")
+        print(f"[Checkpoint] Saved state at {datetime.now()}")
 
         st.session_state.pkl_yes = True
 
@@ -201,10 +200,10 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
 
     df_valid1 = pd.DataFrame(valid1)
     df_invalid1 = pd.DataFrame(invalid1)
-   
+
     write_r1_valid_to_s3(df_valid1, target_sector_alias)
     write_r1_invalid_to_s3(df_invalid1, target_sector_alias)
-    
+
     # === Round 2 Setup ===
     # Load course descriptions from original input (full load, then pick columns)
     print("\n" + "-" * 80 + "\n")

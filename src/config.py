@@ -26,5 +26,5 @@ R2_SYSTEM_PROMPT = config["R2_SYSTEM_PROMPT"]
 R1_SYSTEM_PROMPT = config["R1_SYSTEM_PROMPT"]
 
 USE_S3 = config["USE_S3"]
-S3_BUCKET_NAME =  config["s3_bucket_name"]
+S3_BUCKET_NAME = config["s3_bucket_name"]
 AWS_REGION = config["aws_region"]
