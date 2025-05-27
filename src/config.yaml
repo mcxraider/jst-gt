@@ -1,3 +1,7 @@
+USE_S3: False
+s3_bucket_name: ""
+aws_region: ""
+
 base_dir: "../s3_bucket"
 input_data_path: "../s3_bucket/s3_input"
 intermediate_output_path: "../s3_bucket/s3_intermediate"
