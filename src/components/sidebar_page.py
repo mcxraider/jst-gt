@@ -4,28 +4,12 @@ from utils.db import *
 from components.buttons import *
 from components.page_header import *
 
+PDF_URL = "../public/assets/PDF/File Format Guide for SFW and Sector File.pdf"
+
 
 def demo_sidebar():
-    st.sidebar.header("Demo Controls (for Beta)")
+    st.sidebar.header("Navigation")
     with st.sidebar:
-        simulate_pkl = st.sidebar.checkbox(
-            "Simulate Checkpoint Available (pkl_yes)", value=st.session_state.pkl_yes
-        )
-        st.session_state.pkl_yes = simulate_pkl
-
-        simulate_csv = st.sidebar.checkbox(
-            "Simulate All 3 CSVs Processed (csv_yes)", value=st.session_state.csv_yes
-        )
-        st.session_state.csv_yes = simulate_csv
-
-        exit_halfway = st.sidebar.checkbox(
-            "Simulate User/system exit (exit_halfway)",
-            value=st.session_state.exit_halfway,
-        )
-        st.session_state.exit_halfway = exit_halfway
-
-        st.markdown("## Navigation")
-
         if st.button("🏠 Home", use_container_width=True):
             st.session_state.app_stage = "initial_choice"
             current_pkl_state = st.session_state.pkl_yes
@@ -42,12 +26,17 @@ def demo_sidebar():
         st.markdown("---")
         with st.expander("📝 How To Use"):
             st.markdown(
-                """        
-        - Select a department from the dropdown
-        - Upload your input file or load from a previous checkpoint
-        - Click **Process Data** to start the pipeline
-        - Once complete, download the output files
-                        """
+                """
+                - Select a department from the dropdown  
+                - Upload your input file or load from a previous checkpoint  
+                - Click **Process Data** to start the pipeline  
+                - Once complete, download the output files
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f'<a href="{PDF_URL}" target="_blank" download style="display:inline-block;padding:8px 16px;background:#eee;border-radius:4px;text-decoration:none;font-weight:bold;">📄 Download user format guide and documentation (PDF)</a>',
+                unsafe_allow_html=True,
             )
 
         with st.expander("ℹ️ Contact"):
@@ -57,8 +46,6 @@ def demo_sidebar():
         **Need help?**  
         Please contact:
 
-        - jerry_yang@ssg.gov.sg
-        - lois@ssg.gov.sg
-        - yee_sen@ssg.gov.sg
+        - jerry_yang_from.tp@tech.gov.sg
             """
             )

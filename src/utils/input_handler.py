@@ -151,11 +151,7 @@ def read_uploaded_file(uploaded) -> Optional[pd.DataFrame]:
     """
     ext = Path(uploaded.name).suffix.lower()
     try:
-        if ext == ".csv":
-            df = pd.read_csv(uploaded)
-        else:
-            # For Excel files, read the first (and only) sheet
-            df = pd.read_excel(uploaded)
+        df = pd.read_excel(uploaded)
         return df
     except Exception as e:
         st.error(f"Error reading file {uploaded.name}: {e}")
