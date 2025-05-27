@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.output_handler import *
-from services.db.db import *
-from components.page_header import *
+from services.db import *
+from frontend.page_header import *
 
 
 def homepage():

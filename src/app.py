@@ -2,11 +2,11 @@ import streamlit as st
 
 # import utils app components
 from utils.session_handler import *
-from utils.checkpoint_pipeline import load_checkpoint_page
-from components.sidebar_page import demo_sidebar
-from components.homepage import homepage
-from components.results_page import results_page
-from components.upload_page import upload_file_page
+from services.checkpoint.checkpoint_pipeline import load_checkpoint_page
+from frontend.sidebar_page import demo_sidebar
+from frontend.homepage import homepage
+from frontend.results_page import results_page
+from frontend.upload_page import upload_file_page
 
 
 def main():

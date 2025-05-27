@@ -1,5 +1,5 @@
 import streamlit as st
-from components.page_header import *
+from frontend.page_header import *
 
 
 def load_checkpoint_ui():

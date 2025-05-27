@@ -1,7 +1,7 @@
 from pathlib import Path
 from config import *
 import streamlit as st
-from services.db.db import check_pkl_existence
+from services.db import check_pkl_existence
 
 # --- Configuration ---
 

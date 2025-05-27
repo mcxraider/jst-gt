@@ -1,8 +1,8 @@
 import streamlit as st
 
-from services.db.db import async_write_output_to_s3, load_checkpoint_metadata
-from components.checkpoint_section import load_checkpoint_ui
-from backend_utils.combined_pipeline import handle_core_processing
+from services.db import async_write_output_to_s3, load_checkpoint_metadata
+from frontend.checkpoint_section import load_checkpoint_ui
+from services.llm_pipeline.combined_pipeline import handle_core_processing
 from config import process_alias_mapping
 
 

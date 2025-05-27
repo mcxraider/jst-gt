@@ -7,11 +7,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from tqdm import tqdm
 
-from backend_utils.r1_utils import *
+from services.llm_pipeline.r1_utils import *
 
-from backend_utils.r2_utils import *
+from services.llm_pipeline.r2_utils import *
 from config import *
-from backend_utils.skill_rac_chart import skill_proficiency_level_details
+from utils.skill_rac_chart import skill_proficiency_level_details
 import streamlit as st
 from services.db import *
 from services.storage import *

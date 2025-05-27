@@ -1,16 +1,16 @@
 import streamlit as st
-from typing import Optional, Tuple, Any
+from typing import Optional
 
 
 # import utils file
-from utils.input_handler import *
+from services.ingestion.input_handler import *
 from utils.session_handler import *
 from utils.output_handler import *
-from services.db.db import *
+from services.db import *
 
-from backend_utils.combined_pipeline import handle_core_processing
-from components.page_header import *
-from utils.checkpoint_pipeline import handle_exit
+from services.llm_pipeline.combined_pipeline import handle_core_processing
+from frontend.page_header import *
+from services.checkpoint.checkpoint_pipeline import handle_exit
 
 
 def both_files_uploaded(

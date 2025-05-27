@@ -2,7 +2,7 @@ import hashlib
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
-from tqdm import tqdm  # make sure you’ve installed tqdm (pip install tqdm)
+from tqdm import tqdm
 import random
 from config import R2_SYSTEM_PROMPT
 

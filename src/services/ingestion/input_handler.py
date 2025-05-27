@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Any, Callable
 from pathlib import Path
 
 # Import validation functions from separate file
-from utils.input_validation import (
+from services.validation.input_validation import (
     FileValidationError,
     validate_file_non_empty,
     validate_sfw_schema,
@@ -13,7 +13,7 @@ from utils.input_validation import (
     has_mixed_skill_title_formats,
 )
 
-from backend_utils.course_file_preprocessing import build_course_skill_dataframe
+from services.ingestion.course_file_preprocessing import build_course_skill_dataframe
 
 
 # ===============================
