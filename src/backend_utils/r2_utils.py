@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from tqdm import tqdm  # make sure you’ve installed tqdm (pip install tqdm)
 import random
-from backend_utils.config import R2_SYSTEM_PROMPT
+from config import R2_SYSTEM_PROMPT
 
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")

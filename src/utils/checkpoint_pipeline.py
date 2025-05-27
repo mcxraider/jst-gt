@@ -1,9 +1,9 @@
 import streamlit as st
 
-from services.db import async_write_output_to_s3, load_checkpoint_metadata
+from services.db.db import async_write_output_to_s3, load_checkpoint_metadata
 from components.checkpoint_section import load_checkpoint_ui
 from backend_utils.combined_pipeline import handle_core_processing
-from backend_utils.config import process_alias_mapping
+from config import process_alias_mapping
 
 
 def handle_exit():

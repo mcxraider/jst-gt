@@ -1,5 +1,4 @@
 import time
-import pickle
 from pathlib import Path
 import datetime
 import pandas as pd
@@ -8,15 +7,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from tqdm import tqdm
 
-# r1 utilities (unchanged)
 from backend_utils.r1_utils import *
 
-# r2 utilities (unchanged)
 from backend_utils.r2_utils import *
-from backend_utils.config import *
+from config import *
 from backend_utils.skill_rac_chart import skill_proficiency_level_details
 import streamlit as st
-from services.db import *
+from services.db.db import *
+from services.storage.storage import save_pickle
+
+
 
 pd.set_option("future.no_silent_downcasting", True)
 
@@ -43,47 +43,40 @@ def wrap_all_df_with_name(df, target_sector_alias):
 class CheckpointManager:
     """
     Manages saving and loading of pipeline state to a pickle file.
-    Abstracts I/O for easy migration to S3.
+    Abstracts I/O for easy migration to S3 or local.
     """
 
     def __init__(self, alias: str, TIMESTAMP: str, checkpoint_dir=None):
-        # Support configurable checkpoint path
         if checkpoint_dir is None:
-            checkpoint_dir = Path("../s3_bucket/s3_checkpoint")
-        self.base_checkpoint_path = Path(checkpoint_dir)
+            # Default to config path (can be S3 or local)
+            checkpoint_dir = checkpoint_path
+        self.base_checkpoint_path = str(checkpoint_dir)
         filename = f"{alias}_checkpoint_{TIMESTAMP}.pkl"
-        self.checkpoint_path = self.base_checkpoint_path / filename
+        self.checkpoint_path = f"{self.base_checkpoint_path}/{filename}"
         self.state = {}
         self.last_progress = 0
         self.current_round = None
         self.sector = alias
 
-    def _save_to_disk(self, file_path, data):
-        """Save data to disk as pickle."""
-        with open(file_path, "wb") as f:
-            pickle.dump(data, f)
-
-    def _load_from_disk(self, file_path):
-        """Load data from disk pickle file."""
-        with open(file_path, "rb") as f:
-            return pickle.load(f)
-
-    # Future S3-ready: just replace these two functions
-    # def _save_to_s3(self, file_path, data): ...
-    # def _load_from_s3(self, file_path): ...
-
     def load(self) -> bool:
-        """Load the most recent checkpoint (local disk version)."""
-        # Find all .pkl files in the checkpoint directory
-        pkl_files = list(self.base_checkpoint_path.glob("*.pkl"))
+        """Load the most recent checkpoint (.pkl) from local or S3."""
+        # List all .pkl files
+        pkl_files = list_files(self.base_checkpoint_path, "*.pkl")
         if not pkl_files:
             return False
 
-        latest_file = max(pkl_files, key=lambda p: p.stat().st_mtime)
+        # Find most recently modified (for S3, you might want to sort by filename or implement S3 last-modified)
+        # Here, we assume lexicographical order if S3, timestamped filename
+        if isinstance(pkl_files[0], Path):
+            latest_file = max(pkl_files, key=lambda p: p.stat().st_mtime)
+            latest_file = str(latest_file)
+        else:
+            # S3: use the latest by filename (relies on TIMESTAMP in name)
+            latest_file = sorted(pkl_files)[-1]
         self.checkpoint_path = latest_file
 
         with st.spinner("Retrieving data from previously saved checkpoint"):
-            self.state = self._load_from_disk(latest_file)
+            self.state = load_pickle(latest_file)
 
         print(f"[Checkpoint] Loaded state from {latest_file}")
         self.last_progress = self.state.get("progress", self.last_progress)
@@ -93,7 +86,7 @@ class CheckpointManager:
         return True
 
     def save(self):
-        """Save checkpoint (local disk version)."""
+        """Save checkpoint (to local or S3 as a .pkl)."""
         # Calculate and store progress information
         if "r1_pending" in self.state and "r1_results" in self.state:
             total = len(self.state["r1_pending"]) + len(self.state["r1_results"])
@@ -108,7 +101,7 @@ class CheckpointManager:
 
         self.state["sector"] = st.session_state.selected_process_alias
 
-        self._save_to_disk(self.checkpoint_path, self.state)
+        save_pickle(self.state, self.checkpoint_path)
         print(f"[Checkpoint] Saved state at {datetime.datetime.now()}")
 
         st.session_state.pkl_yes = True
@@ -208,10 +201,10 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
 
     df_valid1 = pd.DataFrame(valid1)
     df_invalid1 = pd.DataFrame(invalid1)
-    # df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
-    # df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
+   
     write_r1_valid_to_s3(df_valid1, target_sector_alias)
     write_r1_invalid_to_s3(df_invalid1, target_sector_alias)
+    
     # === Round 2 Setup ===
     # Load course descriptions from original input (full load, then pick columns)
     print("\n" + "-" * 80 + "\n")

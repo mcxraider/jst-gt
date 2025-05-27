@@ -3,7 +3,7 @@ from pathlib import Path
 from ast import literal_eval
 import pandas as pd
 
-from backend_utils.config import course_descr_cols
+from config import course_descr_cols
 
 # allow imports from parent directory
 parent_dir = Path.cwd().parent

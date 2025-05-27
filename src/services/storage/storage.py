@@ -4,13 +4,11 @@ import os
 from pathlib import Path
 import io
 
-# Your config, import as needed
-from backend_utils.config import S3_BUCKET_NAME, AWS_REGION, USE_S3
+from config import S3_BUCKET_NAME, AWS_REGION, USE_S3
 import boto3
 
-# Optionally at the top of config.py or your main file
 from dotenv import load_dotenv
-load_dotenv()  # Loads .env into os.environ if present
+load_dotenv()  
 aws_access_key = os.environ["AWS_ACCESS_KEY"]
 aws_secret_key = os.environ["AWS_SECRET_KEY"]
 

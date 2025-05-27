@@ -5,7 +5,7 @@ import streamlit as st
 from pathlib import Path
 import json
 from typing import Tuple, Union
-from backend_utils.config import (
+from config import (
     INPUT_VALIDATION_SECTOR_CONFIG,
     SFW_EXPECTED_COLUMNS,
     SECTOR_EXPECTED_COLUMNS,

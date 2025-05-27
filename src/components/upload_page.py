@@ -6,10 +6,10 @@ from typing import Optional, Tuple, Any
 from utils.input_handler import *
 from utils.session_handler import *
 from utils.output_handler import *
-from services.db import *
+from services.db.db import *
 from utils.upload_pipeline import *
 from components.page_header import *
-from backend_utils.config import process_choices
+from config import process_choices
 
 
 def upload_file_page():

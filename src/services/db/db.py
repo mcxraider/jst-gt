@@ -3,25 +3,17 @@ import streamlit as st
 import pandas as pd
 import os
 import asyncio
-import time
 import datetime
 from pathlib import Path
 
-from backend_utils.config import (
+from config import (
     base_dir, output_path, checkpoint_path, input_data_path,
     intermediate_output_path, misc_output_path
 )
-from services.storage import (
-    save_csv, load_csv, save_excel, load_excel, save_pickle, load_pickle,
+from services.storage.storage import (
+    save_csv, load_csv, save_excel, load_excel, load_pickle,
     list_files, delete_all
 )
-
-output_path = str(output_path)
-base_dir = str(base_dir)
-checkpoint_path = str(checkpoint_path)
-input_data_path = str(input_data_path)
-intermediate_output_path = str(intermediate_output_path)
-misc_output_path = str(misc_output_path)
 
 async def rename_input_file(file_name: str) -> str:
     base, ext = os.path.splitext(file_name)
@@ -182,3 +174,4 @@ def write_r2_raw_to_s3(df: pd.DataFrame, target_sector_alias: str):
     path = f"{misc_output_path}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
     save_csv(df, path)
     print(f"Saved R2 raw output to {path}")
+
