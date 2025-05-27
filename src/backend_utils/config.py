@@ -1,7 +1,3 @@
-# OpenAI APIs
-api_key = "sk-"
-base_url = "https://ai-api.analytics.gov.sg"
-
 # — Directory paths
 input_data_path = "../s3_bucket/s3_input"
 intermediate_output_path = "../s3_bucket/s3_intermediate"
@@ -13,14 +9,6 @@ course_data_columns = [
     "Course Reference Number",
     "Course Title",
     "Skill Title",
-    "About This Course",
-    "What You'll Learn",
-]
-
-course_raw_data_cols = [
-    "Course Reference Number",
-    "Skill Title",
-    "Course Title",
     "About This Course",
     "What You'll Learn",
 ]
