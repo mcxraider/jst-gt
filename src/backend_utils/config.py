@@ -1,61 +1,26 @@
-# — Directory paths
-input_data_path = "../s3_bucket/s3_input"
-intermediate_output_path = "../s3_bucket/s3_intermediate"
-output_path = "../s3_bucket/s3_output"
-misc_output_path = "../s3_bucket/s3_misc_output"
-checkpoint_path = "../s3_bucket/s3_checkpoint"
+import yaml
 
-course_data_columns = [
-    "Course Reference Number",
-    "Course Title",
-    "Skill Title",
-    "About This Course",
-    "What You'll Learn",
-]
+# Load the config.yaml file
+with open("./config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
-course_descr_cols = [
-    "Course Reference Number",
-    "Course Title",
-    "About This Course",
-    "What You'll Learn",
-]
+# Accessing values
+base_dir = config["base_dir"]
+input_data_path = config["input_data_path"]
+intermediate_output_path = config["intermediate_output_path"]
+output_path = config["output_path"]
+misc_output_path = config["misc_output_path"]
+checkpoint_path = config["checkpoint_path"]
 
-process_choices = [
-    "HR (Human Resource)",
-    "FS (Food Services)",
-    "FS (Financial Services)",
-]
+course_data_columns = config["course_data_columns"]
+course_descr_cols = config["course_descr_cols"]
+process_choices = config["process_choices"]
 
-process_alias_mapping = {
-    "HR": ["Human Resource"],
-    "FS": ["Food Services"],
-    "FS": ["Financial Services"],
-}
+process_alias_mapping = config["process_alias_mapping"]
+INPUT_VALIDATION_SECTOR_CONFIG = config["INPUT_VALIDATION_SECTOR_CONFIG"]
+SFW_EXPECTED_COLUMNS = config["SFW_EXPECTED_COLUMNS"]
+SECTOR_EXPECTED_COLUMNS = config["SECTOR_EXPECTED_COLUMNS"]
 
-INPUT_VALIDATION_SECTOR_CONFIG = {
-    "Human Resource": "HR",
-    "Food Services": "FS",
-    "Financial Services": "FS",
-}
-
-SFW_EXPECTED_COLUMNS = {
-    "TSC_CCS_Type": "object",
-    "TSC_CCS Code": "object",
-    "Sector": "object",
-    "TSC_CCS Category": "object",
-    "TSC_CCS Title": "object",
-    "TSC_CCS Description": "object",
-    "Proficiency Level": "int64",
-    "Proficiency Description": "object",
-    "Knowledge / Ability Classification": "object",
-    "Knowledge / Ability Items": "object",
-}
-
-
-SECTOR_EXPECTED_COLUMNS = {
-    "Course Reference Number": "object",
-    "Skill Title": "object",
-    "Course Title": "object",
-    "About This Course": "object",
-    "What You'll Learn": "object",
-}
+PDF_URL = config["PDF_URL"]
+R2_SYSTEM_PROMPT = config["R2_SYSTEM_PROMPT"]
+R1_SYSTEM_PROMPT = config["R1_SYSTEM_PROMPT"]

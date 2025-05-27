@@ -4,9 +4,24 @@ import os
 import asyncio
 from pathlib import Path
 import time
+import pickle
 import datetime
+from backend_utils.config import (
+    base_dir,
+    output_path,
+    checkpoint_path,
+    input_data_path,
+    intermediate_output_path,
+    misc_output_path,
+)
 
-BASE_DIR = Path("/Users/Spare/Desktop/jst-gt/s3_bucket/s3_output")
+
+output_path = Path(output_path)
+base_dir = Path(base_dir)
+checkpoint_path = Path(checkpoint_path)
+input_data_path = Path(input_data_path)
+intermediate_output_path = Path(intermediate_output_path)
+misc_output_path = Path(misc_output_path)
 
 
 async def rename_input_file(file_name: str) -> str:
@@ -55,9 +70,6 @@ def wipe_db(caption):
         st.session_state.get("csv_yes", False) or st.session_state.get("pkl_yes", False)
     ):
         return
-
-    base_dir = Path("../s3_bucket")
-
     # logic below should be replaced with this function here
     delete_all_s3(base_dir)
 
@@ -78,9 +90,11 @@ def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
     """
     Fetches the first CSV file in BASE_DIR starting with the given prefix.
     """
-    matches = list(BASE_DIR.glob(f"{prefix}*.csv"))
+    matches = list(output_path.glob(f"{prefix}*.csv"))
     if not matches:
-        raise FileNotFoundError(f"No file starting with '{prefix}' found in {BASE_DIR}")
+        raise FileNotFoundError(
+            f"No file starting with '{prefix}' found in {output_path}"
+        )
     return _fetch_df(matches[0])
 
 
@@ -133,10 +147,9 @@ async def write_input_to_s3(
     sfw_df: pd.DataFrame,
     sector_filename: str,
     sector_df: pd.DataFrame,
-    S3_INPUT_DIR_PATH: str = "../s3_bucket/s3_input",
 ):
 
-    abs_path = Path(S3_INPUT_DIR_PATH).resolve()
+    abs_path = input_data_path.resolve()
     abs_path.mkdir(parents=True, exist_ok=True)
 
     # 1. rename both files concurrently
@@ -162,9 +175,8 @@ def async_write_input_to_s3(caption, *args, **kwargs):
 
 async def write_output_to_s3(
     dfs: list[tuple[pd.DataFrame, str]],
-    S3_OUTPUT_DIR_PATH: str = "../s3_bucket/s3_output",
 ):
-    abs_path = Path(S3_OUTPUT_DIR_PATH).resolve()
+    abs_path = output_path.resolve()
     abs_path.mkdir(parents=True, exist_ok=True)
 
     # Debug check
@@ -195,3 +207,110 @@ def async_write_output_to_s3(caption, dfs):
     """
     caption.caption("[Status] Results are ready, saving files to database...")
     return asyncio.run(write_output_to_s3(dfs))
+
+
+def load_checkpoint_metadata():
+    """
+    Loads metadata from the checkpoint .pkl file.
+    """
+    ckpt_dir = checkpoint_path
+    pkl_files = list(ckpt_dir.glob("*.pkl"))
+
+    if not pkl_files:
+        raise FileNotFoundError("No checkpoint file found in the directory.")
+    if len(pkl_files) > 1:
+        raise RuntimeError("Multiple checkpoint files found. Expected only one.")
+
+    ckpt_file = pkl_files[0]
+
+    with open(ckpt_file, "rb") as f:
+        data = pickle.load(f)
+
+    metadata = {
+        "round": data.get("round"),
+        "progress": data.get("progress"),
+        "sector": data.get("sector"),
+    }
+
+    return metadata
+
+
+def check_pkl_existence() -> bool:
+    """
+    Check whether any .pkl files exist in the checkpoint directory.
+    """
+    return checkpoint_path.exists() and any(checkpoint_path.glob("*.pkl"))
+
+
+def load_sfw_file() -> pd.DataFrame:
+
+    input_dir = input_data_path
+    for fp in input_dir.glob("*.xlsx"):
+        if fp.name.startswith("SFW"):
+            return pd.read_excel(fp)
+    raise FileNotFoundError(f"No file starting with 'SFW' in {input_data_path}")
+
+
+def load_sector_file(cols=None) -> pd.DataFrame:
+    """
+    Finds the single Excel file in `input_data_path` whose
+    name does NOT start with 'SFW', prints its name, and returns it.
+    """
+
+    input_dir = input_data_path
+    for fp in input_dir.glob("*.xlsx"):
+        if not fp.name.startswith("SFW"):
+            return pd.read_excel(
+                fp,
+                usecols=cols,
+            )
+    raise FileNotFoundError(f"No sector file found in {input_data_path}")
+
+
+def load_r1_invalid() -> pd.DataFrame:
+    """
+    Finds the single CSV in `intermediate_output_path` whose
+    name contains 'r1_irrelevant', reads it, and returns it.
+    """
+    intermediate_dir = intermediate_output_path
+    for fp in intermediate_dir.glob("*.csv"):
+        if "r1_invalid" in fp.name:
+            print(f"Loading r1 invalid file named: {fp.name}")
+            return pd.read_csv(fp, low_memory=False, encoding="utf-8")
+    raise FileNotFoundError(
+        f"No file containing 'r1_invalid' in {intermediate_output_path}"
+    )
+
+
+def load_r1_valid():
+    intermediate_dir = intermediate_output_path
+    for fp in intermediate_dir.glob("*.csv"):
+        if "r1_valid" in fp.name:
+            return pd.read_csv(fp, low_memory=False, encoding="utf-8")
+    raise FileNotFoundError(
+        f"No file containing 'r1_valid' in {intermediate_output_path}"
+    )
+
+
+def write_r1_invalid_to_s3(df: pd.DataFrame, target_sector_alias: str):
+    path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl.csv"
+    df.to_csv(path, index=False, encoding="utf-8")
+    print(f"Saved invalid R1 output to {path}")
+
+
+def write_r1_valid_to_s3(df: pd.DataFrame, target_sector_alias: str):
+    path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl.csv"
+    df.to_csv(path, index=False, encoding="utf-8")
+    print(f"Saved valid R1 output to {path}")
+
+
+def write_irrelevant_to_s3(df: pd.DataFrame, target_sector_alias: str):
+    path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant.csv"
+    df.to_csv(path, index=False, encoding="utf-8")
+    print(f"Saved irrelevant output to {path}")
+
+
+def write_r2_raw_to_s3(df: pd.DataFrame, target_sector_alias: str):
+    path = f"{misc_output_path}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
+    df.to_csv(path, index=False, encoding="utf-8")
+    print(f"Saved R2 raw output to {path}")

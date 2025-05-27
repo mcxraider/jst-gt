@@ -1,7 +1,6 @@
 import streamlit as st
 from utils.output_handler import *
-from utils.db import *
-from components.buttons import *
+from services.db import *
 from components.page_header import *
 
 

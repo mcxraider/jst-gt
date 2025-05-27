@@ -1,7 +1,7 @@
 from pathlib import Path
 from backend_utils.config import *
 import streamlit as st
-
+from services.db import check_pkl_existence
 
 # --- Configuration ---
 
@@ -16,20 +16,7 @@ def configure_page_settings() -> None:
     )
 
 
-# --- Utility Functions ---
-
-
-def check_pkl_existence() -> bool:
-    """
-    Check whether any .pkl files exist in the checkpoint directory.
-    """
-    s3_checkpoint_dir = Path("../s3_bucket/s3_checkpoint")
-    return s3_checkpoint_dir.exists() and any(s3_checkpoint_dir.glob("*.pkl"))
-
-
 # --- Session State Initialization ---
-
-
 def init_session_state() -> None:
     """
     Initialize Streamlit session state variables if not already set.
