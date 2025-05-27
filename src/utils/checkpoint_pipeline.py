@@ -1,11 +1,9 @@
-from pathlib import Path
 import streamlit as st
-import pickle
 
-from utils.db import async_write_output_to_s3
+from services.db import async_write_output_to_s3, load_checkpoint_metadata
 from components.checkpoint_section import load_checkpoint_ui
 from backend_utils.combined_pipeline import handle_core_processing
-from backend_utils.config import process_alias_mapping, checkpoint_path
+from backend_utils.config import process_alias_mapping
 
 
 def handle_exit():
@@ -13,32 +11,6 @@ def handle_exit():
         "Processing was stopped midway due to a connection issue. If you would like to continue, start over and load from the previous checkpoint!"
     )
     st.session_state.app_stage = "initial_choice"
-
-
-def load_checkpoint_metadata():
-    """
-    Loads metadata from the checkpoint .pkl file.
-    """
-    ckpt_dir = Path(checkpoint_path)
-    pkl_files = list(ckpt_dir.glob("*.pkl"))
-
-    if not pkl_files:
-        raise FileNotFoundError("No checkpoint file found in the directory.")
-    if len(pkl_files) > 1:
-        raise RuntimeError("Multiple checkpoint files found. Expected only one.")
-
-    ckpt_file = pkl_files[0]
-
-    with open(ckpt_file, "rb") as f:
-        data = pickle.load(f)
-
-    metadata = {
-        "round": data.get("round"),
-        "progress": data.get("progress"),
-        "sector": data.get("sector"),
-    }
-
-    return metadata
 
 
 def load_checkpoint_page():

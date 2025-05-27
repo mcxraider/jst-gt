@@ -16,7 +16,7 @@ from backend_utils.r2_utils import *
 from backend_utils.config import *
 from backend_utils.skill_rac_chart import skill_proficiency_level_details
 import streamlit as st
-from utils.db import *
+from services.db import *
 
 pd.set_option("future.no_silent_downcasting", True)
 
@@ -25,19 +25,17 @@ TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def wrap_valid_df_with_name(df, target_sector_alias):
-    # name = f"{target_sector_alias}_valid_skill_pl_{TIMESTAMP}"
+
     name = f"Valid Skills for {target_sector_alias} sector"
     return (df, name)
 
 
 def wrap_invalid_df_with_name(df, target_sector_alias):
-    # name = f"{target_sector_alias}_invalid_skill_pl_{TIMESTAMP} sector"
     name = f"Invalid Skills for {target_sector_alias}"
     return (df, name)
 
 
 def wrap_all_df_with_name(df, target_sector_alias):
-    # name = f"{target_sector_alias}_all_skill_pl_{TIMESTAMP}"
     name = f"All Tagged Skills for {target_sector_alias} sector"
     return (df, name)
 
@@ -45,20 +43,37 @@ def wrap_all_df_with_name(df, target_sector_alias):
 class CheckpointManager:
     """
     Manages saving and loading of pipeline state to a pickle file.
+    Abstracts I/O for easy migration to S3.
     """
 
-    def __init__(self, alias: str, TIMESTAMP: str):
-        BASE_CHECKPOINT_DIR = Path("../s3_bucket/s3_checkpoint")
+    def __init__(self, alias: str, TIMESTAMP: str, checkpoint_dir=None):
+        # Support configurable checkpoint path
+        if checkpoint_dir is None:
+            checkpoint_dir = Path("../s3_bucket/s3_checkpoint")
+        self.base_checkpoint_path = Path(checkpoint_dir)
         filename = f"{alias}_checkpoint_{TIMESTAMP}.pkl"
-        self.base_checkpoint_path = BASE_CHECKPOINT_DIR
-        self.checkpoint_path = BASE_CHECKPOINT_DIR / filename
+        self.checkpoint_path = self.base_checkpoint_path / filename
         self.state = {}
-        # Store progress for Streamlit display
         self.last_progress = 0
         self.current_round = None
         self.sector = alias
 
+    def _save_to_disk(self, file_path, data):
+        """Save data to disk as pickle."""
+        with open(file_path, "wb") as f:
+            pickle.dump(data, f)
+
+    def _load_from_disk(self, file_path):
+        """Load data from disk pickle file."""
+        with open(file_path, "rb") as f:
+            return pickle.load(f)
+
+    # Future S3-ready: just replace these two functions
+    # def _save_to_s3(self, file_path, data): ...
+    # def _load_from_s3(self, file_path): ...
+
     def load(self) -> bool:
+        """Load the most recent checkpoint (local disk version)."""
         # Find all .pkl files in the checkpoint directory
         pkl_files = list(self.base_checkpoint_path.glob("*.pkl"))
         if not pkl_files:
@@ -68,12 +83,9 @@ class CheckpointManager:
         self.checkpoint_path = latest_file
 
         with st.spinner("Retrieving data from previously saved checkpoint"):
-            with open(latest_file, "rb") as f:
-                self.state = pickle.load(f)
+            self.state = self._load_from_disk(latest_file)
 
-        # Console debug: pretty-print the raw contents
         print(f"[Checkpoint] Loaded state from {latest_file}")
-        # Pull out any saved progress info
         self.last_progress = self.state.get("progress", self.last_progress)
         self.current_round = self.state.get("round", self.current_round)
         self.sector = self.state.get("sector", self.sector)
@@ -81,13 +93,13 @@ class CheckpointManager:
         return True
 
     def save(self):
+        """Save checkpoint (local disk version)."""
         # Calculate and store progress information
         if "r1_pending" in self.state and "r1_results" in self.state:
             total = len(self.state["r1_pending"]) + len(self.state["r1_results"])
             if total > 0:
                 self.last_progress = len(self.state["r1_results"]) / total
                 self.state["progress"] = self.last_progress
-
         elif "r2_pending" in self.state and "r2_results" in self.state:
             total = len(self.state["r2_pending"]) + len(self.state["r2_results"])
             if total > 0:
@@ -96,71 +108,16 @@ class CheckpointManager:
 
         self.state["sector"] = st.session_state.selected_process_alias
 
-        with open(self.checkpoint_path, "wb") as f:
-            pickle.dump(self.state, f)
+        self._save_to_disk(self.checkpoint_path, self.state)
         print(f"[Checkpoint] Saved state at {datetime.datetime.now()}")
 
-        # Mark checkpoint as available for Streamlit
         st.session_state.pkl_yes = True
-
-
-def load_sfw_file() -> pd.DataFrame:
-
-    input_dir = Path(input_data_path)
-    for fp in input_dir.glob("*.xlsx"):
-        if fp.name.startswith("SFW"):
-            return pd.read_excel(fp)
-    raise FileNotFoundError(f"No file starting with 'SFW' in {input_data_path}")
-
-
-def load_sector_file(cols=None) -> pd.DataFrame:
-    """
-    Finds the single Excel file in `input_data_path` whose
-    name does NOT start with 'SFW', prints its name, and returns it.
-    """
-
-    input_dir = Path(input_data_path)
-    for fp in input_dir.glob("*.xlsx"):
-        if not fp.name.startswith("SFW"):
-            return pd.read_excel(
-                fp,
-                usecols=cols,
-            )
-    raise FileNotFoundError(f"No sector file found in {input_data_path}")
-
-
-def load_r1_invalid() -> pd.DataFrame:
-    """
-    Finds the single CSV in `intermediate_output_path` whose
-    name contains 'r1_irrelevant', reads it, and returns it.
-    """
-    intermediate_dir = Path(intermediate_output_path)
-    for fp in intermediate_dir.glob("*.csv"):
-        if "r1_invalid" in fp.name:
-            print(f"Loading r1 invalid file named: {fp.name}")
-            return pd.read_csv(fp, low_memory=False, encoding="utf-8")
-    raise FileNotFoundError(
-        f"No file containing 'r1_invalid' in {intermediate_output_path}"
-    )
-
-
-def load_r1_valid():
-    intermediate_dir = Path(intermediate_output_path)
-    for fp in intermediate_dir.glob("*.csv"):
-        if "r1_valid" in fp.name:
-            return pd.read_csv(fp, low_memory=False, encoding="utf-8")
-    raise FileNotFoundError(
-        f"No file containing 'r1_valid' in {intermediate_output_path}"
-    )
 
 
 def handle_core_processing(caption, target_sector, target_sector_alias):
     """
     Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
     """
-    round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
-    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
-    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{TIMESTAMP}.csv"
     progress_bar = st.progress(0)
 
     ckpt = CheckpointManager(target_sector_alias, TIMESTAMP)
@@ -213,8 +170,8 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
         lambda x: "In Sector" if x in skill_set else "Not in sector"
     )
     irrelevant_initial = course_df[course_df["Sector Relevance"] == "Not in sector"]
-    irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
-
+    # irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
+    write_irrelevant_to_s3(irrelevant_initial, target_sector_alias)
     work_df = (
         course_df[course_df["Sector Relevance"] == "In Sector"]
         .reset_index(drop=True)
@@ -251,9 +208,10 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
 
     df_valid1 = pd.DataFrame(valid1)
     df_invalid1 = pd.DataFrame(invalid1)
-    df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
-    df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
-
+    # df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
+    # df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
+    write_r1_valid_to_s3(df_valid1, target_sector_alias)
+    write_r1_invalid_to_s3(df_invalid1, target_sector_alias)
     # === Round 2 Setup ===
     # Load course descriptions from original input (full load, then pick columns)
     print("\n" + "-" * 80 + "\n")
@@ -449,10 +407,6 @@ def resume_round2(
     with batching (10 at a time), a 50s pause every 40 API calls, a checkpoint every 30 rows,
     and a tqdm progress bar plus Streamlit progress updates.
     """
-    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
-    r2_raw_output_path = (
-        f"{misc_output_path}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
-    )
 
     # 1) Reconstruct the original "data"
     data = df_invalid.copy()
@@ -604,8 +558,8 @@ def resume_round2(
     merged["proficiency_level"] = merged["proficiency_level"].astype(
         int
     )  # original R1 PL
-    merged.to_csv(r2_raw_output_path, index=False, encoding="utf-8")
-
+    # merged.to_csv(r2_raw_output_path, index=False, encoding="utf-8")
+    write_r2_raw_to_s3(merged, target_sector_alias)
     # e) Split untagged vs tagged
     r2_untagged = merged[merged.proficiency_level_rac_chart == 0]
     r2_tagged = merged[merged.proficiency_level_rac_chart > 0].reset_index(drop=True)
@@ -733,11 +687,7 @@ def handle_checkpoint_processing(
     """
     Resumes processing from the checkpoint based on which round was active.
     """
-    round_1_invalid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
-    round_1_valid_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl_{TIMESTAMP}.csv"  # Check for the TIMESTAMP on file version used
-    irrelevant_output_path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant_{TIMESTAMP}.csv"
     state = ckpt.state
-    print("handle checkpoint is being run")
     if state.get("round") == "r1":
 
         # Load necessary files
@@ -773,8 +723,8 @@ def handle_checkpoint_processing(
         # Save immediately out-of-sector skills if needed
         irrelevant_initial = course_df[course_df["Sector Relevance"] == "Not in sector"]
         # Save irrelevant skills
-        irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
-
+        # irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
+        write_irrelevant_to_s3(irrelevant_initial, target_sector_alias)
         work_df = (
             course_df[course_df["Sector Relevance"] == "In Sector"]
             .reset_index(drop=True)
@@ -809,9 +759,10 @@ def handle_checkpoint_processing(
 
         df_valid1 = pd.DataFrame(valid1)
         df_invalid1 = pd.DataFrame(invalid1)
-        df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
-        df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
-
+        # df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
+        # df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
+        write_r1_valid_to_s3(df_valid1, target_sector_alias)
+        write_r1_invalid_to_s3(df_invalid1, target_sector_alias)
         # === Round 2 Setup ===
         print("\n" + "-" * 80 + "\n")
         print("ROUND 2 PROCESS STARTING")
@@ -997,10 +948,6 @@ def handle_checkpoint_processing(
         r2_valid, r2_invalid, all_valid = resume_round2(
             target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
         )
-
-        # Check if early exit was triggered
-        if st.session_state.get("exit_halfway", False) and ckpt.state["r2_pending"]:
-            return []
 
         st.success(f"Round 2 complete after resuming from checkpoint, all files saved.")
         ret_r2_valid = wrap_valid_df_with_name(r2_valid, target_sector_alias)

@@ -1,7 +1,6 @@
 import streamlit as st
 from utils.output_handler import *
-from utils.db import *
-from components.buttons import *
+from services.db import *
 from components.page_header import *
 
 
@@ -26,7 +25,6 @@ def results_page():
 
             dfs = fetch_completed_output()
             view_download_csvs(dfs)
-            back_homepage_button()
 
     else:
         st.error(
@@ -34,4 +32,3 @@ def results_page():
    ⚠️ No results available to download.
         """
         )
-        back_homepage_button()

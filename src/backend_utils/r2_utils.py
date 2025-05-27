@@ -1,13 +1,11 @@
 import hashlib
-import openai
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import textwrap
-
 import os
-from ast import literal_eval
 from tqdm import tqdm  # make sure you’ve installed tqdm (pip install tqdm)
 import random
+from backend_utils.config import R2_SYSTEM_PROMPT
+
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
@@ -69,32 +67,6 @@ def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
     return random.choice(sample_responses)
 
 
-SYSTEM_PROMPT = textwrap.dedent(
-    """
-    You are a helpful expert in the area of training courses and skills.
-    CONTEXT:
-        You need to associate the appropriate proficiency levels to skills taught through training courses.
-    GIVEN INFORMATION:
-        Use only these 2 sets of information for the tasks
-        1. Knowledge Base that defines the knowledge and abilities associated with each skill at the respective proficiency levels.
-        2. Reference Document that defines the performance expectation for skills at different proficiency levels.
-    TASK:
-        1. For each pair of course content and skill taught, identify the most appropriate proficiency level for the skill, using the proficiency level definitions in the Knowledge Base.
-        2. Only when you need additional information, refer to the Reference Document for decision.
-        3. Only tag a skill with proficiency levels that are found in the Knowledge Base corresponding to it.
-        4. When you are unsure, indicate proficiency level as 0.
-    OUTPUT FORMAT:
-    Give your response in JSON format like this:
-    {
-      "proficiency": <integer>,
-      "reason": "<your reasoning text>",
-      "confidence": "high|medium|low"
-    }
-    YOUR OUTPUT IS MEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
-"""
-).strip()
-
-
 # ------------------------------------------------------------
 # 2) Build the two‐message chat payload
 # ------------------------------------------------------------
@@ -108,7 +80,7 @@ def form_sys_msg(kb_dic, course_text, skill, skill_pl_reference_chart):
         "Reply in JSON as {'proficiency':<>, 'reason':<>, 'confidence':<high|medium|low>}."
     )
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": R2_SYSTEM_PROMPT},
         {"role": "user", "content": user_prompt},
     ]
 
