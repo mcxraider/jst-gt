@@ -1,7 +1,7 @@
 import streamlit as st
-from utils.output_handler import *
+from utils.display_output import *
 from services.db import *
-from frontend.page_header import *
+from frontend.components.page_header import *
 from config import PDF_URL
 from utils.session_handler import init_session_state
 
@@ -21,7 +21,6 @@ def demo_sidebar():
                 st.session_state.app_stage = "results_ready"
                 st.rerun()
 
-        # Add help section
         st.markdown("---")
         with st.expander("📝 How To Use"):
             st.markdown(

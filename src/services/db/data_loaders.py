@@ -193,7 +193,6 @@ def load_r1_invalid() -> pd.DataFrame:
     files = list_files(intermediate_output_path, "*.csv")
     for fp in files:
         if "r1_invalid" in Path(fp).name:
-            print(f"Loading r1 invalid file named: {Path(fp).name}")
             return load_csv(fp)
     raise FileNotFoundError(
         f"No file containing 'r1_invalid' in {intermediate_output_path}"

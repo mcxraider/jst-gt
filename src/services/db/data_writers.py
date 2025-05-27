@@ -138,7 +138,6 @@ def write_r1_invalid_to_s3(df: pd.DataFrame, target_sector_alias: str):
     """
     path = f"{intermediate_output_path}/{target_sector_alias}_r1_invalid_skill_pl.csv"
     save_csv(df, path)
-    print(f"Saved invalid R1 output to {path}")
 
 
 def write_r1_valid_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -151,7 +150,6 @@ def write_r1_valid_to_s3(df: pd.DataFrame, target_sector_alias: str):
     """
     path = f"{intermediate_output_path}/{target_sector_alias}_r1_valid_skill_pl.csv"
     save_csv(df, path)
-    print(f"Saved valid R1 output to {path}")
 
 
 def write_irrelevant_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -164,7 +162,6 @@ def write_irrelevant_to_s3(df: pd.DataFrame, target_sector_alias: str):
     """
     path = f"{intermediate_output_path}/{target_sector_alias}_r1_irrelevant.csv"
     save_csv(df, path)
-    print(f"Saved irrelevant output to {path}")
 
 
 def write_r2_raw_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -177,4 +174,27 @@ def write_r2_raw_to_s3(df: pd.DataFrame, target_sector_alias: str):
     """
     path = f"{misc_output_path}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
     save_csv(df, path)
-    print(f"Saved R2 raw output to {path}")
+
+
+def write_missing_to_s3(df: pd.DataFrame, target_sector_alias: str):
+    """
+    Write courses with missing content to miscellaneous output directory.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing courses with missing content.
+        target_sector_alias (str): Sector alias used for naming the output file.
+    """
+    path = f"{misc_output_path}/{target_sector_alias}_missing_content_course.csv"
+    save_csv(df, path)
+
+
+def write_rest_to_s3(df: pd.DataFrame, target_sector_alias: str):
+    """
+    Write courses with poor content quality to miscellaneous output directory.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing courses with poor content quality.
+        target_sector_alias (str): Sector alias used for naming the output file.
+    """
+    path = f"{misc_output_path}/{target_sector_alias}_poor_content_quality_course.csv"
+    save_csv(df, path)

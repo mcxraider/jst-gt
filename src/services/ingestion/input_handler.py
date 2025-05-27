@@ -5,16 +5,16 @@ from typing import Optional, Tuple, Any, Callable
 from pathlib import Path
 
 # Import validation functions from separate file
-from services.validation.input_validation import (
-    FileValidationError,
+from services.validation import (
     validate_file_non_empty,
     validate_sfw_schema,
     validate_sector_schema,
-    has_mixed_skill_title_formats,
 )
 
-from services.ingestion.course_file_preprocessing import build_course_skill_dataframe
 
+from services.ingestion.course_file_preprocessing import build_course_skill_dataframe
+from exceptions.file_validation_exception import FileValidationError
+from utils.validation_utils import has_mixed_skill_title_formats
 
 # ===============================
 # Sector File Processing Functions

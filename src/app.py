@@ -2,7 +2,7 @@ import streamlit as st
 
 # import utils app components
 from utils.session_handler import *
-from services.checkpoint.checkpoint_pipeline import load_checkpoint_page
+from frontend.checkpoint_page import checkpoint_page
 from frontend.sidebar_page import demo_sidebar
 from frontend.homepage import homepage
 from frontend.results_page import results_page
@@ -23,7 +23,7 @@ def main():
         upload_file_page()
 
     elif st.session_state.app_stage == "load_checkpoint":
-        load_checkpoint_page()
+        checkpoint_page()
 
     # --- Results Ready Stage ---
     elif st.session_state.app_stage == "results_ready":

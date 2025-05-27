@@ -1,8 +1,12 @@
 import yaml
 
 # Load the config.yaml file
-with open("./config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+with open("./configs/config.yaml", "r") as fname:
+    config = yaml.safe_load(fname)
+
+with open("./configs/skill_rac_chart.yaml", "r") as fname:
+    skill_proficiency_level_details = yaml.safe_load(fname)
+
 
 # Accessing values
 base_dir = config["base_dir"]

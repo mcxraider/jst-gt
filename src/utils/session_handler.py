@@ -1,5 +1,5 @@
 from pathlib import Path
-from config import *
+from config import output_path
 import streamlit as st
 from services.db import check_pkl_existence
 

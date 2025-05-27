@@ -5,12 +5,12 @@ from typing import Optional
 # import utils file
 from services.ingestion.input_handler import *
 from utils.session_handler import *
-from utils.output_handler import *
+from utils.display_output import *
 from services.db import *
 
 from services.llm_pipeline.combined_pipeline import handle_core_processing
-from frontend.page_header import *
-from services.checkpoint.checkpoint_pipeline import handle_exit
+from frontend.components.page_header import *
+from frontend.checkpoint_page import handle_exit
 
 
 def both_files_uploaded(
