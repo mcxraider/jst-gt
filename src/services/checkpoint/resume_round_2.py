@@ -14,7 +14,7 @@ from utils.processing_utils import *
 
 
 def resume_round_2(
-    target_sector: str,
+    target_sector: str,  # do not remove this input
     target_sector_alias: str,
     df_invalid: pd.DataFrame,
     sfw_raw: pd.DataFrame,
@@ -72,14 +72,8 @@ def resume_round_2(
         total=total, initial=len(results), desc="Round2 rows processed", unit="row"
     )
 
-    # Early exit check
-    stop_number = total // 2  # halfway point
-
     # 4) Process in batches of 10
     while pending:
-        # Check for early exit toggle
-        if st.session_state.get("exit_halfway", False) and processed >= stop_number:
-            break
 
         batch_idx = pending[:10]
         pending = pending[10:]
@@ -143,7 +137,6 @@ def resume_round_2(
     ckpt.state["r2_pending"] = pending
     ckpt.state["r2_results"] = results
     ckpt.save()
-    print("Final Round 2 checkpoint saved.")
 
     pbar.close()
 
@@ -167,7 +160,6 @@ def resume_round_2(
     print(f"[Round 2 Summary] 🏷️ Untagged skills remaining: {num_untagged}")
     print(f"[Round 2 Summary] ✅ Skills processed in this round: {num_processed}")
     print(f"[Round 2 Summary] 🔄 Skills carried over from Round 1: {total}")
-
     print(
         "[Round 2 Post-processing] 🗂️ Finalizing and exporting results to CSV files..."
     )
@@ -239,9 +231,6 @@ def resume_round_2(
     # h) Merge with R1 valid, save all three files
     r1_valid = load_r1_valid()
 
-    # r1_valid = pd.read_csv(
-    #     round_1_valid_output_path, low_memory=False, encoding="utf-8"
-    # )
     r2_vout = r2_valid.copy()
     r2_vout["proficiency_level"] = r2_vout["proficiency_level_rac_chart"]
     r2_vout["reason"] = r2_vout["reason_rac_chart"]
@@ -283,7 +272,7 @@ def resume_round_2(
 
     # write out as UTF-8 CSVs
     write_missing_to_s3(missing, target_sector_alias)
-    write_rest_to_s3(missing, target_sector_alias)
+    write_rest_to_s3(rest, target_sector_alias)
 
     # these are the completed outputs
     print("[Round 2 Complete] All processing complete, results saved to files.")

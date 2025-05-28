@@ -5,7 +5,7 @@ Handles database cleanup and session state management.
 """
 import streamlit as st
 
-from config import base_dir
+from config import BASE_DIR
 from services.storage import delete_all
 
 
@@ -29,7 +29,7 @@ def wipe_db(caption):
         return
 
     # Perform cleanup
-    delete_all(base_dir)
+    delete_all(BASE_DIR)
 
     # Reset session state flags
     st.session_state["csv_yes"] = False

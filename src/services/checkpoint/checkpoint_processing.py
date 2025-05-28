@@ -53,7 +53,6 @@ def handle_checkpoint_processing(
         # Save immediately out-of-sector skills if needed
         irrelevant_initial = course_df[course_df["Sector Relevance"] == "Not in sector"]
         # Save irrelevant skills
-        # irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
         write_irrelevant_to_s3(irrelevant_initial, target_sector_alias)
         work_df = (
             course_df[course_df["Sector Relevance"] == "In Sector"]
@@ -64,12 +63,6 @@ def handle_checkpoint_processing(
         # Resume Round 1
         caption.caption("[Status] Processing 1st Stage...")
         r1_results = resume_round_1(work_df, sfw, ckpt, progress_bar)
-
-        # Check if early exit was triggered
-        if st.session_state.get("exit_halfway", False) and len(r1_results) < len(
-            work_df
-        ):
-            return []
 
         # === Round 1 Post-processing ===
         r1_df = pd.DataFrame(r1_results)
@@ -89,10 +82,10 @@ def handle_checkpoint_processing(
 
         df_valid1 = pd.DataFrame(valid1)
         df_invalid1 = pd.DataFrame(invalid1)
-        # df_valid1.to_csv(round_1_valid_output_path, index=False, encoding="utf-8")
-        # df_invalid1.to_csv(round_1_invalid_output_path, index=False, encoding="utf-8")
+
         write_r1_valid_to_s3(df_valid1, target_sector_alias)
         write_r1_invalid_to_s3(df_invalid1, target_sector_alias)
+
         # === Round 2 Setup ===
         print("\n" + "-" * 80 + "\n")
         print("ROUND 2 PROCESS STARTING")
@@ -205,8 +198,6 @@ def handle_checkpoint_processing(
         # We need to recreate the input DataFrame from Round 1 invalid results
         # First, load the invalid results from Round 1
         df_invalid1 = load_r1_invalid()
-
-        # df_invalid1 = pd.read_csv(round_1_invalid_output_path)
 
         # Load course descriptions
         all_descr = load_sector_file(

@@ -10,6 +10,7 @@ def sidebar_nav():
         current_pkl_state = st.session_state.pkl_yes
         init_session_state()
         st.session_state.pkl_yes = current_pkl_state
+        st.session_state.processing = False
         st.rerun()
     if st.session_state.csv_yes and st.session_state.results:
         if st.button("📊 Results", use_container_width=True):

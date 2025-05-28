@@ -15,5 +15,3 @@ def file_selector():
     # Step 3: Check uploads and process or warn
     if both_files_uploaded(sfw_df, sector_df):
         process_uploaded_files(sfw_df, sfw_filename, sector_df, sector_filename)
-    else:
-        st.info("Please upload and validate both files to continue.")

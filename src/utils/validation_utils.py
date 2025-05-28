@@ -3,7 +3,7 @@ from typing import Union, Optional
 import json
 from ast import literal_eval
 
-from config import course_descr_cols
+from config import COURSE_DESCR_COLS
 
 
 def is_list_like_string(value: Union[str, None]) -> bool:
@@ -73,7 +73,7 @@ def extract_complex_skills(
     • preserve Course Reference Number and course metadata.
     """
     # keep only the course metadata for merging later
-    crs_list = df[course_descr_cols].drop_duplicates(
+    crs_list = df[COURSE_DESCR_COLS].drop_duplicates(
         subset=["Course Reference Number"], keep="first"
     )
 
