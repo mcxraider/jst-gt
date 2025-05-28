@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from tqdm import tqdm
 import random
-from config import R2_SYSTEM_PROMPT
+from models.prompt_templates import R2_SYSTEM_PROMPT
 
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")

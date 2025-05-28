@@ -1,5 +1,4 @@
 import streamlit as st
-from typing import Optional
 
 
 # import utils file
@@ -11,13 +10,6 @@ from services.db import *
 from services.llm_pipeline.combined_pipeline import handle_core_processing
 from frontend.components.page_header import *
 from frontend.checkpoint_page import handle_exit
-
-
-def both_files_uploaded(
-    sfw_df: Optional[pd.DataFrame], sector_df: Optional[pd.DataFrame]
-) -> bool:
-    """Check that both uploads succeeded."""
-    return sfw_df is not None and sector_df is not None
 
 
 def process_uploaded_files(

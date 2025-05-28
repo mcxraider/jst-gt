@@ -9,6 +9,7 @@ from services.db import *
 from services.ingestion.upload_pipeline import *
 from frontend.components.page_header import *
 from config import process_choices
+from utils.validation_utils import both_files_uploaded
 
 
 def upload_file_page():

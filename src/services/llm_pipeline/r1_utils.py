@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import os
 import random
-from config import R1_SYSTEM_PROMPT
+from models.prompt_templates import R1_SYSTEM_PROMPT
 
 # Generate timestamped log filename
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
