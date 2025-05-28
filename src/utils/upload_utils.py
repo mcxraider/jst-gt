@@ -1,7 +1,14 @@
 import pandas as pd
 import streamlit as st
-import pathlib as Path
 from typing import Tuple, Callable, Optional
+
+
+def get_process_alias(process: str) -> str:
+    return process[:2]
+
+
+def get_process(process: str) -> list[str]:
+    return [process[4:-1]]
 
 
 async def process_file_upload(

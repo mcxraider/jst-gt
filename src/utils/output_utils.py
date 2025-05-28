@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from frontend.components.page_header import *
+from frontend.components.page_header.page_header import *
 
 
 # Enhanced function to show dataframe with better styling

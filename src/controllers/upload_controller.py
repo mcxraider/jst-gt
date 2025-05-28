@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import asyncio
-from typing import Optional, Tuple, Any, Callable
+from typing import Optional, Tuple
 
 from services.ingestion.sector_file_processing import (
     check_sector_requires_preprocessing,
@@ -33,18 +33,17 @@ def upload_sfw_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     st.write(f"📁 **File uploaded:** {uploaded.name}")
     st.write(f"📊 **File size:** {uploaded.size:,} bytes")
 
-    # Validate file immediately upon upload
-    with st.spinner("Validating SFW file..."):
-        try:
-            valid, error_message = asyncio.run(
-                process_file_upload(uploaded, validate_sfw_file_input)
-            )
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            valid, error_message = loop.run_until_complete(
-                process_file_upload(uploaded, validate_sfw_file_input)
-            )
-            loop.close()
+    # Validate file again upon upload
+    try:
+        valid, error_message = asyncio.run(
+            process_file_upload(uploaded, validate_sfw_file_input)
+        )
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        valid, error_message = loop.run_until_complete(
+            process_file_upload(uploaded, validate_sfw_file_input)
+        )
+        loop.close()
 
     if not valid:
         st.error(f"❌ **SFW file validation failed:**\n\n{error_message}")
@@ -83,17 +82,16 @@ def upload_sector_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     st.write(f"📊 **File size:** {uploaded.size:,} bytes")
 
     # Initial validation
-    with st.spinner("Validating sector file..."):
-        try:
-            valid, error_message = asyncio.run(
-                process_file_upload(uploaded, validate_sector_file_input)
-            )
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            valid, error_message = loop.run_until_complete(
-                process_file_upload(uploaded, validate_sector_file_input)
-            )
-            loop.close()
+    try:
+        valid, error_message = asyncio.run(
+            process_file_upload(uploaded, validate_sector_file_input)
+        )
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        valid, error_message = loop.run_until_complete(
+            process_file_upload(uploaded, validate_sector_file_input)
+        )
+        loop.close()
 
     if not valid:
         st.error(f"❌ **Sector file validation failed:**\n\n{error_message}")
