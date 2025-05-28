@@ -22,12 +22,8 @@ process_choices = config["process_choices"]
 
 process_alias_mapping = config["process_alias_mapping"]
 INPUT_VALIDATION_SECTOR_CONFIG = config["INPUT_VALIDATION_SECTOR_CONFIG"]
-SFW_EXPECTED_COLUMNS = config["SFW_EXPECTED_COLUMNS"]
-SECTOR_EXPECTED_COLUMNS = config["SECTOR_EXPECTED_COLUMNS"]
 
 PDF_URL = config["PDF_URL"]
-R2_SYSTEM_PROMPT = config["R2_SYSTEM_PROMPT"]
-R1_SYSTEM_PROMPT = config["R1_SYSTEM_PROMPT"]
 
 USE_S3 = config["USE_S3"]
 S3_BUCKET_NAME = config["s3_bucket_name"]

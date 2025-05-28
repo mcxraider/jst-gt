@@ -1,7 +1,7 @@
 # frontend/checkpoint/checkpoint_page.py
 
 import streamlit as st
-from frontend.components.checkpoint_ui import load_checkpoint_ui
+from frontend.components.checkpoint_page.checkpoint_ui import load_checkpoint_ui
 from services.checkpoint.resume_from_checkpoint import resume_from_checkpoint
 
 

@@ -4,13 +4,18 @@ import pandas as pd
 from pathlib import Path
 from config import INPUT_VALIDATION_SECTOR_CONFIG
 from exceptions.file_validation_exception import FileValidationError
-from .file_name_validation import validate_sfw_filename, validate_sector_filename
-from .sheet_structure_validation import validate_excel_sheet_structure
-from .data_structure_validation import (
+from services.validation.file_name_validation import (
+    validate_sfw_filename,
+    validate_sector_filename,
+)
+from services.validation.sheet_structure_validation import (
+    validate_excel_sheet_structure,
+)
+from services.validation.data_structure_validation import (
     validate_sfw_data_structure,
     validate_sector_data_structure,
 )
-from .file_content_validation import validate_file_non_empty
+from services.validation.file_content_validation import validate_file_non_empty
 
 
 async def validate_sfw_schema(uploaded_file_object) -> bool:

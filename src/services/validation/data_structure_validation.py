@@ -2,7 +2,7 @@
 
 import pandas as pd
 import re
-from config import SFW_EXPECTED_COLUMNS, SECTOR_EXPECTED_COLUMNS
+from models.data_schema import SFW_EXPECTED_COLUMNS, SECTOR_EXPECTED_COLUMNS
 from exceptions.data_validation_exception import DataValidationError
 
 

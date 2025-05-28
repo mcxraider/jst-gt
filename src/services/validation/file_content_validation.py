@@ -1,7 +1,11 @@
 # src/services/validation/file_content_validation.py
 
 import os
+from typing import Tuple, Optional
 from exceptions.data_validation_exception import DataValidationError
+from exceptions.file_validation_exception import FileValidationError
+
+# from services.validation.schema_validation import validate_sfw_schema, validate_sector_schema
 
 
 async def validate_file_non_empty(uploaded_file_object) -> bool:
