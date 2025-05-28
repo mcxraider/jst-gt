@@ -15,7 +15,40 @@ def handle_checkpoint_processing(
     caption, target_sector, target_sector_alias, ckpt, progress_bar=None
 ):
     """
-    Resumes processing from the checkpoint based on which round was active.
+    Resumes processing from a checkpoint based on the current processing round.
+    
+    This function handles the resumption of processing from a saved checkpoint,
+    managing both round 1 and round 2 processing states. It loads necessary data,
+    processes skills through multiple rounds, and saves results to S3.
+    
+    Args:
+        caption: Streamlit caption object for status updates
+        target_sector (list): List of target sectors to process
+        target_sector_alias (str): Alias for the target sector
+        ckpt (CheckpointManager): Checkpoint manager instance
+        progress_bar: Streamlit progress bar object (optional)
+        
+    Returns:
+        list: List of processed DataFrames containing:
+            - Round 2 valid skills
+            - Round 2 invalid skills
+            - All valid skills combined
+            
+    Processing Flow:
+        1. Round 1:
+           - Loads SFW and course data
+           - Processes skills through initial matching
+           - Saves valid and invalid results
+           
+        2. Round 2:
+           - Processes invalid skills from Round 1
+           - Uses course descriptions for deeper analysis
+           - Generates final valid/invalid classifications
+           
+    Note:
+        - Early exit can be triggered during processing
+        - Results are automatically saved to S3
+        - Progress is tracked and displayed via Streamlit components
     """
     state = ckpt.state
     if state.get("round") == "r1":

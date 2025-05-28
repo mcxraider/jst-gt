@@ -1,3 +1,11 @@
+"""
+Pipeline for handling file uploads, database wiping, and core processing.
+Integrates Streamlit UI with backend processing and S3 storage operations.
+
+This module provides the main entry point for uploading SFW and sector files,
+triggering the core processing pipeline, and managing application state updates.
+"""
+
 import streamlit as st
 
 
@@ -18,7 +26,27 @@ def process_uploaded_files(
     sector_df: pd.DataFrame,
     sector_filename: str,
 ):
-    """Render the process button, upload to S3, run core processing, and update state."""
+    """
+    Handle the full upload and processing pipeline for user-uploaded files.
+    
+    This function:
+        1. Renders a process button in the Streamlit UI.
+        2. Wipes the database before new uploads.
+        3. Uploads SFW and sector files to S3 (or local storage).
+        4. Runs the core processing pipeline.
+        5. Handles early exit if processing is interrupted.
+        6. Uploads output results to S3 (or local storage).
+        7. Updates Streamlit session state and triggers rerun.
+    
+    Args:
+        sfw_df (pd.DataFrame): DataFrame for the SFW file
+        sfw_filename (str): Name of the SFW file
+        sector_df (pd.DataFrame): DataFrame for the sector file
+        sector_filename (str): Name of the sector file
+    
+    Returns:
+        None. Updates Streamlit session state and UI.
+    """
     selected_sector_alias = st.session_state.selected_process_alias
     selected_sector = st.session_state.selected_process
     st.subheader(f"3. Start Processing for {selected_sector_alias} sector")

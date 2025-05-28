@@ -1,5 +1,13 @@
 # src/services/validation/data_structure_validation.py
 
+"""
+Data structure validation module for validating the structure and content of DataFrame data.
+
+This module provides functions to validate the structure and content of DataFrames
+from both SFW (Skills Framework) and Sector files. It ensures that the data meets
+all requirements including column presence, data types, and content formats.
+"""
+
 import pandas as pd
 import re
 from models.data_schema import SFW_EXPECTED_COLUMNS, SECTOR_EXPECTED_COLUMNS
@@ -8,7 +16,34 @@ from exceptions.data_validation_exception import DataValidationError
 
 def validate_sfw_data_structure(df: pd.DataFrame) -> bool:
     """
-    Validate SFW file data structure and column requirements.
+    Validate the data structure and content of an SFW (Skills Framework) DataFrame.
+    
+    This function performs comprehensive validation of an SFW DataFrame, checking:
+    1. Required columns are present
+    2. No extra columns exist
+    3. Column data types match expected types
+    4. Numeric columns contain valid values
+    5. DataFrame is not empty
+    
+    Args:
+        df (pd.DataFrame): The DataFrame to validate, typically loaded from an SFW file
+    
+    Returns:
+        bool: True if all validation checks pass
+    
+    Raises:
+        DataValidationError: If any validation check fails, with a descriptive
+            error message explaining the issue. Common errors include:
+            - Missing required columns
+            - Extra columns present
+            - Incorrect data types
+            - Invalid numeric values
+            - Empty DataFrame
+    
+    Note:
+        The function uses SFW_EXPECTED_COLUMNS from the data schema to validate
+        column names and data types. Numeric columns are checked for both type
+        and content validity.
     """
     missing_columns = set(SFW_EXPECTED_COLUMNS.keys()) - set(df.columns)
     if missing_columns:
@@ -65,7 +100,36 @@ def validate_sfw_data_structure(df: pd.DataFrame) -> bool:
 
 def validate_sector_data_structure(df: pd.DataFrame) -> bool:
     """
-    Validate sector file data structure and column requirements, including Skill Title formats.
+    Validate the data structure and content of a Sector DataFrame.
+    
+    This function performs comprehensive validation of a Sector DataFrame, checking:
+    1. Required columns are present
+    2. No extra columns exist
+    3. Column data types match expected types
+    4. DataFrame is not empty
+    5. Required columns have data
+    6. Skill Title format is valid (plain text or list format)
+    
+    Args:
+        df (pd.DataFrame): The DataFrame to validate, typically loaded from a Sector file
+    
+    Returns:
+        bool: True if all validation checks pass
+    
+    Raises:
+        DataValidationError: If any validation check fails, with a descriptive
+            error message explaining the issue. Common errors include:
+            - Missing required columns
+            - Extra columns present
+            - Incorrect data types
+            - Empty DataFrame
+            - Empty required columns
+            - Invalid Skill Title format
+    
+    Note:
+        The function uses SECTOR_EXPECTED_COLUMNS from the data schema to validate
+        column names and data types. Skill Titles must be either plain text or
+        in a list format like ['Python', 'SQL'].
     """
     missing_columns = set(SECTOR_EXPECTED_COLUMNS.keys()) - set(df.columns)
     if missing_columns:

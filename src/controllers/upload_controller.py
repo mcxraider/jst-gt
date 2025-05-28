@@ -1,3 +1,11 @@
+"""
+Upload controller module for handling file uploads and validation in the Streamlit interface.
+
+This module provides functions to handle the upload and validation of both SFW
+(Skills Framework) and Sector files through the Streamlit interface. It manages
+the upload process, validation, preprocessing (for Sector files), and user feedback.
+"""
+
 import streamlit as st
 import pandas as pd
 import asyncio
@@ -14,10 +22,24 @@ from services.validation.input_validation import *
 
 def upload_sfw_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """
-    Handle SFW file upload with immediate validation.
-
+    Handle the upload and validation of an SFW (Skills Framework) file.
+    
+    This function manages the complete upload process for an SFW file:
+    1. Provides a file uploader widget
+    2. Displays file information
+    3. Validates the file using async validation
+    4. Reads and displays a preview of the file
+    5. Provides user feedback on the process
+    
     Returns:
-        Tuple[Optional[pd.DataFrame], Optional[str]]: (dataframe, filename) or (None, None)
+        Tuple[Optional[pd.DataFrame], Optional[str]]: A tuple containing:
+            - Optional[pd.DataFrame]: The loaded DataFrame if successful, None otherwise
+            - Optional[str]: The filename if successful, None otherwise
+    
+    Note:
+        The function handles both synchronous and asynchronous validation,
+        with fallback to a new event loop if needed. It provides clear user
+        feedback through Streamlit's UI components.
     """
     uploaded = st.file_uploader(
         "Upload SFW File",
@@ -63,10 +85,27 @@ def upload_sfw_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
 
 def upload_sector_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """
-    Handle Sector file upload with immediate validation and optional preprocessing.
-
+    Handle the upload, validation, and preprocessing of a Sector file.
+    
+    This function manages the complete upload process for a Sector file:
+    1. Provides a file uploader widget
+    2. Displays file information
+    3. Validates the file using async validation
+    4. Checks if preprocessing is required
+    5. Runs preprocessing if needed
+    6. Reads and displays a preview of the file
+    7. Provides user feedback on the process
+    
     Returns:
-        Tuple[Optional[pd.DataFrame], Optional[str]]: (dataframe, filename) or (None, None)
+        Tuple[Optional[pd.DataFrame], Optional[str]]: A tuple containing:
+            - Optional[pd.DataFrame]: The processed DataFrame if successful, None otherwise
+            - Optional[str]: The filename if successful, None otherwise
+    
+    Note:
+        The function handles both synchronous and asynchronous validation,
+        with fallback to a new event loop if needed. It provides clear user
+        feedback through Streamlit's UI components and manages the preprocessing
+        workflow for Sector files.
     """
     uploaded = st.file_uploader(
         "Upload Sector File",

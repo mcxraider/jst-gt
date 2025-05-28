@@ -13,12 +13,31 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
 
 def get_openai_client(api_key, base_url):
+    """
+    Create and return an OpenAI client for API calls.
+    
+    Args:
+        api_key (str): OpenAI API key
+        base_url (str): Base URL for the OpenAI API
+    
+    Returns:
+        OpenAI: Configured OpenAI client instance
+    """
     client = OpenAI(api_key=api_key, base_url=base_url)
     return client
 
 
 def get_skill_info(skill_title: str, skill_df: pd.DataFrame) -> dict:
-    """Function that filters for skill_title"""
+    """
+    Extract proficiency level information for a given skill from the SFW DataFrame.
+    
+    Args:
+        skill_title (str): The skill title to look up
+        skill_df (pd.DataFrame): DataFrame containing SFW skill data
+    
+    Returns:
+        dict: Dictionary mapping proficiency levels to knowledge, ability, and descriptions
+    """
     skill_info = skill_df[
         skill_df["TSC_CCS Title"] == skill_title
     ]  # extracts all dataframe with the skill title
@@ -59,6 +78,13 @@ def get_skill_info(skill_title: str, skill_df: pd.DataFrame) -> dict:
 
 def format_for_openai(proficiency_info: dict, setup: int) -> str:
     """
+    Format proficiency information for use in an OpenAI prompt.
+    
+    Args:
+        proficiency_info (dict): Proficiency data for a skill
+        setup (int): Controls which SFW information is included (1=knowledge, 2=ability, 3=both)
+    
+    Returns:
     Formats data for OpenAI prompt
     setup is a parameter used to control the use of SFw information in the classification process:
     1: Only use Proficiency Description + Knowledge Items

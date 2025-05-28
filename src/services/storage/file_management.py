@@ -1,7 +1,11 @@
 # services/storage/file_management.py
 """
 File management operations for both local filesystem and S3 storage.
-Handles listing files and directory cleanup.
+Handles listing, pattern matching, and cleanup of files and directories.
+
+This module provides utility functions for listing files matching a pattern
+and deleting all files in a directory, supporting both local and S3 backends.
+Pattern matching for S3 is simplified to suffix checks.
 """
 from pathlib import Path
 
@@ -12,16 +16,19 @@ from .s3_client import get_s3_client, parse_s3_path
 def list_files(directory, pattern="*"):
     """
     List files in a directory (local or S3) matching a pattern.
-
+    
+    For local directories, uses glob pattern matching. For S3, matches files
+    whose keys end with the specified suffix (pattern must be of the form '*.ext').
+    
     Args:
         directory (str): Directory path to search in
-        pattern (str): File pattern to match (e.g., "*.csv"). Defaults to "*".
-
+        pattern (str): File pattern to match (e.g., '*.csv'). Defaults to '*'.
+    
     Returns:
-        list: List of file paths matching the pattern
-
+        list: List of file paths (local) or S3 keys (S3) matching the pattern
+    
     Note:
-        For S3, pattern matching is simplified to endswith() check
+        For S3, pattern matching is simplified to endswith() check.
     """
     if USE_S3:
         bucket, prefix = parse_s3_path(str(directory))
@@ -44,10 +51,17 @@ def list_files(directory, pattern="*"):
 def delete_all(directory):
     """
     Delete all files in a directory (local or S3).
-
+    
+    For S3, deletes all objects under the given prefix. For local directories,
+    recursively deletes all files and attempts to remove empty directories.
+    Silently ignores errors during deletion.
+    
     Args:
         directory (str): Directory path to clean up
-
+    
+    Returns:
+        None
+    
     Note:
         For local filesystem, attempts to remove files and empty directories.
         Silently ignores errors during deletion process.

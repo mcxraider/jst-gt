@@ -16,10 +16,41 @@ pd.set_option("future.no_silent_downcasting", True)
 NUM_ROWS = 200
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+"""
+Combined LLM pipeline for multi-stage course-skill proficiency tagging.
+Handles orchestration of Round 1 and Round 2 processing, checkpointing, and Streamlit integration.
+
+This module provides the main entry point for running the full course-skill
+proficiency tagging pipeline, including checkpoint management, data loading,
+Streamlit UI integration, and result saving. It coordinates both rounds of
+processing and ensures robust recovery from interruptions.
+"""
 
 def handle_core_processing(caption, target_sector, target_sector_alias):
     """
-    Orchestrates Round 1 and Round 2 with checkpointing and Streamlit integration.
+    Orchestrate the full multi-stage course-skill proficiency tagging pipeline.
+    
+    This function manages the entire processing workflow, including:
+        1. Initializing and loading checkpoints for recovery.
+        2. Running Round 1 (course-skill matching and initial proficiency tagging).
+        3. Saving intermediate results and updating checkpoints.
+        4. Running Round 2 (deeper LLM-based proficiency tagging for ambiguous cases).
+        5. Saving final results and updating Streamlit UI state.
+    
+    Args:
+        caption: Streamlit caption object for status updates
+        target_sector (list): List of target sectors to process
+        target_sector_alias (str): Alias for the target sector
+    
+    Returns:
+        list: List of processed DataFrames containing:
+            - Round 2 valid skills
+            - Round 2 invalid skills
+            - All valid skills combined
+    
+    Note:
+        - Handles checkpointing and recovery for robust, resumable processing.
+        - Integrates with Streamlit UI for progress and status updates.
     """
     progress_bar = st.progress(0)
 

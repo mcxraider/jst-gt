@@ -1,5 +1,14 @@
 # src/services/validation/schemas.py
 
+"""
+Schema validation module for validating the structure and format of uploaded files.
+
+This module provides comprehensive validation functions for both SFW (Skills Framework)
+and Sector files. It ensures that uploaded files meet all structural requirements
+including file format, sheet names, and data structure. The validation process is
+multi-stage, checking file attributes, names, content, and data structure in sequence.
+"""
+
 import pandas as pd
 from pathlib import Path
 from config import INPUT_VALIDATION_SECTOR_CONFIG
@@ -20,7 +29,31 @@ from services.validation.file_content_validation import validate_file_non_empty
 
 async def validate_sfw_schema(uploaded_file_object) -> bool:
     """
-    Validate SFW file:
+    Validate the schema of an uploaded SFW (Skills Framework) file.
+    
+    This function performs a comprehensive validation of an SFW file, checking:
+    1. File object attributes (name, seek, read capabilities)
+    2. File name format and sector code extraction
+    3. File extension (.xlsx, .xls, or .csv)
+    4. File content (non-empty check)
+    5. Excel sheet structure (if applicable)
+    6. Data structure and required columns
+    
+    Args:
+        uploaded_file_object: The uploaded file object to validate, typically from
+            Streamlit's file uploader or similar file upload mechanism.
+    
+    Returns:
+        bool: True if all validation checks pass
+    
+    Raises:
+        FileValidationError: If any validation check fails, with a descriptive
+            error message explaining the issue.
+    
+    Note:
+        The function handles both Excel (.xlsx, .xls) and CSV files, with different
+        validation paths for each format. Excel files must have a specific sheet
+        name matching the sector code.
     """
     if not hasattr(uploaded_file_object, "name"):
         raise FileValidationError(
@@ -79,7 +112,30 @@ async def validate_sfw_schema(uploaded_file_object) -> bool:
 
 async def validate_sector_schema(uploaded_file_object) -> bool:
     """
-    Validate Sector file:
+    Validate the schema of an uploaded Sector file.
+    
+    This function performs a comprehensive validation of a Sector file, checking:
+    1. File object attributes (name, seek, read capabilities)
+    2. File name format and sector code extraction
+    3. File extension (.xlsx or .xls only)
+    4. File content (non-empty check)
+    5. Excel sheet structure
+    6. Data structure and required columns
+    
+    Args:
+        uploaded_file_object: The uploaded file object to validate, typically from
+            Streamlit's file uploader or similar file upload mechanism.
+    
+    Returns:
+        bool: True if all validation checks pass
+    
+    Raises:
+        FileValidationError: If any validation check fails, with a descriptive
+            error message explaining the issue.
+    
+    Note:
+        Unlike SFW files, Sector files must be Excel files (.xlsx or .xls) and
+        cannot be CSV files. The sheet name must match the sector code.
     """
     if not hasattr(uploaded_file_object, "name"):
         raise FileValidationError(

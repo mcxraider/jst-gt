@@ -1,7 +1,11 @@
 # services/storage/excel_operations.py
 """
 Excel file operations for both local filesystem and S3 storage.
-Handles saving and loading Excel files.
+Handles saving and loading Excel files for data persistence.
+
+This module provides utility functions for reading and writing pandas DataFrames
+as Excel files, supporting both local disk and S3 backends. It ensures consistent
+formatting and directory management for robust data storage.
 """
 import io
 import pandas as pd
@@ -13,12 +17,15 @@ from .s3_client import get_s3_client, parse_s3_path
 
 def save_excel(df, path):
     """
-    Save DataFrame as Excel file to local filesystem or S3.
-
+    Save a pandas DataFrame as an Excel file to local filesystem or S3.
+    
+    Serializes the DataFrame to Excel format and writes it to the specified path.
+    For S3, uploads the Excel data as an object. For local, writes to disk.
+    
     Args:
         df (pd.DataFrame): DataFrame to save
-        path (str): File path for saving
-
+        path (str): File path for saving (local or S3)
+    
     Raises:
         Exception: If S3 upload fails or local file write fails
     """
@@ -34,15 +41,19 @@ def save_excel(df, path):
 
 def load_excel(path, usecols=None):
     """
-    Load Excel file from local filesystem or S3.
-
+    Load an Excel file from local filesystem or S3 into a pandas DataFrame.
+    
+    Reads an Excel file from the specified path and loads it into a DataFrame.
+    For S3, downloads the object and loads it from memory. For local, reads from disk.
+    Optionally loads only specified columns.
+    
     Args:
-        path (str): File path to load from
+        path (str): File path to load from (local or S3)
         usecols (list, optional): Columns to load. Defaults to None (all columns).
-
+    
     Returns:
         pd.DataFrame: Loaded DataFrame
-
+    
     Raises:
         FileNotFoundError: If file doesn't exist
         Exception: If S3 download fails or local file read fails

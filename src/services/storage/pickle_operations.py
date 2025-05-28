@@ -1,7 +1,12 @@
 # services/storage/pickle_operations.py
 """
 Pickle file operations for both local filesystem and S3 storage.
-Handles saving and loading Python objects using pickle.
+Handles saving and loading Python objects using pickle serialization.
+
+This module provides utility functions for serializing Python objects to pickle
+files and deserializing them back, supporting both local and S3 backends. It
+ensures compatibility with cloud and on-premise storage for checkpointing and
+state persistence.
 """
 import io
 import pickle
@@ -13,12 +18,15 @@ from .s3_client import get_s3_client, parse_s3_path
 
 def save_pickle(obj, path):
     """
-    Save Python object as pickle file to local filesystem or S3.
-
+    Save a Python object as a pickle file to local filesystem or S3.
+    
+    Serializes the given Python object and writes it to the specified path.
+    For S3, uploads the pickle data as an object. For local, writes to disk.
+    
     Args:
         obj: Python object to save
-        path (str): File path for saving
-
+        path (str): File path for saving (local or S3)
+    
     Raises:
         Exception: If S3 upload fails or local file write fails
     """
@@ -36,14 +44,17 @@ def save_pickle(obj, path):
 
 def load_pickle(path):
     """
-    Load Python object from pickle file (local filesystem or S3).
-
+    Load a Python object from a pickle file (local filesystem or S3).
+    
+    Reads and deserializes a pickle file from the specified path.
+    For S3, downloads the object and loads it from memory. For local, reads from disk.
+    
     Args:
-        path (str): File path to load from
-
+        path (str): File path to load from (local or S3)
+    
     Returns:
         object: Loaded Python object
-
+    
     Raises:
         FileNotFoundError: If file doesn't exist
         Exception: If S3 download fails or local file read fails

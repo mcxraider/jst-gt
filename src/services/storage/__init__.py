@@ -1,7 +1,11 @@
 # services/storage/__init__.py
 """
-Storage services package.
-Provides unified interface for file operations across local filesystem and S3.
+Storage service package for file operations across local and S3 backends.
+
+This package provides unified interfaces for reading, writing, listing, and managing
+CSV, Excel, and pickle files, as well as S3 client utilities. It abstracts away the
+differences between local and cloud storage, enabling seamless data persistence
+and retrieval for the application.
 """
 from .csv_operations import save_csv, load_csv
 from .excel_operations import save_excel, load_excel

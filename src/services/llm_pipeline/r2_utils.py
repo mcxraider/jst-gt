@@ -11,6 +11,15 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
 
 def generate_hash(text):
+    """
+    Generate a SHA-256 hash for a given text string (lowercased and stripped).
+    
+    Args:
+        text (str): Input text to hash
+    
+    Returns:
+        str: SHA-256 hash of the input text
+    """
     text = str(text).lower().strip()
     string_hash = hashlib.sha256(str.encode(text)).hexdigest()
     return string_hash
@@ -35,7 +44,17 @@ def generate_hash(text):
 
 # simulated response form chatgpt so no need API key
 def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
-    """Simulated LLM API call that randomly returns a predefined response."""
+    """
+    Simulate an LLM API call for proficiency tagging, returning a random response.
+    
+    Args:
+        sys_msg (list): List of system/user prompt messages
+        model (str): Model name (default 'gpt-4o')
+        temperature (float): Sampling temperature (default 0.1)
+    
+    Returns:
+        dict: Simulated LLM response with proficiency, reason, and confidence
+    """
     sample_responses = [
         {
             "proficiency": 2,
@@ -71,6 +90,18 @@ def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
 # 2) Build the two‐message chat payload
 # ------------------------------------------------------------
 def form_sys_msg(kb_dic, course_text, skill, skill_pl_reference_chart):
+    """
+    Construct a two-message chat payload for LLM proficiency tagging.
+    
+    Args:
+        kb_dic (dict): Knowledge base dictionary for skills
+        course_text (str): Combined course description text
+        skill (str): Skill name (lowercased)
+        skill_pl_reference_chart (str): Reference chart for proficiency levels
+    
+    Returns:
+        list: List of system and user prompt messages for LLM
+    """
     kb = kb_dic[skill.lower().strip()]
     user_prompt = (
         f"For the training course “{course_text}”, "
@@ -89,6 +120,17 @@ def form_sys_msg(kb_dic, course_text, skill, skill_pl_reference_chart):
 # 3) One row → one (id, result) tuple
 # ------------------------------------------------------------
 def get_pl_tagging(row, kb_dic, skill_pl_reference_chart):
+    """
+    Tag a single row with proficiency level using the LLM prompt and simulated call.
+    
+    Args:
+        row (pd.Series): Row from the input DataFrame
+        kb_dic (dict): Knowledge base dictionary for skills
+        skill_pl_reference_chart (str): Reference chart for proficiency levels
+    
+    Returns:
+        tuple: (unique_id, result_dict) for the row
+    """
     sys_msg = form_sys_msg(
         kb_dic=kb_dic,
         course_text=row["course_text"],
@@ -102,6 +144,19 @@ def get_pl_tagging(row, kb_dic, skill_pl_reference_chart):
 # 4) Parallel execution, checkpointing, and result‐collection
 # ------------------------------------------------------------
 def get_result(df, max_workers, kb_dic, skill_pl_reference_chart, checkpoint_filename):
+    """
+    Run parallel LLM tagging for all rows in a DataFrame, with checkpointing.
+    
+    Args:
+        df (pd.DataFrame): DataFrame of course-skill pairs
+        max_workers (int): Number of parallel workers
+        kb_dic (dict): Knowledge base dictionary for skills
+        skill_pl_reference_chart (str): Reference chart for proficiency levels
+        checkpoint_filename (str): Path to checkpoint file for progress tracking
+    
+    Returns:
+        tuple: (id_list, result_list) of processed row IDs and their results
+    """
     # 1) Early exit on emptiness
     n = len(df)
     print(f"get_result called with {n} rows")
