@@ -49,15 +49,7 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     sfw = sfw[sfw["Sector"].isin(target_sector)].reset_index(drop=True)
     sfw["skill_lower"] = sfw["TSC_CCS Title"].str.lower().str.strip()
 
-    course_df = load_sector_file(
-        cols=[
-            "Course Reference Number",
-            "Course Title",
-            "Skill Title",
-            "About This Course",
-            "What You'll Learn",
-        ],
-    )
+    course_df = load_sector_file(cols=COURSE_DATA_COLUMNS)
     course_df = (
         course_df.drop_duplicates(subset=["Course Reference Number", "Skill Title"])
         .dropna()
@@ -115,27 +107,12 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     print("ROUND 2 PROCESS STARTING")
     print("\n" + "-" * 80 + "\n")
     # load sector file
-    all_descr = load_sector_file(
-        cols=[
-            "Course Reference Number",
-            "Course Title",
-            "Skill Title",
-            "About This Course",
-            "What You'll Learn",
-        ],
-    )
+    all_descr = load_sector_file(cols=COURSE_DATA_COLUMNS)
     # strip any accidental leading/trailing spaces in the headers
     all_descr.columns = all_descr.columns.str.strip()
     # now slice out exactly the four description columns
     descr_df = (
-        all_descr[
-            [
-                "Course Reference Number",
-                "Course Title",
-                "About This Course",
-                "What You'll Learn",
-            ]
-        ]
+        all_descr[COURSE_DESCR_COLS]
         .dropna(subset=["Course Reference Number"])
         .drop_duplicates("Course Reference Number")
     )

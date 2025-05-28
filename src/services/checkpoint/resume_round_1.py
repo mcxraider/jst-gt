@@ -4,7 +4,6 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from services.llm_pipeline.r1_utils import process_row
-from services.checkpoint.checkpoint_manager import CheckpointManager
 
 
 def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
