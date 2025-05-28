@@ -7,7 +7,7 @@ from pathlib import Path
 
 from config import USE_S3
 from .s3_client import get_s3_client, parse_s3_path
-
+from botocore.exceptions import ClientError
 
 def list_files(directory, pattern="*"):
     """
@@ -20,25 +20,39 @@ def list_files(directory, pattern="*"):
     Returns:
         list: List of file paths matching the pattern
 
-    Note:
-        For S3, pattern matching is simplified to endswith() check
+    Raises:
+        ClientError: If S3 listing fails
+        OSError: If local directory access fails
     """
     if USE_S3:
-        bucket, prefix = parse_s3_path(str(directory))
-        s3 = get_s3_client()
-        paginator = s3.get_paginator("list_objects_v2")
-        file_list = []
+        try:
+            bucket, prefix = parse_s3_path(str(directory))
+            s3 = get_s3_client()
+            paginator = s3.get_paginator("list_objects_v2")
+            file_list = []
 
-        # Convert glob pattern to simple endswith check for S3
-        suffix = pattern.replace("*", "")
+            # Convert glob pattern to simple endswith check for S3
+            if pattern != "*":
+                suffix = pattern.replace("*", "")
+            else:
+                suffix = ""
 
-        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-            for obj in page.get("Contents", []):
-                if obj["Key"].endswith(suffix):
-                    file_list.append(obj["Key"])
-        return file_list
+            for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                for obj in page.get("Contents", []):
+                    if not suffix or obj["Key"].endswith(suffix):
+                        file_list.append(f"s3://{bucket}/{obj['Key']}")
+            return file_list
+            
+        except ClientError as e:
+            raise ClientError(f"Failed to list S3 objects: {e}")
     else:
-        return list(Path(directory).glob(pattern))
+        try:
+            directory_path = Path(directory)
+            if not directory_path.exists():
+                return []
+            return [str(p) for p in directory_path.glob(pattern)]
+        except OSError as e:
+            raise OSError(f"Failed to access local directory: {e}")
 
 
 def delete_all(directory):
@@ -48,28 +62,42 @@ def delete_all(directory):
     Args:
         directory (str): Directory path to clean up
 
-    Note:
-        For local filesystem, attempts to remove files and empty directories.
-        Silently ignores errors during deletion process.
+    Returns:
+        dict: Summary of deletion operation
     """
+    deletion_summary = {"deleted_count": 0, "errors": []}
+    
     if USE_S3:
-        bucket, prefix = parse_s3_path(str(directory))
-        s3 = get_s3_client()
-        objects_to_delete = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
-        delete_keys = [
-            {"Key": obj["Key"]} for obj in objects_to_delete.get("Contents", [])
-        ]
-        if delete_keys:
-            s3.delete_objects(Bucket=bucket, Delete={"Objects": delete_keys})
+        try:
+            bucket, prefix = parse_s3_path(str(directory))
+            s3 = get_s3_client()
+            objects_to_delete = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+            delete_keys = [
+                {"Key": obj["Key"]} for obj in objects_to_delete.get("Contents", [])
+            ]
+            if delete_keys:
+                response = s3.delete_objects(
+                    Bucket=bucket, 
+                    Delete={"Objects": delete_keys}
+                )
+                deletion_summary["deleted_count"] = len(response.get("Deleted", []))
+                if "Errors" in response:
+                    deletion_summary["errors"] = response["Errors"]
+        except ClientError as e:
+            deletion_summary["errors"].append(f"S3 deletion failed: {e}")
     else:
         p = Path(directory)
         if not p.exists():
-            return
+            return deletion_summary
+            
         for f in p.rglob("*"):
             try:
                 if f.is_file():
                     f.unlink()
-                elif f.is_dir():
+                    deletion_summary["deleted_count"] += 1
+                elif f.is_dir() and not any(f.iterdir()):  # Only delete empty dirs
                     f.rmdir()
-            except Exception:
-                pass  # Silently ignore deletion errors
+            except Exception as e:
+                deletion_summary["errors"].append(f"Failed to delete {f}: {e}")
+    
+    return deletion_summary

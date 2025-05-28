@@ -1,13 +1,22 @@
-USE_S3: False
+# Use S3 or local storage
+USE_S3: false             # Change to true to use S3
 s3_bucket_name: "idd-ai-pl-tagging-bucket"
 aws_region: "ap-southeast-1"
 
+# Directory paths (local)
 base_dir: "../s3_bucket"
 input_data_path: "../s3_bucket/s3_input"
 intermediate_output_path: "../s3_bucket/s3_intermediate"
 output_path: "../s3_bucket/s3_output"
 misc_output_path: "../s3_bucket/s3_misc_output"
 checkpoint_path: "../s3_bucket/s3_checkpoint"
+
+# S3 folder names 
+s3_input_prefix: "s3_input"
+s3_intermediate_prefix: "s3_intermediate"
+s3_output_prefix: "s3_output"
+s3_misc_output_prefix: "s3_misc_output"
+s3_checkpoint_prefix: "s3_checkpoint"
 
 PDF_URL: "../public/assets/PDF/File Format Guide for SFW and Sector File.pdf"
 
@@ -40,4 +49,3 @@ input_validation_sector_config:
   "Human Resource": "HR"
   "Food Services": "FS"
   "Financial Services": "FS"
-
