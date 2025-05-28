@@ -1,6 +1,6 @@
 USE_S3: False
-s3_bucket_name: ""
-aws_region: ""
+s3_bucket_name: "idd-ai-pl-tagging-bucket"
+aws_region: "ap-southeast-1"
 
 base_dir: "../s3_bucket"
 input_data_path: "../s3_bucket/s3_input"
