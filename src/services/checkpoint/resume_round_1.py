@@ -31,13 +31,7 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
     api_calls = len(results)
     processed = len(results)
 
-    # Early exit check
-    stop_number = total // 2  # halfway point
-
     while pending:
-        # Check for early exit toggle
-        if st.session_state.get("exit_halfway", False) and processed >= stop_number:
-            break
 
         batch = pending[:10]
         pending = pending[10:]

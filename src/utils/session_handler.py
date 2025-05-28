@@ -1,7 +1,7 @@
 from pathlib import Path
-from config import output_path
+from config import OUTPUT_PATH
 import streamlit as st
-from services.db import check_pkl_existence
+from services.db import check_pkl_existence, check_output_existence
 
 # --- Configuration ---
 
@@ -45,12 +45,7 @@ def init_session_state() -> None:
         st.session_state.caption_placeholder = st.empty()
 
     # Check existence of output CSV files
-    if "csv_yes" not in st.session_state:
-        s3_output_path = Path(output_path)
-        output_files = (
-            list(s3_output_path.glob("*.csv")) if s3_output_path.exists() else []
-        )
-        st.session_state["csv_yes"] = len(output_files) == 3
+    st.session_state.setdefault("csv_yes", check_output_existence())
 
     # Check for existing checkpoints
     st.session_state.setdefault("pkl_yes", check_pkl_existence())

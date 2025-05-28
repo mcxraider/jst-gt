@@ -7,10 +7,10 @@ import pandas as pd
 from pathlib import Path
 
 from config import (
-    input_data_path,
-    checkpoint_path,
-    output_path,
-    intermediate_output_path,
+    INPUT_DATA_PATH,
+    CHECKPOINT_PATH,
+    OUTPUT_PATH,
+    INTERMEDIATE_OUTPUT_PATH,
 )
 from services.storage import load_csv, load_excel, load_pickle, list_files
 
@@ -43,10 +43,10 @@ def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
     Raises:
         FileNotFoundError: If no matching file is found
     """
-    matches = list_files(output_path, f"{prefix}*.csv")
+    matches = list_files(OUTPUT_PATH, f"{prefix}*.csv")
     if not matches:
         raise FileNotFoundError(
-            f"No file starting with '{prefix}' found in {output_path}"
+            f"No file starting with '{prefix}' found in {OUTPUT_PATH}"
         )
     return _fetch_df(matches[0])
 
@@ -118,7 +118,7 @@ def load_checkpoint_metadata():
         FileNotFoundError: If no checkpoint file is found
         RuntimeError: If multiple checkpoint files are found
     """
-    pkl_files = list_files(checkpoint_path, "*.pkl")
+    pkl_files = list_files(CHECKPOINT_PATH, "*.pkl")
     if not pkl_files:
         raise FileNotFoundError("No checkpoint file found in the directory.")
     if len(pkl_files) > 1:
@@ -140,7 +140,18 @@ def check_pkl_existence() -> bool:
     Returns:
         bool: True if pickle files exist, False otherwise
     """
-    return bool(list_files(checkpoint_path, "*.pkl"))
+    return bool(list_files(CHECKPOINT_PATH, "*.pkl"))
+
+
+def check_output_existence() -> bool:
+    """
+    Check if exactly 3 output CSV files exist in the output directory.
+
+    Returns:
+        bool: True if exactly three .csv files exist, False otherwise.
+    """
+    csv_files = list_files(OUTPUT_PATH, "*.csv")
+    return len(csv_files) == 3
 
 
 def load_sfw_file() -> pd.DataFrame:
@@ -153,11 +164,11 @@ def load_sfw_file() -> pd.DataFrame:
     Raises:
         FileNotFoundError: If no file starting with 'SFW' is found
     """
-    files = list_files(input_data_path, "*.xlsx")
+    files = list_files(INPUT_DATA_PATH, "*.xlsx")
     for fp in files:
         if Path(fp).name.startswith("SFW"):
             return load_excel(fp)
-    raise FileNotFoundError(f"No file starting with 'SFW' in {input_data_path}")
+    raise FileNotFoundError(f"No file starting with 'SFW' in {INPUT_DATA_PATH}")
 
 
 def load_sector_file(cols=None) -> pd.DataFrame:
@@ -173,11 +184,11 @@ def load_sector_file(cols=None) -> pd.DataFrame:
     Raises:
         FileNotFoundError: If no sector file is found
     """
-    files = list_files(input_data_path, "*.xlsx")
+    files = list_files(INPUT_DATA_PATH, "*.xlsx")
     for fp in files:
         if not Path(fp).name.startswith("SFW"):
             return load_excel(fp, usecols=cols)
-    raise FileNotFoundError(f"No sector file found in {input_data_path}")
+    raise FileNotFoundError(f"No sector file found in {INPUT_DATA_PATH}")
 
 
 def load_r1_invalid() -> pd.DataFrame:
@@ -190,12 +201,12 @@ def load_r1_invalid() -> pd.DataFrame:
     Raises:
         FileNotFoundError: If no R1 invalid file is found
     """
-    files = list_files(intermediate_output_path, "*.csv")
+    files = list_files(INTERMEDIATE_OUTPUT_PATH, "*.csv")
     for fp in files:
         if "r1_invalid" in Path(fp).name:
             return load_csv(fp)
     raise FileNotFoundError(
-        f"No file containing 'r1_invalid' in {intermediate_output_path}"
+        f"No file containing 'r1_invalid' in {INTERMEDIATE_OUTPUT_PATH}"
     )
 
 
@@ -209,10 +220,10 @@ def load_r1_valid():
     Raises:
         FileNotFoundError: If no R1 valid file is found
     """
-    files = list_files(intermediate_output_path, "*.csv")
+    files = list_files(INTERMEDIATE_OUTPUT_PATH, "*.csv")
     for fp in files:
         if "r1_valid" in Path(fp).name:
             return load_csv(fp)
     raise FileNotFoundError(
-        f"No file containing 'r1_valid' in {intermediate_output_path}"
+        f"No file containing 'r1_valid' in {INTERMEDIATE_OUTPUT_PATH}"
     )

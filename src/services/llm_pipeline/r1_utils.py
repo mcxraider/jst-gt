@@ -221,7 +221,7 @@ def run_in_parallel(course_df, knowledge_df, client):
             executor.submit(
                 process_row, row, skill_info_dict, knowledge_df, lock, client
             )
-            for ind, row in course_df.iterrows()
+            for _, row in course_df.iterrows()
         ]
         for future in futures:
             results.append(future.result())

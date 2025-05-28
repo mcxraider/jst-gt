@@ -11,7 +11,6 @@ checkpoint_path: "../s3_bucket/s3_checkpoint"
 
 PDF_URL: "../public/assets/PDF/File Format Guide for SFW and Sector File.pdf"
 
-
 course_data_columns:
   - "Course Reference Number"
   - "Course Title"
@@ -37,7 +36,7 @@ process_alias_mapping:
     - "Food Services"
     - "Financial Services"
 
-INPUT_VALIDATION_SECTOR_CONFIG:
+input_validation_sector_config:
   "Human Resource": "HR"
   "Food Services": "FS"
   "Financial Services": "FS"

@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import datetime
 from pathlib import Path
 
-from config import checkpoint_path
+from config import CHECKPOINT_PATH
 from services.storage import *
 
 
@@ -15,7 +15,7 @@ class CheckpointManager:
     def __init__(self, alias: str, TIMESTAMP: str, checkpoint_dir=None):
         if checkpoint_dir is None:
             # Default to config path (can be S3 or local)
-            checkpoint_dir = checkpoint_path
+            checkpoint_dir = CHECKPOINT_PATH
         self.base_checkpoint_path = str(checkpoint_dir)
         filename = f"{alias}_checkpoint_{TIMESTAMP}.pkl"
         self.checkpoint_path = f"{self.base_checkpoint_path}/{filename}"

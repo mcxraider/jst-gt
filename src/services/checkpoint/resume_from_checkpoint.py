@@ -2,7 +2,7 @@
 
 from services.db import async_write_output_to_s3, load_checkpoint_metadata
 from services.llm_pipeline.combined_pipeline import handle_core_processing
-from config import process_alias_mapping
+from config import PROCESS_ALIAS_MAPPING
 
 
 def resume_from_checkpoint(st):
@@ -16,7 +16,7 @@ def resume_from_checkpoint(st):
     """
     ckpt_metadata = load_checkpoint_metadata()
     st.session_state.selected_process_alias = ckpt_metadata.get("sector")
-    st.session_state.selected_process = process_alias_mapping[
+    st.session_state.selected_process = PROCESS_ALIAS_MAPPING[
         st.session_state.selected_process_alias
     ]
 
