@@ -11,8 +11,10 @@ from config import (
     CHECKPOINT_PATH,
     OUTPUT_PATH,
     INTERMEDIATE_OUTPUT_PATH,
+    USE_S3,
 )
 from services.storage import load_csv, load_excel, load_pickle, list_files
+from services.storage.file_management import s3_list_files_by_filename_contains
 
 
 def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
@@ -32,7 +34,7 @@ def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
 
 def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
     """
-    Find and load the first CSV file matching a prefix in the output directory.
+    Find and load the first CSV file in the output directory whose name contains the given prefix.
 
     Args:
         prefix (str): File name prefix to search for
@@ -43,11 +45,12 @@ def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
     Raises:
         FileNotFoundError: If no matching file is found
     """
-    matches = list_files(OUTPUT_PATH, f"{prefix}*.csv")
+    if USE_S3:
+        matches = s3_list_files_by_filename_contains(OUTPUT_PATH, prefix, ".csv")
+    else:
+        matches = list_files(OUTPUT_PATH, f"*{prefix}*.csv")
     if not matches:
-        raise FileNotFoundError(
-            f"No file starting with '{prefix}' found in {OUTPUT_PATH}"
-        )
+        raise FileNotFoundError(f"No file containing '{prefix}' found in {OUTPUT_PATH}")
     return _fetch_df(matches[0])
 
 
@@ -104,6 +107,7 @@ def fetch_completed_output():
     valid = fetch_valid()
     invalid = fetch_invalid()
     all_tagged = fetch_all_tagged()
+    print("[Files fetched] All processing complete, results available for view.")
     return valid, invalid, all_tagged
 
 

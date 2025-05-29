@@ -25,7 +25,12 @@ def save_csv(df, path):
         ClientError: If S3 upload fails
         IOError: If local file write fails
     """
-    if df is None or df.empty and "missing_content" not in str(path):
+    if (
+        df is None
+        or df.empty
+        and "missing_content" not in str(path)
+        and "poor_content" not in str(path)
+    ):
         raise ValueError("DataFrame cannot be None or empty")
 
     if USE_S3:

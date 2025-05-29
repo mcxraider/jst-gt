@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError, NoCredentialsError
 
 logger = logging.getLogger(__name__)
 
-# Allowlist of safe types for pickle loading (customize based on your needs)
+# Allowlist of safe types for pickle loading 
 SAFE_PICKLE_TYPES: Set[str] = {
     "builtins.dict",
     "builtins.list",
@@ -27,8 +27,6 @@ SAFE_PICKLE_TYPES: Set[str] = {
     "builtins.NoneType",
     "pandas.core.frame.DataFrame",
     "pandas.core.series.Series",
-    "numpy.ndarray",
-    # Add more types as needed
 }
 
 
