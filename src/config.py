@@ -14,6 +14,7 @@ AWS_REGION = config.get("aws_region", "")
 
 # === Directory Paths: Choose S3 or Local ===
 if USE_S3:
+
     def convert_to_s3_path(prefix):  # Helper function for S3 URLs
         return f"s3://{S3_BUCKET_NAME}/{prefix}"
 

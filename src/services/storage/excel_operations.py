@@ -23,6 +23,7 @@ def save_excel(df, path):
         Exception: If S3 upload fails or local file write fails
     """
     if USE_S3:
+        print("no string: " + path + " with string: " + str(path))
         bucket, key = parse_s3_path(str(path))
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")

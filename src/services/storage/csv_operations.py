@@ -25,19 +25,19 @@ def save_csv(df, path):
         ClientError: If S3 upload fails
         IOError: If local file write fails
     """
-    if df is None or df.empty:
+    if df is None or df.empty and "missing_content" not in str(path):
         raise ValueError("DataFrame cannot be None or empty")
-    
+
     if USE_S3:
         try:
             bucket, key = parse_s3_path(str(path))
             csv_buffer = io.StringIO()
             df.to_csv(csv_buffer, index=False, encoding="utf-8")
             get_s3_client().put_object(
-                Bucket=bucket, 
-                Key=key, 
+                Bucket=bucket,
+                Key=key,
                 Body=csv_buffer.getvalue(),
-                ContentType='text/csv'
+                ContentType="text/csv",
             )
         except ClientError as e:
             raise ClientError(f"Failed to upload CSV to S3: {e}")
@@ -70,18 +70,18 @@ def load_csv(path):
         try:
             bucket, key = parse_s3_path(str(path))
             s3_client = get_s3_client()
-            
+
             # Check if object exists
             try:
                 s3_client.head_object(Bucket=bucket, Key=key)
             except ClientError as e:
-                if e.response['Error']['Code'] == '404':
+                if e.response["Error"]["Code"] == "404":
                     raise FileNotFoundError(f"S3 object not found: {path}")
                 raise
-                
+
             obj = s3_client.get_object(Bucket=bucket, Key=key)
             return pd.read_csv(io.BytesIO(obj["Body"].read()), encoding="utf-8")
-            
+
         except ClientError as e:
             raise ClientError(f"Failed to download CSV from S3: {e}")
         except pd.errors.EmptyDataError:
@@ -93,4 +93,3 @@ def load_csv(path):
             return pd.read_csv(path, encoding="utf-8")
         except pd.errors.EmptyDataError:
             raise pd.errors.EmptyDataError(f"CSV file is empty: {path}")
-

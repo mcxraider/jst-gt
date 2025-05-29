@@ -17,24 +17,24 @@ logger = logging.getLogger(__name__)
 
 # Allowlist of safe types for pickle loading (customize based on your needs)
 SAFE_PICKLE_TYPES: Set[str] = {
-    'builtins.dict',
-    'builtins.list',
-    'builtins.tuple',
-    'builtins.str',
-    'builtins.int',
-    'builtins.float',
-    'builtins.bool',
-    'builtins.NoneType',
-    'pandas.core.frame.DataFrame',
-    'pandas.core.series.Series',
-    'numpy.ndarray',
+    "builtins.dict",
+    "builtins.list",
+    "builtins.tuple",
+    "builtins.str",
+    "builtins.int",
+    "builtins.float",
+    "builtins.bool",
+    "builtins.NoneType",
+    "pandas.core.frame.DataFrame",
+    "pandas.core.series.Series",
+    "numpy.ndarray",
     # Add more types as needed
 }
 
 
 class SafeUnpickler(pickle.Unpickler):
     """Custom unpickler that only allows safe types."""
-    
+
     def find_class(self, module, name):
         full_name = f"{module}.{name}"
         if full_name in SAFE_PICKLE_TYPES:
@@ -64,10 +64,10 @@ def save_pickle(obj: Any, path: str, max_size_mb: int = 100) -> None:
         buf = io.BytesIO()
         pickle.dump(obj, buf, protocol=pickle.HIGHEST_PROTOCOL)
         buf.seek(0)
-        
+
         # Validate size
         validate_file_size(len(buf.getvalue()), max_size_mb)
-        
+
     except Exception as e:
         raise ValidationError(f"Failed to serialize object: {e}")
 
@@ -75,28 +75,28 @@ def save_pickle(obj: Any, path: str, max_size_mb: int = 100) -> None:
         try:
             bucket, key = parse_s3_path(str(path))
             get_s3_client().put_object(
-                Bucket=bucket, 
-                Key=key, 
+                Bucket=bucket,
+                Key=key,
                 Body=buf.getvalue(),
-                ContentType='application/octet-stream',
+                ContentType="application/octet-stream",
                 Metadata={
-                    'pickle-version': str(pickle.HIGHEST_PROTOCOL),
-                    'content-type': 'pickle'
-                }
+                    "pickle-version": str(pickle.HIGHEST_PROTOCOL),
+                    "content-type": "pickle",
+                },
             )
             logger.info(f"Successfully saved pickle to S3: {path}")
-            
+
         except Exception as e:
             raise S3Error(f"Failed to upload pickle to S3: {e}")
     else:
         try:
             file_path = Path(path)
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             with open(file_path, "wb") as f:
                 f.write(buf.getvalue())
             logger.info(f"Successfully saved pickle locally: {path}")
-            
+
         except Exception as e:
             raise LocalStorageError(f"Failed to save pickle locally: {e}")
 
@@ -121,23 +121,23 @@ def load_pickle(path: str, safe_mode: bool = True) -> Any:
         try:
             bucket, key = parse_s3_path(str(path))
             s3_client = get_s3_client()
-            
+
             # Check if object exists
             try:
                 head_response = s3_client.head_object(Bucket=bucket, Key=key)
                 # Validate file size before downloading
-                file_size = head_response.get('ContentLength', 0)
+                file_size = head_response.get("ContentLength", 0)
                 validate_file_size(file_size)
-                
+
             except ClientError as e:
-                if e.response['Error']['Code'] == '404':
+                if e.response["Error"]["Code"] == "404":
                     raise ValidationError(f"S3 object not found: {path}")
                 raise S3Error(f"Failed to check S3 object: {e}")
-                
+
             obj_response = s3_client.get_object(Bucket=bucket, Key=key)
             data = obj_response["Body"].read()
             logger.info(f"Successfully downloaded pickle from S3: {path}")
-            
+
         except S3Error:
             raise
         except Exception as e:
@@ -146,16 +146,16 @@ def load_pickle(path: str, safe_mode: bool = True) -> Any:
         file_path = Path(path)
         if not file_path.exists():
             raise ValidationError(f"Local file not found: {path}")
-        
+
         try:
             # Check file size
             file_size = file_path.stat().st_size
             validate_file_size(file_size)
-            
+
             with open(file_path, "rb") as f:
                 data = f.read()
             logger.info(f"Successfully read pickle locally: {path}")
-            
+
         except Exception as e:
             raise LocalStorageError(f"Failed to read pickle locally: {e}")
 
@@ -167,6 +167,6 @@ def load_pickle(path: str, safe_mode: bool = True) -> Any:
         else:
             logger.warning("Loading pickle in unsafe mode - security risk!")
             return pickle.load(io.BytesIO(data))
-            
+
     except Exception as e:
         raise ValidationError(f"Failed to unpickle data: {e}")

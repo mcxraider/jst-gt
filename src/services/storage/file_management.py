@@ -9,6 +9,7 @@ from config import USE_S3
 from .s3_client import get_s3_client, parse_s3_path
 from botocore.exceptions import ClientError
 
+
 def list_files(directory, pattern="*"):
     """
     List files in a directory (local or S3) matching a pattern.
@@ -42,7 +43,7 @@ def list_files(directory, pattern="*"):
                     if not suffix or obj["Key"].endswith(suffix):
                         file_list.append(f"s3://{bucket}/{obj['Key']}")
             return file_list
-            
+
         except ClientError as e:
             raise ClientError(f"Failed to list S3 objects: {e}")
     else:
@@ -66,7 +67,7 @@ def delete_all(directory):
         dict: Summary of deletion operation
     """
     deletion_summary = {"deleted_count": 0, "errors": []}
-    
+
     if USE_S3:
         try:
             bucket, prefix = parse_s3_path(str(directory))
@@ -77,9 +78,9 @@ def delete_all(directory):
             ]
             if delete_keys:
                 response = s3.delete_objects(
-                    Bucket=bucket, 
-                    Delete={"Objects": delete_keys}
+                    Bucket=bucket, Delete={"Objects": delete_keys}
                 )
+                print("All files in bucket are deleted")
                 deletion_summary["deleted_count"] = len(response.get("Deleted", []))
                 if "Errors" in response:
                     deletion_summary["errors"] = response["Errors"]
@@ -89,7 +90,7 @@ def delete_all(directory):
         p = Path(directory)
         if not p.exists():
             return deletion_summary
-            
+
         for f in p.rglob("*"):
             try:
                 if f.is_file():
@@ -99,5 +100,5 @@ def delete_all(directory):
                     f.rmdir()
             except Exception as e:
                 deletion_summary["errors"].append(f"Failed to delete {f}: {e}")
-    
+
     return deletion_summary
