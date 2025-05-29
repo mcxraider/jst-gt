@@ -1,6 +1,7 @@
 # src/services/validation/file_content_validation.py
 
 import os
+import pandas as pd
 from typing import Tuple, Optional
 from exceptions.data_validation_exception import DataValidationError
 from exceptions.file_validation_exception import FileValidationError

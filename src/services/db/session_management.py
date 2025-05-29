@@ -7,6 +7,7 @@ import streamlit as st
 
 from config import BASE_DIR
 from services.storage import delete_all
+from services.db import check_pkl_existence
 
 
 def wipe_db(caption):
@@ -22,10 +23,9 @@ def wipe_db(caption):
     """
     caption.caption("[Status] Erasing data from previous run...")
 
-    # Check if cleanup is needed
-    if not (
-        st.session_state.get("csv_yes", False) or st.session_state.get("pkl_yes", False)
-    ):
+    # change this to check pkl existence
+    if not check_pkl_existence():
+        print("pkl file not found")
         return
 
     # Perform cleanup

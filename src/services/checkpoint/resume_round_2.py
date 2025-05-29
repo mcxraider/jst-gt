@@ -81,7 +81,7 @@ def resume_round_2(
 
         with ThreadPoolExecutor(max_workers=10) as exec:
             futures = []
-            for i, row in batch_df.iterrows():
+            for _, row in batch_df.iterrows():
                 sys_msg = form_sys_msg(
                     kb_dic,
                     row["course_text"],
@@ -264,15 +264,7 @@ def resume_round_2(
 
     # split out those with completely missing titles
     missing = poor[poor["Course Title"].isnull()]
-
-    # and the rest
-    rest = poor[
-        ~poor["Course Reference Number"].isin(missing["Course Reference Number"])
-    ]
-
-    # write out as UTF-8 CSVs
     write_missing_to_s3(missing, target_sector_alias)
-    write_rest_to_s3(rest, target_sector_alias)
 
     # these are the completed outputs
     print("[Round 2 Complete] All processing complete, results saved to files.")

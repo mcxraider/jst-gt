@@ -23,18 +23,24 @@ def write_input_file(abs_path, df, file_name):
     Write DataFrame to input directory in appropriate format based on extension.
 
     Args:
-        abs_path (str): Absolute path to directory
+        abs_path (str): Absolute path to directory or S3 URI
         df (pd.DataFrame): DataFrame to save
         file_name (str): File name with extension
 
     Raises:
         ValueError: If file extension is not supported (.csv or .xlsx)
     """
-    path = Path(abs_path) / file_name
-    ext = path.suffix.lower()
-    if ext == ".csv":
+    if abs_path.startswith("s3://"):
+        path = abs_path.rstrip("/") + "/" + file_name.lstrip("/")
+    else:
+        path = Path(abs_path) / file_name
+
+    print(f"PATH AFTER WRITE INPUT_FILE FUNCTION: {str(path)}")
+
+    ext = str(path).lower().split(".")[-1]
+    if ext == "csv":
         save_csv(df, str(path))
-    elif ext == ".xlsx":
+    elif ext == "xlsx":
         save_excel(df, str(path))
     else:
         raise ValueError(f"Unsupported extension: '{ext}'")
@@ -45,11 +51,17 @@ def write_output_file(abs_path: str, df: pd.DataFrame, file_name: str):
     Write DataFrame as CSV to output directory.
 
     Args:
-        abs_path (str): Absolute path to directory
+        abs_path (str): Absolute path to directory or S3 URI
         df (pd.DataFrame): DataFrame to save
         file_name (str): File name (without extension, .csv will be added)
     """
-    path = Path(abs_path) / f"{file_name}.csv"
+    if abs_path.startswith("s3://"):
+        # For S3, concatenate as string
+        path = abs_path.rstrip("/") + "/" + file_name.lstrip("/") + ".csv"
+    else:
+        # For local, use Path
+        path = Path(abs_path) / f"{file_name}.csv"
+
     save_csv(df, str(path))
 
 
@@ -73,8 +85,6 @@ async def write_input_to_s3(
         Renames files with timestamps before saving.
     """
     abs_path = INPUT_DATA_PATH
-    os.makedirs(abs_path, exist_ok=True)
-
     # Generate timestamped file names
     renamed_sfw, renamed_sector = await asyncio.gather(
         rename_input_file(sfw_filename),
@@ -106,8 +116,7 @@ async def write_output_to_s3(dfs: list[tuple[pd.DataFrame, str]]):
         Renames files with '_output' suffix before saving.
     """
     abs_path = OUTPUT_PATH
-    os.makedirs(abs_path, exist_ok=True)
-
+    
     # Validate input format
     for i, item in enumerate(dfs):
         if not isinstance(item, tuple) or len(item) != 2:

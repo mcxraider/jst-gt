@@ -7,6 +7,7 @@ from pathlib import Path
 
 from config import USE_S3
 from .s3_client import get_s3_client, parse_s3_path
+from botocore.exceptions import ClientError
 
 
 def list_files(directory, pattern="*"):
@@ -20,56 +21,159 @@ def list_files(directory, pattern="*"):
     Returns:
         list: List of file paths matching the pattern
 
-    Note:
-        For S3, pattern matching is simplified to endswith() check
+    Raises:
+        ClientError: If S3 listing fails
+        OSError: If local directory access fails
     """
     if USE_S3:
+        try:
+            bucket, prefix = parse_s3_path(str(directory))
+            s3 = get_s3_client()
+            paginator = s3.get_paginator("list_objects_v2")
+            file_list = []
+
+            # Convert glob pattern to simple endswith check for S3
+            if pattern != "*":
+                suffix = pattern.replace("*", "")
+            else:
+                suffix = ""
+
+            for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                for obj in page.get("Contents", []):
+                    if not suffix or obj["Key"].endswith(suffix):
+                        file_list.append(f"s3://{bucket}/{obj['Key']}")
+            return file_list
+
+        except ClientError as e:
+            raise ClientError(f"Failed to list S3 objects: {e}")
+    else:
+        try:
+            directory_path = Path(directory)
+            if not directory_path.exists():
+                return []
+            return [str(p) for p in directory_path.glob(pattern)]
+        except OSError as e:
+            raise OSError(f"Failed to access local directory: {e}")
+
+
+def s3_list_files_by_filename_contains(directory, contains_string, file_ext=".csv"):
+    """
+    List S3 files in a directory whose filenames contain a substring (and optional extension).
+
+    Args:
+        directory (str): S3 prefix directory (e.g., 's3://bucket/prefix/')
+        contains_string (str): Substring the filename must contain
+        file_ext (str): File extension (e.g., '.csv'). Use "" for any.
+
+    Returns:
+        list: List of file paths matching the criteria
+
+    Raises:
+        ClientError: If S3 listing fails
+        Exception: For any other error
+    """
+    try:
         bucket, prefix = parse_s3_path(str(directory))
         s3 = get_s3_client()
         paginator = s3.get_paginator("list_objects_v2")
-        file_list = []
-
-        # Convert glob pattern to simple endswith check for S3
-        suffix = pattern.replace("*", "")
-
+        matches = []
         for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
             for obj in page.get("Contents", []):
-                if obj["Key"].endswith(suffix):
-                    file_list.append(obj["Key"])
-        return file_list
-    else:
-        return list(Path(directory).glob(pattern))
+                key = obj["Key"]
+                filename = key.split("/")[-1]
+                if contains_string in filename and filename.endswith(file_ext):
+                    matches.append(f"s3://{bucket}/{key}")
+        return matches
+    except ClientError as e:
+        raise ClientError(f"Failed to list S3 objects in {directory}: {e}")
+    except Exception as e:
+        raise Exception(f"Unexpected error listing S3 files in {directory}: {e}")
 
 
 def delete_all(directory):
     """
-    Delete all files in a directory (local or S3).
+    Delete all files in a given S3 prefix, but preserve the folder marker (if any).
 
     Args:
-        directory (str): Directory path to clean up
+        directory (str): S3 directory/prefix path (e.g., 's3://bucket/prefix/')
 
-    Note:
-        For local filesystem, attempts to remove files and empty directories.
-        Silently ignores errors during deletion process.
+    Returns:
+        dict: Summary of deletion operation
     """
-    if USE_S3:
+    deletion_summary = {"deleted_count": 0, "errors": []}
+
+    try:
+        print(f"\n[DEBUG] Starting deletion in: {directory}")
         bucket, prefix = parse_s3_path(str(directory))
+        # Normalize prefix: remove leading slash, ensure trailing slash
+        prefix = prefix.lstrip("/")
+        if prefix and not prefix.endswith("/"):
+            prefix += "/"
+
+        print(f"[DEBUG] Bucket: {bucket}")
+        print(f"[DEBUG] Prefix: {prefix}")
         s3 = get_s3_client()
-        objects_to_delete = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
-        delete_keys = [
-            {"Key": obj["Key"]} for obj in objects_to_delete.get("Contents", [])
-        ]
-        if delete_keys:
-            s3.delete_objects(Bucket=bucket, Delete={"Objects": delete_keys})
-    else:
-        p = Path(directory)
-        if not p.exists():
-            return
-        for f in p.rglob("*"):
-            try:
-                if f.is_file():
-                    f.unlink()
-                elif f.is_dir():
-                    f.rmdir()
-            except Exception:
-                pass  # Silently ignore deletion errors
+        paginator = s3.get_paginator("list_objects_v2")
+        delete_batch = []
+        total_deleted = 0
+
+        for page_num, page in enumerate(
+            paginator.paginate(Bucket=bucket, Prefix=prefix)
+        ):
+            print(f"\n[DEBUG] Processing page {page_num + 1}")
+            objects = page.get("Contents", [])
+            print(f"[DEBUG] Number of objects in this page: {len(objects)}")
+            if not objects:
+                continue
+            for obj in objects:
+                key = obj["Key"]
+                print(f"[DEBUG] Found key: {key}")
+                # Skip the folder marker (which is the prefix itself)
+                if key == prefix.rstrip("/"):
+                    print(f"[DEBUG] Skipping folder marker: {key}")
+                    continue
+                # Also skip "pseudo-folder" markers for subfolders (e.g. key endswith "/" and has nothing after the slash)
+                if key.endswith("/") and key.count("/") == prefix.count("/"):
+                    print(f"[DEBUG] Skipping pseudo-folder marker: {key}")
+                    continue
+                print(f"[DEBUG] Adding key to delete_batch: {key}")
+                delete_batch.append({"Key": key})
+                if len(delete_batch) == 1000:
+                    print(f"[DEBUG] Deleting batch of 1000 keys:")
+                    for k in delete_batch:
+                        print(f"  - {k['Key']}")
+                    resp = s3.delete_objects(
+                        Bucket=bucket, Delete={"Objects": delete_batch}
+                    )
+                    batch_deleted = len(resp.get("Deleted", []))
+                    print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")
+                    total_deleted += batch_deleted
+                    if "Errors" in resp:
+                        print(f"[DEBUG] Errors in batch: {resp['Errors']}")
+                        deletion_summary["errors"].extend(resp["Errors"])
+                    delete_batch = []
+            # Delete any remaining keys
+            if delete_batch:
+                print(
+                    f"[DEBUG] Deleting final batch of {len(delete_batch)} keys in this page:"
+                )
+                for k in delete_batch:
+                    print(f"  - {k['Key']}")
+                resp = s3.delete_objects(
+                    Bucket=bucket, Delete={"Objects": delete_batch}
+                )
+                batch_deleted = len(resp.get("Deleted", []))
+                print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")
+                total_deleted += batch_deleted
+                if "Errors" in resp:
+                    print(f"[DEBUG] Errors in final batch: {resp['Errors']}")
+                    deletion_summary["errors"].extend(resp["Errors"])
+                delete_batch = []
+
+        print(f"\n[DEBUG] Total deleted: {total_deleted}")
+        deletion_summary["deleted_count"] = total_deleted
+    except ClientError as e:
+        print(f"[DEBUG] S3 deletion failed: {e}")
+        deletion_summary["errors"].append(f"S3 deletion failed: {e}")
+
+    return deletion_summary
