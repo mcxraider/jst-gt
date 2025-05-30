@@ -1,5 +1,5 @@
 # Use S3 or local storage
-USE_S3: True  # Change to "true" to use S3
+USE_S3: False  # Change to "true" to use S3
 s3_bucket_name: "idd-ai-pl-tagging-bucket"
 aws_region: "ap-southeast-1"
 

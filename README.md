@@ -1,3 +1,20 @@
+# Running using Docker file:
+# Build the image
+docker build -t your-streamlit-app .
+
+# Run locally for testing
+docker run -p 8501:8501 your-streamlit-app
+
+# For production deployment with resource limits
+docker run -d \
+  --name streamlit-app \
+  -p 8501:8501 \
+  --memory=512m \
+  --cpus=0.5 \
+  --restart=unless-stopped \
+  your-streamlit-app
+
+
 ## Project Documentation
 The project leverages GenAI for automated course to skills tagging (at the proficiency levels). It has 2 parts to it:
 

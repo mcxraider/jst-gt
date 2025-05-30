@@ -90,56 +90,79 @@ def s3_list_files_by_filename_contains(directory, contains_string, file_ext=".cs
         raise Exception(f"Unexpected error listing S3 files in {directory}: {e}")
 
 
+import os
+import shutil
+from botocore.exceptions import ClientError
+
 def delete_all(directory):
     """
-    Delete all files in a given S3 prefix, but preserve the folder marker (if any).
+    Delete all files in a given S3 prefix or local directory, but preserve the folder marker (if any) for S3.
 
     Args:
         directory (str): S3 directory/prefix path (e.g., 's3://bucket/prefix/')
+                         or local directory path
 
     Returns:
         dict: Summary of deletion operation
     """
     deletion_summary = {"deleted_count": 0, "errors": []}
 
-    try:
-        print(f"\n[DEBUG] Starting deletion in: {directory}")
-        bucket, prefix = parse_s3_path(str(directory))
-        # Normalize prefix: remove leading slash, ensure trailing slash
-        prefix = prefix.lstrip("/")
-        if prefix and not prefix.endswith("/"):
-            prefix += "/"
+    if USE_S3:
+        try:
+            print(f"\n[DEBUG] Starting deletion in: {directory}")
+            bucket, prefix = parse_s3_path(str(directory))
+            # Normalize prefix: remove leading slash, ensure trailing slash
+            prefix = prefix.lstrip("/")
+            if prefix and not prefix.endswith("/"):
+                prefix += "/"
 
-        print(f"[DEBUG] Bucket: {bucket}")
-        print(f"[DEBUG] Prefix: {prefix}")
-        s3 = get_s3_client()
-        paginator = s3.get_paginator("list_objects_v2")
-        delete_batch = []
-        total_deleted = 0
+            print(f"[DEBUG] Bucket: {bucket}")
+            print(f"[DEBUG] Prefix: {prefix}")
+            s3 = get_s3_client()
+            paginator = s3.get_paginator("list_objects_v2")
+            delete_batch = []
+            total_deleted = 0
 
-        for page_num, page in enumerate(
-            paginator.paginate(Bucket=bucket, Prefix=prefix)
-        ):
-            print(f"\n[DEBUG] Processing page {page_num + 1}")
-            objects = page.get("Contents", [])
-            print(f"[DEBUG] Number of objects in this page: {len(objects)}")
-            if not objects:
-                continue
-            for obj in objects:
-                key = obj["Key"]
-                print(f"[DEBUG] Found key: {key}")
-                # Skip the folder marker (which is the prefix itself)
-                if key == prefix.rstrip("/"):
-                    print(f"[DEBUG] Skipping folder marker: {key}")
+            for page_num, page in enumerate(
+                paginator.paginate(Bucket=bucket, Prefix=prefix)
+            ):
+                print(f"\n[DEBUG] Processing page {page_num + 1}")
+                objects = page.get("Contents", [])
+                print(f"[DEBUG] Number of objects in this page: {len(objects)}")
+                if not objects:
                     continue
-                # Also skip "pseudo-folder" markers for subfolders (e.g. key endswith "/" and has nothing after the slash)
-                if key.endswith("/") and key.count("/") == prefix.count("/"):
-                    print(f"[DEBUG] Skipping pseudo-folder marker: {key}")
-                    continue
-                print(f"[DEBUG] Adding key to delete_batch: {key}")
-                delete_batch.append({"Key": key})
-                if len(delete_batch) == 1000:
-                    print(f"[DEBUG] Deleting batch of 1000 keys:")
+                for obj in objects:
+                    key = obj["Key"]
+                    print(f"[DEBUG] Found key: {key}")
+                    # Skip the folder marker (which is the prefix itself)
+                    if key == prefix.rstrip("/"):
+                        print(f"[DEBUG] Skipping folder marker: {key}")
+                        continue
+                    # Also skip "pseudo-folder" markers for subfolders (e.g. key endswith "/" and has nothing after the slash)
+                    if key.endswith("/") and key.count("/") == prefix.count("/"):
+                        print(f"[DEBUG] Skipping pseudo-folder marker: {key}")
+                        continue
+                    print(f"[DEBUG] Adding key to delete_batch: {key}")
+                    delete_batch.append({"Key": key})
+                    if len(delete_batch) == 1000:
+                        print(f"[DEBUG] Deleting batch of 1000 keys:")
+                        for k in delete_batch:
+                            print(f"  - {k['Key']}")
+                        resp = s3.delete_objects(
+                            Bucket=bucket, Delete={"Objects": delete_batch}
+                        )
+                        batch_deleted = len(resp.get("Deleted", []))
+                        print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")
+                        total_deleted += batch_deleted
+                        if "Errors" in resp:
+                            print(f"[DEBUG] Errors in batch: {resp['Errors']}")
+                            deletion_summary["errors"].extend(resp["Errors"])
+                        delete_batch = []
+                # Delete any remaining keys
+                if delete_batch:
+                    print(
+                        f"[DEBUG] Deleting final batch of {len(delete_batch)} keys in this page:"
+                    )
                     for k in delete_batch:
                         print(f"  - {k['Key']}")
                     resp = s3.delete_objects(
@@ -149,31 +172,36 @@ def delete_all(directory):
                     print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")
                     total_deleted += batch_deleted
                     if "Errors" in resp:
-                        print(f"[DEBUG] Errors in batch: {resp['Errors']}")
+                        print(f"[DEBUG] Errors in final batch: {resp['Errors']}")
                         deletion_summary["errors"].extend(resp["Errors"])
                     delete_batch = []
-            # Delete any remaining keys
-            if delete_batch:
-                print(
-                    f"[DEBUG] Deleting final batch of {len(delete_batch)} keys in this page:"
-                )
-                for k in delete_batch:
-                    print(f"  - {k['Key']}")
-                resp = s3.delete_objects(
-                    Bucket=bucket, Delete={"Objects": delete_batch}
-                )
-                batch_deleted = len(resp.get("Deleted", []))
-                print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")
-                total_deleted += batch_deleted
-                if "Errors" in resp:
-                    print(f"[DEBUG] Errors in final batch: {resp['Errors']}")
-                    deletion_summary["errors"].extend(resp["Errors"])
-                delete_batch = []
 
-        print(f"\n[DEBUG] Total deleted: {total_deleted}")
-        deletion_summary["deleted_count"] = total_deleted
-    except ClientError as e:
-        print(f"[DEBUG] S3 deletion failed: {e}")
-        deletion_summary["errors"].append(f"S3 deletion failed: {e}")
+            print(f"\n[DEBUG] Total deleted: {total_deleted}")
+            deletion_summary["deleted_count"] = total_deleted
+        except ClientError as e:
+            print(f"[DEBUG] S3 deletion failed: {e}")
+            deletion_summary["errors"].append(f"S3 deletion failed: {e}")
+
+    else:
+        # Local deletion
+        try:
+            print(f"[DEBUG] Deleting all files in local directory: {directory}")
+            deleted_count = 0
+            if os.path.exists(directory):
+                for root, dirs, files in os.walk(directory):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        try:
+                            os.remove(file_path)
+                            deleted_count += 1
+                        except Exception as e:
+                            print(f"[DEBUG] Failed to delete {file_path}: {e}")
+                            deletion_summary["errors"].append(str(e))
+                deletion_summary["deleted_count"] = deleted_count
+            else:
+                print(f"[DEBUG] Directory does not exist: {directory}")
+        except Exception as e:
+            print(f"[DEBUG] Local deletion failed: {e}")
+            deletion_summary["errors"].append(f"Local deletion failed: {e}")
 
     return deletion_summary
