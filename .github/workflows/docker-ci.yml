@@ -3,7 +3,8 @@ name: Docker Build & Streamlit Health Check
 on:
   push:
     branches: [deploy]
-
+  pull_request:
+    branches: [main]
 
 jobs:
   build-and-test:
