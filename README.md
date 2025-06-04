@@ -1,70 +1,203 @@
-# Running using Docker file:
-# Build the image
-docker build -t your-streamlit-app .
+# Skill Proficiency AI Tagger
 
-# Run locally for testing
-docker run -p 8501:8501 your-streamlit-app
+A Streamlit-based web application that leverages GenAI for automated course-to-skills tagging at proficiency levels. The application provides an intuitive interface for uploading course data, processing it through AI pipelines, and downloading structured results.
 
-# For production deployment with resource limits
-docker run -d \
-  --name streamlit-app \
-  -p 8501:8501 \
-  --memory=512m \
-  --cpus=0.5 \
-  --restart=unless-stopped \
-  your-streamlit-app
+## 🚀 Features
 
+- **File Upload & Validation**: Upload SFW (Skills Framework) and sector-specific course files with automatic validation
+- **AI-Powered Processing**: Two-round AI pipeline for skill extraction and proficiency tagging
+- **Checkpoint System**: Resume interrupted processing from previous checkpoints
+- **Real-time Status Updates**: Live progress tracking with Streamlit spinners and captions
+- **Results Preview & Download**: Interactive preview of processed data with CSV download options
+- **Sector-Specific Processing**: Support for multiple sectors with automatic preprocessing
+- **Session Management**: Persistent session state with database cleanup utilities
 
-## Project Documentation
-The project leverages GenAI for automated course to skills tagging (at the proficiency levels). It has 2 parts to it:
+## 📁 Project Structure
 
+```
+src/
+├── app.py                          # Main Streamlit application entry point
+├── config.py                       # Configuration settings
+├── controllers/
+│   └── upload_controller.py        # File upload handling logic
+├── frontend/
+│   ├── homepage.py                 # Homepage with action cards and status
+│   ├── upload_page.py              # File upload interface
+│   ├── checkpoint_page.py          # Checkpoint loading interface
+│   ├── results_page.py             # Results preview and download
+│   ├── sidebar_page.py             # Navigation sidebar
+│   └── components/                 # Reusable UI components
+├── services/
+│   ├── db/                         # Database and session management
+│   ├── ingestion/                  # File processing pipelines
+│   ├── llm_pipeline/               # AI processing workflows
+│   ├── validation/                 # Input validation services
+│   └── checkpoint/                 # Checkpoint management
+├── models/                         # Data schemas and prompt templates
+├── utils/                          # Utility functions
+└── exceptions/                     # Custom exception classes
+```
 
-###################
-UPDATE: Ignore the R1 & R2 processing / output folders, just use the src folder for reference.
-###################
+## 🛠️ Installation & Setup
 
-### Part I
-Using SSG Skills Framework as the referenced knowledge base for TSCs.
-Input to Large Language Model includes:
-- TSC Title
-- TSC Proficiency Level Description
-- Corresponding Knowledge
-- Corresponding Abilities
+### Prerequisites
 
-Using TGS Training Course data.
-Input to Large Language Model includes:
-- Course Title
-- What You'll Learn
-- About This Course
+- Python 3.10+
+- Docker (optional, for containerized deployment)
 
-Using SEA for Skills (without Proficiency Level) Extraction.
-Input to Large Language Model includes:
-- Skill Title
+### Local Development
 
-Output from GenAI Model:
-For each skill associated with each training course, the output will indicate the most appropriate proficiency level of the skill, that is being taught by the course.
-- proficiency level (integer between 1-6, depending on PL availability of skill in SFw)
-    - If LLM is unable to find any suitable PL to associate with the TSC, a PL == 0 will be returned
-- reason (LLM's reason for the predicted PL)
-- confidence level (LLM's confidence of the predicted output: High / Medium / Low)
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd jst-gt
+   ```
 
-Not all TSCs extracted from all training courses can be tagged with a PL. Hence, a Part II processing is required.
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Part II
-Using SSG TSC Responsibility-Autonomy-Complexity Chart (SSG TSC RAC Chart) to tag skills that did not have any PL association after Part I processing.
-Input to Large Language Model includes:
-- Reformatted dictionary of SSG TSC RAC Chart
-- TSC Title
-- Corresponding Knowledge
-- Corresponding Abilities
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-Output from GenAI Model:
-- proficiency level (integer between 1-6, depending on PL availability of skill in SFw)
-- reason (LLM's reason for the predicted PL)
-- confidence level (LLM's confidence of the predicted output: High / Medium / Low)
+4. **Run the application**
+   ```bash
+   cd src
+   streamlit run app.py
+   ```
 
-At the end of Part II processing, all TSCs extracted from the training courses will have a PL tagged to it.
+   The application will be available at `http://localhost:8501`
 
-However, for TSCs extracted from training courses, that do not have any data on "What You'll Learn" and "About This Course", those TSCs were not be able to be processed for PL tagging during this exercise.
+### Docker Deployment
 
-A total of 5,187 courses had information that are required and their 6,950 corresponding TSCs extracted have been tagged with PL information under this project.
+1. **Build the Docker image**
+   ```bash
+   docker build -t skill-proficiency-ai-tagger .
+   ```
+
+2. **Run locally for testing**
+   ```bash
+   docker run -p 8501:8501 skill-proficiency-ai-tagger
+   ```
+
+3. **Production deployment with resource limits**
+   ```bash
+   docker run -d \
+     --name streamlit-app \
+     -p 8501:8501 \
+     --memory=512m \
+     --cpus=0.5 \
+     --restart=unless-stopped \
+     skill-proficiency-ai-tagger
+   ```
+
+## 📖 Usage Guide
+
+### 1. **Homepage Navigation**
+- Access the main interface at `homepage()`
+- View status messages and available actions via `home_status_messages()`
+- Use action cards to start new processing or load checkpoints
+
+### 2. **File Upload Process**
+- Navigate to the upload page using `upload_file_page()`
+- Select your target sector using `sector_selector()`
+- Upload both SFW and sector files via `file_selector()`
+- Files are validated through `upload_controller.py`
+
+### 3. **Processing Pipeline**
+- Core processing handled by `handle_core_processing()`
+- Two-round AI pipeline for comprehensive skill extraction
+- Real-time progress updates through Streamlit interface
+- Automatic checkpoint creation for resumability
+
+### 4. **Checkpoint Recovery**
+- Access checkpoint loading via `checkpoint_page()`
+- Resume interrupted processing from saved state
+- Automatic validation of checkpoint integrity
+
+### 5. **Results Management**
+- Preview results in `results_page()`
+- Download processed CSV files using `view_download_csvs()`
+- Session management through `session_management.py`
+
+## 🔧 Configuration
+
+### Environment Variables
+Configure the application through the .env file:
+
+```env
+# Example configuration
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+S3_BUCKET_NAME=your_s3_bucket
+```
+
+### Sector Configuration
+Sector-specific settings are managed in `config.yaml` and skill mappings in `skill_rac_chart.yaml`.
+
+## 🏗️ Application Architecture
+
+### Frontend Components
+- **Page Header**: Consistent branding via `create_header()`
+- **Sidebar Navigation**: Multi-page navigation through `sidebar_nav()`
+- **Help & Contact**: User guidance via `sidebar_help()` and `sidebar_contact()`
+
+### State Management
+- Session state initialization through `init_session_state()`
+- Page configuration via `configure_page()`
+- Database cleanup utilities in `wipe_db()`
+
+### Processing Pipeline
+1. **File Validation**: Input validation through `input_validation.py`
+2. **Preprocessing**: Sector-specific preprocessing via `sector_file_processing.py`
+3. **AI Processing**: Two-round pipeline in `combined_pipeline.py`
+4. **Results Generation**: Output formatting and storage
+
+## 🔍 Key Features
+
+### Session State Management
+The application uses Streamlit's session state for:
+- `app_stage`: Current application stage tracking
+- `processing`: Processing status flag
+- `csv_yes`: Results availability flag
+- `pkl_yes`: Checkpoint availability flag
+- `results`: Processed data storage
+
+### File Validation
+- Filename validation through `validate_sector_filename()`
+- Content validation for required columns and data types
+- Automatic preprocessing for sector-specific formats
+
+### Error Handling
+Custom exception classes in `exceptions/`:
+- `FileValidationError`
+- `DataValidationError`
+- `StorageError`
+
+## 🛡️ Health Monitoring
+
+The Docker container includes health checks:
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+```
+
+## 📄 Documentation
+
+Additional documentation and user guides are available through the application's help section. Download the comprehensive user format guide via the sidebar help menu.
+
+## 🚦 Application Flow
+
+1. **Initialization**: `main()` → `configure_page()`
+2. **Navigation**: `demo_sidebar()` for consistent navigation
+3. **Stage Routing**: Based on `st.session_state.app_stage`:
+   - `"initial_choice"` → `homepage()`
+   - `"uploading_new"` → `upload_file_page()`
+   - `"load_checkpoint"` → `checkpoint_page()`
+   - `"results_ready"` → `results_page()`
+
+This architecture ensures a smooth, intuitive user experience while maintaining robust error handling and state management throughout the application lifecycle.
