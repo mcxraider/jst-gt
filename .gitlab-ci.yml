@@ -1,0 +1,4 @@
+include:
+  - project: "wog/gvt/cstack/groups/references/pipelines/tenant-pipeline"
+    ref: main
+    file: single-container/.gitlab-ci.yml
