@@ -4,7 +4,7 @@ from frontend.components.sidebar.sidebar_help import sidebar_help
 from frontend.components.sidebar.sidebar_contact import sidebar_contact
 
 
-def demo_sidebar():
+def sidebar():
     with st.sidebar:
         sidebar_nav()
         st.markdown("---")

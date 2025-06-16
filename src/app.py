@@ -3,7 +3,7 @@ import streamlit as st
 # import utils app components
 from utils.session_handler import *
 from frontend.checkpoint_page import checkpoint_page
-from frontend.sidebar_page import demo_sidebar
+from frontend.sidebar_page import sidebar
 from frontend.homepage import homepage
 from frontend.results_page import results_page
 from frontend.upload_page import upload_file_page
@@ -12,7 +12,7 @@ from frontend.upload_page import upload_file_page
 def main():
     configure_page()
 
-    demo_sidebar()  # attach only when doing the demo
+    sidebar()  # attach only when doing the demo
 
     # --- Initial Choice Stage ---
     if st.session_state.app_stage == "initial_choice":
