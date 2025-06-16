@@ -6,15 +6,14 @@ import os
 import logging
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError, ProfileNotFound
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 from functools import lru_cache
 
 from config import S3_BUCKET_NAME, AWS_REGION
 from exceptions.storage_exceptions import S3Error, ValidationError
 
-# Load environment variables
-dotenv_path = find_dotenv('.env.default', usecwd=True) or '.env.default'
-load_dotenv(dotenv_path, override=True)
+
+load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)

@@ -35,6 +35,22 @@ process_choices:
   - "HR (Human Resource)"
   - "FS (Food Services)"
   - "FS (Financial Services)"
+  - "FM (Food Manufacturing Services)"
+  - "AIR (Air Transport Services)"
+  - "BIO (BioPharmaceuticals Manufacturing Services)"
+  - "BUILT (Built Environment Services)"
+  - "EC (Energy and Chemicals Services)"
+  - "ENG (Engineering Services)"
+  - "ENV (Environmental Services)"
+  - "HC (Healthcare Services)"
+  - "LOG (Logistics Services)"
+  - "MAR (Marine and Offshore Services)"
+  - "PUB (Public Transport Services)"
+  - "SEA (Sea Transport Services)"
+  - "SEC (Security Services)"
+  - "SOC (Social Service Services)"
+  - "WATER (Water Management Services)"
+  - "TRADE (Wholesale Trade Services)"
 
 process_alias_mapping:
   HR:
@@ -42,8 +58,56 @@ process_alias_mapping:
   FS:
     - "Food Services"
     - "Financial Services"
+  FM:
+    - "Food Manufacturing Services"
+  AIR:
+    - "Air Transport Services"
+  BIO:
+    - "BioPharmaceuticals Manufacturing Services"
+  BUILT:
+    - "Built Environment Services"
+  EC:
+    - "Energy and Chemicals Services"
+  ENG:
+    - "Engineering Services"
+  ENV:
+    - "Environmental Services"
+  HC:
+    - "Healthcare Services"
+  LOG:
+    - "Logistics Services"
+  MAR:
+    - "Marine and Offshore Services"
+  PUB:
+    - "Public Transport Services"
+  SEA:
+    - "Sea Transport Services"
+  SEC:
+    - "Security Services"
+  SOC:
+    - "Social Service Services"
+  WATER:
+    - "Water Management Services"
+  TRADE:
+    - "Wholesale Trade Services"
 
 input_validation_sector_config:
   "Human Resource": "HR"
   "Food Services": "FS"
   "Financial Services": "FS"
+  "Food Manufacturing": "FM"
+  "Air Transport": "AIR"
+  "BioPharmaceuticals Manufacturing": "BIO"
+  "Built Environment": "BUILT"
+  "Energy and Chemicals": "EC"
+  "Engineering Services": "ENG"
+  "Environmental Services": "ENV"
+  "Healthcare": "HC"
+  "Logistics": "LOG"
+  "Marine and Offshore": "MAR"
+  "Public Transport": "PUB"
+  "Sea Transport": "SEA"
+  "Security": "SEC"
+  "Social Service": "SOC"
+  "Water Management": "WATER"
+  "Wholesale Trade": "TRADE"
