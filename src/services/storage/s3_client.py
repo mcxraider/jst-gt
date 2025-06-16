@@ -6,14 +6,15 @@ import os
 import logging
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from functools import lru_cache
 
 from config import S3_BUCKET_NAME, AWS_REGION
 from exceptions.storage_exceptions import S3Error, ValidationError
 
 # Load environment variables
-load_dotenv()
+dotenv_path = find_dotenv('.env.default', usecwd=True) or '.env.default'
+load_dotenv(dotenv_path, override=True)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,8 +32,8 @@ def get_s3_client():
         S3Error: If credentials are missing or invalid
     """
     try:
-        aws_access_key = os.environ["AWS_ACCESS_KEY"]
-        aws_secret_key = os.environ["AWS_SECRET_KEY"]
+        aws_access_key = os.environ["AWS_ACCESS_KEY_ID"]
+        aws_secret_key = os.environ["AWS_SECRET_ACCESS_KEY"]
 
         if not aws_access_key or not aws_secret_key:
             raise S3Error("AWS credentials cannot be empty")
@@ -45,7 +46,7 @@ def get_s3_client():
             "s3",
             aws_access_key_id=aws_access_key,
             aws_secret_access_key=aws_secret_key,
-            region_name=AWS_REGION,
+            region_name=os.environ.get("AWS_REGION", AWS_REGION),
         )
 
         # Remove: client.list_buckets()

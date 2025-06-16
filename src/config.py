@@ -1,4 +1,9 @@
 import yaml
+import os
+
+from dotenv import load_dotenv, find_dotenv
+dotenv_path = find_dotenv('.env.default', usecwd=True) or '.env.default'
+load_dotenv(dotenv_path, override=True)
 
 # === Load YAML Configuration Files ===
 with open("./configs/config.yaml", "r") as f:
@@ -9,8 +14,8 @@ with open("./configs/skill_rac_chart.yaml", "r") as f:
 
 # === AWS S3 Configuration ===
 USE_S3 = config.get("USE_S3", False)
-S3_BUCKET_NAME = config.get("s3_bucket_name", "")
-AWS_REGION = config.get("aws_region", "")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "")
+AWS_REGION     = os.environ.get("AWS_REGION", "")
 
 # === Directory Paths: Choose S3 or Local ===
 if USE_S3:
