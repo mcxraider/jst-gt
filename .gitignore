@@ -6,3 +6,7 @@ venv/
 s3_bucket/
 temp_input/
 temp_output/
+
+# Authentication files
+auth_data/
+api_keys.json
