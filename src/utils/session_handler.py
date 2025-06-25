@@ -16,6 +16,8 @@ def configure_page_settings() -> None:
     st.set_page_config(
         layout="wide",
         initial_sidebar_state="expanded",
+        page_title="Skill Proficiency AI Tagger",
+        page_icon="🏷️"
     )
 
 
@@ -28,6 +30,11 @@ def init_session_state() -> None:
     such as result tracking, app stage, process selection, and placeholders for dynamic UI elements.
     It also checks for the existence of output CSV files and checkpoints, updating session state accordingly.
     """
+    # Defaults for authentication
+    st.session_state.setdefault("authenticated", False)
+    st.session_state.setdefault("user_info", None)
+    st.session_state.setdefault("username", None)
+
     # Defaults for generic result tracking
     default_none_keys = ("results", "error_msg")
     for key in default_none_keys:
@@ -49,11 +56,13 @@ def init_session_state() -> None:
     if "caption_placeholder" not in st.session_state:
         st.session_state.caption_placeholder = st.empty()
 
-    # Check existence of output CSV files
-    st.session_state.setdefault("csv_yes", check_output_existence())
-
-    # Check for existing checkpoints
-    st.session_state.setdefault("pkl_yes", check_pkl_existence())
+    # Check existence of output CSV files (only if authenticated)
+    if st.session_state.get("authenticated", False):
+        st.session_state.setdefault("csv_yes", check_output_existence())
+        st.session_state.setdefault("pkl_yes", check_pkl_existence())
+    else:
+        st.session_state.setdefault("csv_yes", False)
+        st.session_state.setdefault("pkl_yes", False)
 
 
 # --- Entry Point ---
