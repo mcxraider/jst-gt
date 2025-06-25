@@ -137,18 +137,18 @@ def is_authenticated() -> bool:
     # Last resort: check for ANY active session (this handles complete session state loss)
     # This is important for handling page refreshes where session state is completely reset
     active_sessions = list_active_sessions()
-    
+
     if active_sessions:
         # Get the most recent session
         most_recent_session = None
         most_recent_time = None
-        
+
         for session_id, session_info in active_sessions.items():
             last_activity = datetime.fromisoformat(session_info["last_activity"])
             if most_recent_time is None or last_activity > most_recent_time:
                 most_recent_time = last_activity
                 most_recent_session = session_id
-        
+
         if most_recent_session:
             session_data = load_session(most_recent_session)
             if session_data:
@@ -167,21 +167,21 @@ def _restore_session_state(session_data: Dict, session_id: str):
     st.session_state.username = session_data["email"].split("@")[0]
     st.session_state.session_id = session_id
     st.session_state.stored_email = session_data["email"]
-    
+
     # Import here to avoid circular imports
     import sys
     import os
     from pathlib import Path
-    
+
     # Temporarily change to the src directory to ensure proper path resolution
     original_cwd = os.getcwd()
     src_dir = Path(__file__).parent.parent
     os.chdir(src_dir)
-    
+
     try:
         sys.path.append(str(src_dir))
         from services.db import check_pkl_existence, check_output_existence
-        
+
         # Restore application state - check for output files
         st.session_state.csv_yes = check_output_existence()
         st.session_state.pkl_yes = check_pkl_existence()
@@ -206,6 +206,6 @@ def logout():
     st.session_state.username = None
     st.session_state.session_id = None
     st.session_state.stored_email = None  # Clear stored email
-    
+
     # Trigger page rerun to redirect to login page
     st.rerun()
