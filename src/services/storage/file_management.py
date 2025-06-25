@@ -94,6 +94,7 @@ import os
 import shutil
 from botocore.exceptions import ClientError
 
+
 def delete_all(directory):
     """
     Delete all files in a given S3 prefix or local directory, but preserve the folder marker (if any) for S3.

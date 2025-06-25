@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import random
 from models.prompt_templates import R1_SYSTEM_PROMPT
+
 # Add these imports for environment variables
 from dotenv import load_dotenv
 
@@ -18,8 +19,9 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
 
 def get_openai_client():
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'),
-                    base_url="https://ai-api.analytics.gov.sg")
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"), base_url="https://ai-api.analytics.gov.sg"
+    )
     return client
 
 

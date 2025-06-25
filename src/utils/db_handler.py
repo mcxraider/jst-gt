@@ -1,5 +1,6 @@
 """Simple authentication handler for login"""
 
+
 def authenticate_user(email: str, password: str) -> bool:
     """
     Simple authentication function

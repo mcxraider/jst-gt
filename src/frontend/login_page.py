@@ -1,5 +1,11 @@
 import streamlit as st
-from frontend.components.login import login_header, login_form, security_notice, guest_access
+from frontend.components.login import (
+    login_header,
+    login_form,
+    security_notice,
+    guest_access,
+)
+
 
 def login_page(guest_mode=False):
     """Main login page with modular components"""

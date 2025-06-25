@@ -16,7 +16,8 @@ from frontend.checkpoint_page import handle_exit
 def show_ai_consent_dialog():
     """Display AI consent dialog before processing"""
     st.warning("**Use AI with Discretion**")
-    st.markdown("""
+    st.markdown(
+        """
     **Important Notice:** This application uses AI to process your data.
 
     ⚠️ **Please be aware that:**
@@ -26,7 +27,8 @@ def show_ai_consent_dialog():
     - **Your data will be processed** by blackboxed Artificial Intelligence algorithms
 
     **By proceeding, you acknowledge that you understand these limitations and will use the results with appropriate discretion.**
-    """)
+    """
+    )
 
     col1, col2 = st.columns(2)
     with col1:
@@ -35,7 +37,9 @@ def show_ai_consent_dialog():
             st.session_state.show_ai_dialog = False
             st.rerun()
     with col2:
-        if st.button("✅ I Understand, Proceed", use_container_width=True, type="primary"):
+        if st.button(
+            "✅ I Understand, Proceed", use_container_width=True, type="primary"
+        ):
             st.session_state.ai_consent_given = True
             st.session_state.show_ai_dialog = False
             st.session_state.start_processing = True

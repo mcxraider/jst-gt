@@ -1,6 +1,20 @@
 # Use S3 or local storage
 USE_S3: False
 
+# Authentication and Session Configuration
+auth:
+  session_timeout_hours: 2
+  validity_minutes: 5 # For time-based authentication
+  app_name: "skill-proficiency-ai-tagger"
+  auth_dir: "../auth_data"
+  sessions_dir: "../auth_data/sessions"
+
+# UI Configuration
+ui:
+  page_title: "SAIL - Skills Proficiency Tagging Portal"
+  page_icon: "../public/assets/images/SAIL logo.png"
+  app_name_display: "SAIL"
+
 # Directory paths (local)
 base_dir: "../s3_bucket"
 input_data_path: "../s3_bucket/s3_input"

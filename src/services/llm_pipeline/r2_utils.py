@@ -7,6 +7,7 @@ import os
 from tqdm import tqdm
 import random
 from models.prompt_templates import R2_SYSTEM_PROMPT
+
 # Add these imports for environment variables
 from dotenv import load_dotenv
 
@@ -21,10 +22,13 @@ def generate_hash(text):
     string_hash = hashlib.sha256(str.encode(text)).hexdigest()
     return string_hash
 
+
 def get_openai_client():
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'),
-                    base_url="https://ai-api.analytics.gov.sg")
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"), base_url="https://ai-api.analytics.gov.sg"
+    )
     return client
+
 
 # def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
 #     client = get_openai_client()
