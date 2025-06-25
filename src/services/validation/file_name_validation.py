@@ -57,8 +57,8 @@ def validate_sfw_filename(filename: str) -> str:
 
 def validate_sector_filename(filename: str):
     """
-    Validate sector file naming convention: {sector}_{full_sector}_sector_course_listing_curated.xlsx
-    (e.g., HR_Human Resource_sector_course_listing_curated.xlsx)
+    Validate sector file naming convention: {sector}_{full_sector}_sector_course_listing.xlsx
+    (e.g., HR_Human Resource_sector_course_listing.xlsx)
     """
     if not filename:
         raise FileValidationError(
@@ -66,11 +66,11 @@ def validate_sector_filename(filename: str):
         )
 
     name_without_ext = Path(filename).stem
-    required_suffix = "_sector_course_listing_curated"
+    required_suffix = "_sector_course_listing"
     if not name_without_ext.endswith(required_suffix):
         raise FileValidationError(
             f"Your file name should end with '{required_suffix}.xlsx'. "
-            f"For example: HR_Human Resource_sector_course_listing_curated.xlsx. "
+            f"For example: HR_Human Resource_sector_course_listing.xlsx. "
             f"Your file is named: '{filename}'. "
             f"Please rename your file and try again."
         )
@@ -80,7 +80,7 @@ def validate_sector_filename(filename: str):
     if len(parts) != 2:
         raise FileValidationError(
             f"Your file name should have the format '[SECTOR_CODE]_[Full_Sector_Name]'. "
-            f"For example: HR_Human Resource_sector_course_listing_curated.xlsx. "
+            f"For example: HR_Human Resource_sector_course_listing.xlsx. "
             f"Your file: '{filename}'. Please check and try again."
         )
 
@@ -88,18 +88,18 @@ def validate_sector_filename(filename: str):
     if not short_sector:
         raise FileValidationError(
             "The short sector code in your file name seems to be missing. "
-            f"Use a name like HR_Human Resource_sector_course_listing_curated.xlsx. Your file: '{filename}'."
+            f"Use a name like HR_Human Resource_sector_course_listing.xlsx. Your file: '{filename}'."
         )
     if not full_sector:
         raise FileValidationError(
             "The sector name in your file name seems to be missing. "
-            f"Use a name like HR_Human Resource_sector_course_listing_curated.xlsx. Your file: '{filename}'."
+            f"Use a name like HR_Human Resource_sector_course_listing.xlsx. Your file: '{filename}'."
         )
 
     if short_sector != short_sector.upper():
         raise FileValidationError(
             f"The sector code '{short_sector}' in your file name should be in capital letters. "
-            f"For example: '{short_sector.upper()}_{full_sector}_sector_course_listing_curated.xlsx'. "
+            f"For example: '{short_sector.upper()}_{full_sector}_sector_course_listing.xlsx'. "
             f"Your file: '{filename}'. Please rename your file and try again."
         )
 
@@ -119,7 +119,7 @@ def validate_sector_filename(filename: str):
     if full_sector != expected_fullname:
         raise FileValidationError(
             f"The sector name '{full_sector}' in your file '{filename}' doesn't match the expected name '{expected_fullname}' for the code '{short_sector}'. "
-            f"Please rename your file like this: '{short_sector}_{expected_full_sector}_sector_course_listing_curated.xlsx'."
+            f"Please rename your file like this: '{short_sector}_{expected_full_sector}_sector_course_listing.xlsx'."
         )
 
     return short_sector, full_sector

@@ -40,6 +40,11 @@ def init_session_state() -> None:
     st.session_state.setdefault("selected_process_alias", "")
     st.session_state.setdefault("processing", False)
 
+    # Defaults for AI consent tracking
+    st.session_state.setdefault("ai_consent_given", False)
+    st.session_state.setdefault("show_ai_dialog", False)
+    st.session_state.setdefault("start_processing", False)
+
     # Placeholder for dynamic captions
     if "caption_placeholder" not in st.session_state:
         st.session_state.caption_placeholder = st.empty()

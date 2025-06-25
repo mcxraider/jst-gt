@@ -82,7 +82,6 @@ def parse_s3_path(s3_path):
 
     if "/" not in s3_path_clean:
         raise ValidationError("S3 path must contain both bucket and key")
-
     bucket, key = s3_path_clean.split("/", 1)
     if not bucket:
         raise ValidationError("Bucket name cannot be empty")
