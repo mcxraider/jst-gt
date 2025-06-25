@@ -1,7 +1,19 @@
 # Use S3 or local storage
-USE_S3: False  # Change to "true" to use S3
-s3_bucket_name: "idd-ai-pl-tagging-bucket"
-aws_region: "ap-southeast-1"
+USE_S3: False
+
+# Authentication and Session Configuration
+auth:
+  session_timeout_hours: 2
+  validity_minutes: 5 # For time-based authentication
+  app_name: "skill-proficiency-ai-tagger"
+  auth_dir: "../auth_data"
+  sessions_dir: "../auth_data/sessions"
+
+# UI Configuration
+ui:
+  page_title: "SAIL - Skills Proficiency Tagging Portal"
+  page_icon: "../public/assets/images/SAIL logo.png"
+  app_name_display: "SAIL"
 
 # Directory paths (local)
 base_dir: "../s3_bucket"
@@ -11,12 +23,12 @@ output_path: "../s3_bucket/s3_output"
 misc_output_path: "../s3_bucket/s3_misc_output"
 checkpoint_path: "../s3_bucket/s3_checkpoint"
 
-# S3 folder names 
-s3_input_prefix: "s3_input"
-s3_intermediate_prefix: "s3_intermediate"
-s3_output_prefix: "s3_output"
-s3_misc_output_prefix: "s3_misc_output"
-s3_checkpoint_prefix: "s3_checkpoint"
+# S3 folder names
+s3_input_prefix: "idd-ai-pl-tagging-bucket_input"
+s3_intermediate_prefix: "idd-ai-pl-tagging-bucket_intermediate"
+s3_output_prefix: "idd-ai-pl-tagging-bucket_output"
+s3_misc_output_prefix: "idd-ai-pl-tagging-bucket_misc_output"
+s3_checkpoint_prefix: "idd-ai-pl-tagging-bucket_checkpoint"
 
 PDF_URL: "../public/assets/PDF/File Format Guide for SFW and Sector File.pdf"
 
@@ -35,17 +47,82 @@ course_descr_cols:
 
 process_choices:
   - "HR (Human Resource)"
-  - "FS (Food Services)"
-  - "FS (Financial Services)"
+  - "FOOD (Food)"
+  - "FIN (Financial)"
+  - "FM (Food Manufacturing)"
+  - "AIR (Air Transport)"
+  - "BIO (BioPharmaceuticals Manufacturing)"
+  - "BUILT (Built Environment)"
+  - "EC (Energy and Chemicals)"
+  - "ENG (Engineering)"
+  - "ENV (Environmental)"
+  - "HC (Healthcare)"
+  - "LOG (Logistics)"
+  - "MAR (Marine and Offshore)"
+  - "PUB (Public Transport)"
+  - "SEA (Sea Transport)"
+  - "SEC (Security)"
+  - "SOC (Social Service)"
+  - "WATER (Water Management)"
+  - "TRADE (Wholesale Trade)"
 
 process_alias_mapping:
   HR:
     - "Human Resource"
-  FS:
-    - "Food Services"
-    - "Financial Services"
+  FOOD:
+    - "Food"
+  FIN:
+    - "Financial"
+  FM:
+    - "Food Manufacturing"
+  AIR:
+    - "Air Transport"
+  BIO:
+    - "BioPharmaceuticals Manufacturing"
+  BUILT:
+    - "Built Environment"
+  EC:
+    - "Energy and Chemicals"
+  ENG:
+    - "Engineering"
+  ENV:
+    - "Environmental"
+  HC:
+    - "Healthcare"
+  LOG:
+    - "Logistics"
+  MAR:
+    - "Marine and Offshore"
+  PUB:
+    - "Public Transport"
+  SEA:
+    - "Sea Transport"
+  SEC:
+    - "Security"
+  SOC:
+    - "Social Service"
+  WATER:
+    - "Water Management"
+  TRADE:
+    - "Wholesale Trade"
 
 input_validation_sector_config:
   "Human Resource": "HR"
-  "Food Services": "FS"
-  "Financial Services": "FS"
+  "Food": "FOOD"
+  "Financial": "FIN"
+  "Food Manufacturing": "FM"
+  "Air Transport": "AIR"
+  "BioPharmaceuticals Manufacturing": "BIO"
+  "Built Environment": "BUILT"
+  "Energy and Chemicals": "EC"
+  "Engineering": "ENG"
+  "Environmental": "ENV"
+  "Healthcare": "HC"
+  "Logistics": "LOG"
+  "Marine and Offshore": "MAR"
+  "Public Transport": "PUB"
+  "Sea Transport": "SEA"
+  "Security": "SEC"
+  "Social Service": "SOC"
+  "Water Management": "WATER"
+  "Wholesale Trade": "TRADE"

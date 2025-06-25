@@ -1,4 +1,10 @@
 import yaml
+import os
+
+from dotenv import load_dotenv, find_dotenv
+
+dotenv_path = find_dotenv(".env.default", usecwd=True) or ".env.default"
+load_dotenv(dotenv_path, override=True)
 
 # === Load YAML Configuration Files ===
 with open("./configs/config.yaml", "r") as f:
@@ -9,8 +15,8 @@ with open("./configs/skill_rac_chart.yaml", "r") as f:
 
 # === AWS S3 Configuration ===
 USE_S3 = config.get("USE_S3", False)
-S3_BUCKET_NAME = config.get("s3_bucket_name", "")
-AWS_REGION = config.get("aws_region", "")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "")
+AWS_REGION = os.environ.get("AWS_REGION", "")
 
 # === Directory Paths: Choose S3 or Local ===
 if USE_S3:
@@ -43,3 +49,17 @@ INPUT_VALIDATION_SECTOR_CONFIG = config["input_validation_sector_config"]
 
 # === External URLs ===
 PDF_URL = config["PDF_URL"]
+
+# === Authentication Configuration ===
+AUTH_CONFIG = config.get("auth", {})
+SESSION_TIMEOUT_HOURS = AUTH_CONFIG.get("session_timeout_hours", 2)
+VALIDITY_MINUTES = AUTH_CONFIG.get("validity_minutes", 5)
+APP_NAME = AUTH_CONFIG.get("app_name", "skill-proficiency-ai-tagger")
+AUTH_DIR = AUTH_CONFIG.get("auth_dir", "../auth_data")
+SESSIONS_DIR = AUTH_CONFIG.get("sessions_dir", "../auth_data/sessions")
+
+# === UI Configuration ===
+UI_CONFIG = config.get("ui", {})
+PAGE_TITLE = UI_CONFIG.get("page_title", "SAIL - Skills Proficiency Tagging Portal")
+PAGE_ICON = UI_CONFIG.get("page_icon", "../public/assets/images/sail_logo.png")
+APP_NAME_DISPLAY = UI_CONFIG.get("app_name_display", "SAIL")

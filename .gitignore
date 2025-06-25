@@ -1,7 +1,12 @@
 .env
+.env.default
 .DS_Store
 venv/
 *__pycache__
 s3_bucket/
 temp_input/
 temp_output/
+
+# Authentication files
+auth_data/
+api_keys.json

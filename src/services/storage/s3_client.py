@@ -5,14 +5,14 @@ S3 client configuration and utilities with improved error handling.
 import os
 import logging
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
+from botocore.exceptions import ClientError, NoCredentialsError, ProfileNotFound
 from dotenv import load_dotenv
 from functools import lru_cache
 
 from config import S3_BUCKET_NAME, AWS_REGION
 from exceptions.storage_exceptions import S3Error, ValidationError
 
-# Load environment variables
+
 load_dotenv()
 
 # Configure logging
@@ -22,41 +22,38 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def get_s3_client():
     """
-    Create and return a cached S3 client with configured credentials.
-
-    Returns:
-        boto3.client: Configured S3 client
+    Create and return a cached S3 client using the AWS_PROFILE SSO profile.
 
     Raises:
-        S3Error: If credentials are missing or invalid
+        S3Error: If profile is missing, not found, or client creation fails.
     """
+    # 1) Pull your profile name (e.g. "ns-writer") from the env
     try:
-        aws_access_key = os.environ["AWS_ACCESS_KEY"]
-        aws_secret_key = os.environ["AWS_SECRET_KEY"]
+        profile = os.environ["AWS_PROFILE"]
+        if not profile.strip():
+            raise S3Error("AWS_PROFILE cannot be empty")
+    except KeyError:
+        raise S3Error("Missing required environment variable: AWS_PROFILE")
 
-        if not aws_access_key or not aws_secret_key:
-            raise S3Error("AWS credentials cannot be empty")
-
-    except KeyError as e:
-        raise S3Error(f"Missing required environment variable: {e}")
-
+    # 2) Build a Session with that profile
     try:
-        client = boto3.client(
+        session = boto3.Session(profile_name=profile)
+        s3 = session.client(
             "s3",
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=AWS_REGION,
+            region_name=os.environ.get("AWS_REGION", AWS_REGION),
         )
+        logger.info("S3 client initialized successfully with profile '%s'", profile)
+        return s3
 
-        # Remove: client.list_buckets()
-        logger.info("S3 client initialized successfully")
-        return client
+    except ProfileNotFound as e:
+        raise S3Error(f"AWS profile not found: {profile}") from e
 
-    except NoCredentialsError:
-        raise S3Error("Invalid AWS credentials provided")
+    except NoCredentialsError as e:
+        raise S3Error(f"Invalid credentials for AWS profile '{profile}'") from e
+
     except ClientError as e:
-        error_code = e.response.get("Error", {}).get("Code", "Unknown")
-        raise S3Error(f"Failed to create S3 client ({error_code}): {e}")
+        code = e.response.get("Error", {}).get("Code", "Unknown")
+        raise S3Error(f"Failed to create S3 client ({code}): {e}") from e
 
 
 def parse_s3_path(s3_path):
@@ -85,7 +82,6 @@ def parse_s3_path(s3_path):
 
     if "/" not in s3_path_clean:
         raise ValidationError("S3 path must contain both bucket and key")
-
     bucket, key = s3_path_clean.split("/", 1)
     if not bucket:
         raise ValidationError("Bucket name cannot be empty")
