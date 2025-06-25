@@ -1,20 +1,30 @@
 import streamlit as st
-from frontend.components.auth.login_form import login_form
-from datetime import datetime
+from frontend.components.login import login_header, login_form, security_notice, guest_access
 
-def login_page():
-    """Main login page with time-based authentication"""
-    # Page header
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1>🏷️ Skill Proficiency AI Tagger</h1>
-        <p style="color: #666; font-size: 1.1rem;">Secure Time-Based Access Portal</p>
-    </div>
-    """, unsafe_allow_html=True)
+def login_page(guest_mode=False):
+    """Main login page with modular components"""
 
-    # Login form
-    login_form()
+    with st.empty().container(border=True):
+        col1, col2, col3 = st.columns([3, 4, 3])
 
-    # Footer with time info
-    current_time = datetime.now().strftime("%b %d, %Y • %I:%M:%S %p")
+        with col2:
+            # Add top spacing
+            st.write("")
+            st.write("")
 
+            # Header section
+            login_header()
+
+            # Login form
+            login_form()
+
+            # Security notice
+            security_notice()
+
+            # Guest access (if enabled)
+            if guest_mode:
+                guest_access()
+
+            # Add bottom spacing
+            st.write("")
+            st.write("")

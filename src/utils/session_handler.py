@@ -1,5 +1,3 @@
-from pathlib import Path
-from config import OUTPUT_PATH
 import streamlit as st
 from services.db import check_pkl_existence, check_output_existence
 
@@ -16,8 +14,8 @@ def configure_page_settings() -> None:
     st.set_page_config(
         layout="wide",
         initial_sidebar_state="expanded",
-        page_title="Skill Proficiency AI Tagger",
-        page_icon="🏷️"
+        page_title="SAIL - SP Tagging Portal",
+        page_icon="🚢"
     )
 
 
@@ -34,6 +32,7 @@ def init_session_state() -> None:
     st.session_state.setdefault("authenticated", False)
     st.session_state.setdefault("user_info", None)
     st.session_state.setdefault("username", None)
+    st.session_state.setdefault("session_id", None)
 
     # Defaults for generic result tracking
     default_none_keys = ("results", "error_msg")
@@ -58,14 +57,12 @@ def init_session_state() -> None:
 
     # Check existence of output CSV files (only if authenticated)
     if st.session_state.get("authenticated", False):
-        st.session_state.setdefault("csv_yes", check_output_existence())
-        st.session_state.setdefault("pkl_yes", check_pkl_existence())
+        st.session_state.csv_yes = check_output_existence()
+        st.session_state.pkl_yes = check_pkl_existence()
     else:
+        # Set to False when not authenticated
         st.session_state.setdefault("csv_yes", False)
         st.session_state.setdefault("pkl_yes", False)
-
-
-# --- Entry Point ---
 
 
 def configure_page() -> None:

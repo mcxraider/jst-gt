@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 from datetime import datetime, timedelta
+from utils.session_cache import save_session, load_session, update_session_activity, delete_session, cleanup_expired_sessions, find_active_session_by_email
 
 # Configuration - Store auth files locally, not in S3 output
 PROJECT_ROOT = Path(__file__).parent.parent.parent  # Go up to project root
@@ -79,7 +80,19 @@ def get_valid_passwords_for_api_key(api_key: str) -> list:
     return [current_password, prev_password]
 
 def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict]]:
-    """Authenticate user using time-based password"""
+    """Authenticate user using simple password or time-based password (backward compatibility)"""
+
+    # New simple authentication for @ssg.gov.sg emails
+    if "@ssg.gov.sg" in username and password == "ssgiddapp":
+        user_data = {
+            "api_key": "ssg-simple-auth",
+            "role": "user",
+            "email": username,
+            "created_at": datetime.now().isoformat()
+        }
+        return True, user_data
+
+    # Existing time-based authentication for backward compatibility
     api_keys = load_api_keys()
 
     if username not in api_keys:
@@ -98,18 +111,62 @@ def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict
     return False, None
 
 def is_authenticated() -> bool:
-    """Check if user is authenticated"""
-    return st.session_state.get("authenticated", False)
+    """Check if user is authenticated, including session cache validation"""
+    # Clean up expired sessions
+    cleanup_expired_sessions()
+
+    # Check current session state
+    if st.session_state.get("authenticated", False):
+        # Update activity for current session
+        session_id = st.session_state.get("session_id")
+        if session_id:
+            update_session_activity(session_id)
+        return True
+
+    # Check if there's a cached session by session_id
+    session_id = st.session_state.get("session_id")
+    if session_id:
+        session_data = load_session(session_id)
+        if session_data:
+            # Restore session
+            st.session_state.authenticated = True
+            st.session_state.user_info = session_data["user_info"]
+            st.session_state.username = session_data["email"].split("@")[0]
+            return True
+
+    # Last resort: check for any active sessions by looking for recent logins
+    # This helps when session_state is completely fresh (page refresh)
+    for session_file in (Path(__file__).parent.parent.parent / "auth_data" / "sessions").glob("*.json"):
+        if session_file.name == "email_sessions.json":
+            continue
+        try:
+            session_data = load_session(session_file.stem)
+            if session_data:
+                # Found an active session, restore it
+                st.session_state.authenticated = True
+                st.session_state.user_info = session_data["user_info"]
+                st.session_state.username = session_data["email"].split("@")[0]
+                st.session_state.session_id = session_file.stem
+                return True
+        except:
+            continue
+
+    return False
 
 def get_current_user() -> Optional[Dict]:
     """Get current user info"""
     return st.session_state.get("user_info", None)
 
 def logout():
-    """Logout current user"""
+    """Logout current user and clear session cache"""
+    session_id = st.session_state.get("session_id")
+    if session_id:
+        delete_session(session_id)
+
     st.session_state.authenticated = False
     st.session_state.user_info = None
     st.session_state.username = None
+    st.session_state.session_id = None
 
 def get_next_password_time() -> str:
     """Get the time when the next password will be generated"""
