@@ -244,8 +244,10 @@ def resume_round_2(
         inplace=True,
     )
 
-    all_valid = pd.concat([r1_valid, r2_vout], ignore_index=True).drop(
-        columns=["invalid_pl"], errors="ignore"
+    all_valid = (
+        pd.concat([r1_valid, r2_vout], ignore_index=True)
+        .drop(columns=["invalid_pl", "Skill Title_y", "Skill Title"], errors="ignore")
+        .rename(columns={"Skill Title_x": "Skill Title"})
     )
 
     # i) Poor-data-quality courses

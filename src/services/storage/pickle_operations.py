@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError, NoCredentialsError
 
 logger = logging.getLogger(__name__)
 
-# Allowlist of safe types for pickle loading 
+# Allowlist of safe types for pickle loading
 SAFE_PICKLE_TYPES: Set[str] = {
     "builtins.dict",
     "builtins.list",

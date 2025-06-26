@@ -99,7 +99,7 @@ async def validate_sector_schema(uploaded_file_object) -> bool:
         file_ext = Path(uploaded_file_object.name).suffix.lower()
         if file_ext not in [".xlsx", ".xls"]:
             raise FileValidationError(
-                f"Sorry, we can't read files of type '{file_ext}'. Please upload an Excel (.xlsx or .xls) file."
+                f"Sorry, we can't read files of type '{file_ext}'. Please upload an Excel file. (.xlsx or .xls)"
             )
 
         await validate_file_non_empty(uploaded_file_object)

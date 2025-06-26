@@ -4,11 +4,14 @@ from typing import Tuple, Callable, Optional
 
 
 def get_process_alias(process: str) -> str:
-    return process[:2]
+    alias, name = process.split(" (", 1)
+    return alias
 
 
 def get_process(process: str) -> list[str]:
-    return [process[4:-1]]
+    _, name = process.split(" (", 1)
+    name = name.rstrip(")")
+    return [name]
 
 
 async def process_file_upload(

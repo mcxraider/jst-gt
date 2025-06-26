@@ -9,6 +9,5 @@ def homepage():
     create_header()
     pkl_available = st.session_state.pkl_yes
     load_checkpoint_enabled = pkl_available and not st.session_state.csv_yes
-
     home_action_card(pkl_available, load_checkpoint_enabled)
     home_status_messages(pkl_available, load_checkpoint_enabled)

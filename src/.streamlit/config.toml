@@ -1,0 +1,14 @@
+# .streamlit/config.toml
+[theme]
+base                          = "light"
+primaryColor                  = "#DA7756"
+backgroundColor               = "#EEECE2"
+secondaryBackgroundColor      = "#F8F6F0"
+textColor                     = "#3D3929"
+codeBackgroundColor           = "#E9E4D6"
+font                          = "serif"      # Source Serif
+
+# Optional niceties
+baseRadius                    = "0.5rem"     # rounded corners everywhere
+buttonRadius                  = "full"       # pill-shaped primary buttons
+showSidebarBorder             = false        # modern flush sidebar
