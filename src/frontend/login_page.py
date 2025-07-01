@@ -22,7 +22,9 @@ def simulate_password_provision():
     st.write("**Next Hour Password (backup):**")
     st.code(valid_passwords[1], language="text")
 
-    st.caption("Copy either password above for authentication. Please use the current hour password for now.")
+    st.caption(
+        "Copy either password above for authentication. Please use the current hour password for now."
+    )
 
 
 def login_page():

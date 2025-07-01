@@ -65,8 +65,11 @@ process_choices:
   - "SOC (Social Service)"
   - "WATER (Water Management)"
   - "TRADE (Wholesale Trade)"
+  - "DSGN (Design)"
 
 process_alias_mapping:
+  DSGN:
+    - "Design"
   HR:
     - "Human Resource"
   FOOD:
@@ -107,6 +110,7 @@ process_alias_mapping:
     - "Wholesale Trade"
 
 input_validation_sector_config:
+  "Design": "DSGN"
   "Human Resource": "HR"
   "Food": "FOOD"
   "Financial": "FIN"

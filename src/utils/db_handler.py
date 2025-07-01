@@ -1,4 +1,5 @@
 """Authentication handler for login"""
+
 from utils.time_auth_utils import authenticate_user as auth_user
 
 

@@ -79,20 +79,10 @@ def parse_s3_path(s3_path):
         )
 
     s3_path_clean = s3_path.replace("s3://", "")
-
+    print(s3_path_clean)
     if "/" not in s3_path_clean:
         raise ValidationError("S3 path must contain both bucket and key")
     bucket, key = s3_path_clean.split("/", 1)
-    if not bucket:
-        raise ValidationError("Bucket name cannot be empty")
-
-    if key is None:
-        key = ""
-
-    # Basic bucket name validation (AWS rules are complex, this is simplified)
-    if not bucket.replace("-", "").replace(".", "").isalnum():
-        raise ValidationError("Invalid bucket name format")
-
     return bucket, key
 
 
