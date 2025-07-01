@@ -6,7 +6,7 @@ import hashlib
 import sys
 import time
 
-PASSWORD_KEY="ssgsail"
+PASSWORD_KEY = "ssgsail"
 APP_NAME = "IDD Skills Proficiency Level AI Tagger"
 
 # Add src directory to path for config import
