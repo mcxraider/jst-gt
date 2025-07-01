@@ -4,9 +4,10 @@ from typing import Dict, Optional, Tuple
 from datetime import datetime, timedelta, timezone
 import hashlib
 import sys
+import time
 
 PASSWORD_KEY="ssgsail"
-APP_NAME = "skill-proficiency-ai-tagger"
+APP_NAME = "IDD Skills Proficiency Level AI Tagger"
 
 # Add src directory to path for config import
 sys.path.append(str(Path(__file__).parent.parent))
@@ -28,25 +29,18 @@ AUTH_DIR_PATH = PROJECT_ROOT / AUTH_DIR.lstrip("../")  # Remove ../ prefix and r
 
 def get_next_hour_utc_timestamp_and_string():
     """Get the next hour UTC timestamp as string"""
-    now_utc = datetime.now(timezone.utc)
-
-    # Round up to the next full hour
-    if now_utc.minute == 0 and now_utc.second == 0 and now_utc.microsecond == 0:
-        next_hour_utc = now_utc
-    else:
-        next_hour_utc = now_utc.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-
-    # Get Unix timestamp
-    unix_timestamp = int(next_hour_utc.timestamp())
-    return str(unix_timestamp)
+    now = int(time.time())
+    # Round up to the next full hour and add 1 hour
+    next_hour_timestamp = int(round(now / 3600) * 3600) + 3600
+    return str(next_hour_timestamp)
 
 
 def get_current_hour_utc_timestamp_and_string():
     """Get the current hour UTC timestamp as string"""
-    now_utc = datetime.now(timezone.utc)
-    current_hour_utc = now_utc.replace(minute=0, second=0, microsecond=0)
-    unix_timestamp = int(current_hour_utc.timestamp())
-    return str(unix_timestamp)
+    now = int(time.time())
+    # Round down to the current full hour
+    current_hour_timestamp = int(round(now / 3600) * 3600)
+    return str(current_hour_timestamp)
 
 
 def hash_password(text: str) -> str:
