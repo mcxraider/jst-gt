@@ -22,38 +22,51 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def get_s3_client():
     """
-    Create and return a cached S3 client using the AWS_PROFILE SSO profile.
+    Create and return a cached S3 client.
+
+    In Kubernetes environments, uses service account authentication.
+    In local development, can use AWS_PROFILE if available.
 
     Raises:
-        S3Error: If profile is missing, not found, or client creation fails.
+        S3Error: If client creation fails or credentials are unavailable.
     """
-    # 1) Pull your profile name (e.g. "ns-writer") from the env
     try:
-        profile = os.environ["AWS_PROFILE"]
-        if not profile.strip():
-            raise S3Error("AWS_PROFILE cannot be empty")
-    except KeyError:
-        raise S3Error("Missing required environment variable: AWS_PROFILE")
+        # Check if running in Kubernetes with service account
+        aws_profile = os.environ.get("AWS_PROFILE")
 
-    # 2) Build a Session with that profile
-    try:
-        session = boto3.Session(profile_name=profile)
-        s3 = session.client(
-            "s3",
-            region_name=os.environ.get("AWS_REGION", AWS_REGION),
-        )
-        logger.info("S3 client initialized successfully with profile '%s'", profile)
+        if aws_profile and aws_profile.strip():
+            # Local development with AWS profile
+            logger.info("Using AWS profile: %s", aws_profile)
+            session = boto3.Session(profile_name=aws_profile)
+            s3 = session.client(
+                "s3",
+                region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+            )
+            logger.info("S3 client initialized successfully with profile '%s'", aws_profile)
+        else:
+            # Kubernetes or other environments - use default credential chain
+            logger.info("Using default AWS credential chain (service account/IAM role)")
+            s3 = boto3.client(
+                "s3",
+                region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+            )
+            logger.info("S3 client initialized successfully with default credentials")
+
         return s3
 
     except ProfileNotFound as e:
-        raise S3Error(f"AWS profile not found: {profile}") from e
+        profile_name = os.environ.get("AWS_PROFILE", "unknown")
+        raise S3Error(f"AWS profile not found: {profile_name}") from e
 
     except NoCredentialsError as e:
-        raise S3Error(f"Invalid credentials for AWS profile '{profile}'") from e
+        raise S3Error("Unable to locate AWS credentials. Ensure service account is properly configured or AWS_PROFILE is set.") from e
 
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "Unknown")
         raise S3Error(f"Failed to create S3 client ({code}): {e}") from e
+
+    except Exception as e:
+        raise S3Error(f"Unexpected error creating S3 client: {e}") from e
 
 
 def parse_s3_path(s3_path):
