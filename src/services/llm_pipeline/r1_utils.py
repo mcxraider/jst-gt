@@ -85,6 +85,49 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
     return formatted_data
 
 
+# Original get_proficiency_level function (commented out for testing)
+# def get_proficiency_level(
+#     skill_title: str,
+#     skill_info: dict,
+#     course_description: str,
+#     course_learning: str,
+#     course_title: str,
+#     setup: int,
+#     client: OpenAI,  # client is now a required argument
+# ) -> str:
+#     """
+#     Function to call OpenAI API.
+#     """
+#     formatted_data = format_for_openai(skill_info, setup)
+#     sys_messages = [
+#         {"role": "system", "content": R1_SYSTEM_PROMPT},
+#         {
+#             "role": "user",
+#             "content": (
+#                 f'Determine the appropriate proficency level for skill: "{skill_title}", '
+#                 f"based on how it's taught in the following description of a course: {course_title}, "
+#                 f"Course Description: {course_description} Course Learning Objectives: {course_learning}. "
+#                 f"And how its proficiency levels are defined: {formatted_data}."
+#             ),
+#         },
+#     ]
+#     try:
+#         response = client.chat.completions.create(
+#             model="gpt-4o",
+#             messages=sys_messages,
+#             response_format={"type": "json_object"},
+#             seed=6800,
+#             temperature=0.1,
+#         )
+#         completion_output = response.choices[0].message.content
+#     except Exception as e:
+#         # Added a more descriptive error message and return value
+#         print(f"[ERROR] OpenAI API call failed in get_proficiency_level: {e}")
+#         completion_output = ""
+#     return completion_output
+
+
+# Dummy function for testing purposes
 def get_proficiency_level(
     skill_title: str,
     skill_info: dict,
@@ -95,35 +138,48 @@ def get_proficiency_level(
     client: OpenAI,  # client is now a required argument
 ) -> str:
     """
-    Function to call OpenAI API.
+    Dummy function that returns mock responses based on R1_SYSTEM_PROMPT format.
+    Returns JSON string with format: {"proficiency_level": int, "reason": str, "confidence": str}
     """
-    formatted_data = format_for_openai(skill_info, setup)
-    sys_messages = [
-        {"role": "system", "content": R1_SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": (
-                f'Determine the appropriate proficency level for skill: "{skill_title}", '
-                f"based on how it's taught in the following description of a course: {course_title}, "
-                f"Course Description: {course_description} Course Learning Objectives: {course_learning}. "
-                f"And how its proficiency levels are defined: {formatted_data}."
-            ),
-        },
+    import random
+
+    # Extract available proficiency levels from skill_info
+    available_levels = list(skill_info.keys()) if skill_info else [1, 2, 3, 4, 5]
+
+    # Generate realistic dummy data
+    proficiency_level = random.choice(available_levels) if available_levels else random.randint(1, 5)
+
+    confidence_levels = ["low", "medium", "high"]
+    confidence = random.choice(confidence_levels)
+
+    # Generate realistic reasons based on skill assessment context
+    reasons = [
+        "Course content demonstrates practical application matching this proficiency level.",
+        "Learning objectives align with knowledge requirements for this level.",
+        "Assessment methods and course depth correspond to expected proficiency.",
+        "Training materials show appropriate complexity for this skill level.",
+        "Course structure indicates comprehensive coverage at this proficiency.",
+        "Practical exercises and case studies support this level classification.",
+        "Course prerequisites and outcomes match proficiency expectations.",
+        "Content depth and technical complexity align with level requirements.",
+        "Learning activities demonstrate skill application at appropriate level."
     ]
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=sys_messages,
-            response_format={"type": "json_object"},
-            seed=6800,
-            temperature=0.1,
-        )
-        completion_output = response.choices[0].message.content
-    except Exception as e:
-        # Added a more descriptive error message and return value
-        print(f"[ERROR] OpenAI API call failed in get_proficiency_level: {e}")
-        completion_output = ""
-    return completion_output
+
+    reason = random.choice(reasons)
+
+    # Create mock response in the expected JSON format
+    mock_response = {
+        "proficiency_level": proficiency_level,
+        "reason": reason,
+        "confidence": confidence
+    }
+
+    # Convert to JSON string as expected by the original function
+    json_response = json.dumps(mock_response)
+
+    print(f"[DUMMY R1] Skill: {skill_title[:30]}... -> Level: {proficiency_level}, Confidence: {confidence}")
+
+    return json_response
 
 
 def process_row(
