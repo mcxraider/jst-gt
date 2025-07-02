@@ -1,12 +1,14 @@
 # file: services/llm_pipeline/resume_round_2.py
 import pandas as pd
 import hashlib
+import time
 
 # Removed streamlit import
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 
 from services.llm_pipeline.r2_utils import *
+from services.checkpoint.checkpoint_manager import CheckpointManager
 from config import skill_proficiency_level_details
 from services.db.data_writers import (
     write_r2_raw_to_s3,
@@ -23,10 +25,13 @@ def resume_round_2(
     target_sector_alias: str,
     df_invalid: pd.DataFrame,
     sfw_raw: pd.DataFrame,
-    # Removed progress_bar=None from here
+    ckpt: CheckpointManager,
+    progress_bar=None,
 ):
     """
-    Process Round 2 on the "invalid" from Round 1, without checkpointing.
+    Process Round 2 on the "invalid" from Round 1, exactly as in round2_processing.py,
+    with batching (10 at a time), a 50s pause every 40 API calls, a checkpoint every 30 rows,
+    and a tqdm progress bar plus Streamlit progress updates.
     """
 
     # 1) Reconstruct the original "data"
@@ -64,43 +69,81 @@ def resume_round_2(
     )
 
     # 3) Prepare for batching & progress
-    results = []
-    total = len(data)
-    pbar = tqdm(total=total, desc="Round2 rows processed", unit="row")
-    processed = 0
+    pending = ckpt.state.get("r2_pending", list(range(len(data))))
+    results = ckpt.state.get("r2_results", [])
+    api_calls = len(results)
+    processed = len(results)
+
+    total = len(pending) + len(results)
+    pbar = tqdm(
+        total=total, initial=len(results), desc="Round2 rows processed", unit="row"
+    )
 
     # 4) Process in batches of 10
-    with ThreadPoolExecutor(max_workers=18) as exec:
-        futures = []
-        for _, row in data.iterrows():
-            sys_msg = form_sys_msg(
-                kb_dic,
-                row["course_text"],
-                row["Skill Title"],
-                skill_proficiency_level_details,
-            )
-            futures.append((row["unique_id"], exec.submit(get_gpt_completion, sys_msg)))
+    while pending:
 
-        for uid, fut in futures:
-            try:
-                out = fut.result()
-                results.append(
-                    {
-                        "unique_id": uid,
-                        "pl": out.get("proficiency", 0),
-                        "reason": out.get("reason", ""),
-                        "confidence": out.get("confidence", ""),
-                    }
+        batch_idx = pending[:10]
+        pending = pending[10:]
+        batch_df = data.iloc[batch_idx].reset_index(drop=True)
+
+        with ThreadPoolExecutor(max_workers=10) as exec:
+            futures = []
+            for _, row in batch_df.iterrows():
+                sys_msg = form_sys_msg(
+                    kb_dic,
+                    row["course_text"],
+                    row["Skill Title"],
+                    skill_proficiency_level_details,
                 )
-            except Exception as e:
-                error_msg = f"Round2 failed for {uid}: {e}"
-                print(f"[ERROR] {error_msg}")  # Changed from st.error to print
-                results.append(
-                    {"unique_id": uid, "pl": 0, "reason": "", "confidence": ""}
+                futures.append(
+                    (row["unique_id"], exec.submit(get_gpt_completion, sys_msg))
                 )
 
-            processed += 1
-            pbar.update(1)
+            for uid, fut in futures:
+                try:
+                    out = fut.result()
+                    results.append(
+                        {
+                            "unique_id": uid,
+                            "pl": out.get("proficiency", 0),
+                            "reason": out.get("reason", ""),
+                            "confidence": out.get("confidence", ""),
+                        }
+                    )
+                except Exception as e:
+                    error_msg = f"Round2 failed for {uid}: {e}"
+                    print(f"[ERROR] {error_msg}")  # Changed from st.error to print
+                    results.append(
+                        {"unique_id": uid, "pl": 0, "reason": "", "confidence": ""}
+                    )
+
+                api_calls += 1
+                processed += 1
+                pbar.update(1)
+
+                # Update streamlit progress
+                if progress_bar is not None:
+                    progress = processed / total
+                    progress_bar.progress(progress)
+
+                # rate‐limit pause
+                if api_calls % 40 == 0:
+                    print(
+                        "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
+                    )
+                    time.sleep(1)
+
+                # checkpoint every 30 rows
+                if processed % 30 == 0:
+                    ckpt.state["r2_pending"] = pending
+                    ckpt.state["r2_results"] = results
+                    ckpt.save()
+                    print(f"Checkpoint saved at {processed}/{total} rows processed.")
+
+    # final checkpoint
+    ckpt.state["r2_pending"] = pending
+    ckpt.state["r2_results"] = results
+    ckpt.save()
 
     pbar.close()
 
@@ -155,10 +198,11 @@ def resume_round_2(
     for skill, plset in zip(
         sanity["Skill Title"], sanity["proficiency_level_rac_chart"]
     ):
-        matches = sfw_sets.loc[
-            sfw_sets["skill_lower"] == skill.lower().strip(), "Proficiency Level"
-        ]
-        valid = matches.iloc[0] if not matches.empty else set()
+        skill_matches = sfw_sets[sfw_sets["skill_lower"] == skill.lower().strip()]
+        if not skill_matches.empty:
+            valid = skill_matches["Proficiency Level"].iloc[0]
+        else:
+            valid = set()
         bad = [p for p in plset if p not in valid]
         if bad:
             violations.append({"skill": skill, "invalid_pl": bad})
@@ -183,7 +227,7 @@ def resume_round_2(
                 how="outer",
             )
             .fillna(9)
-            .infer_objects(copy=False)
+            .infer_objects()
         )
 
         vf["invalid_pl"] = vf["invalid_pl"].astype(int)
@@ -193,7 +237,7 @@ def resume_round_2(
         r2_invalid = pd.concat([r2_untagged, bad2], ignore_index=True)
 
     # h) Merge with R1 valid, save all three files
-    r1_valid = load_r1_valid(target_sector_alias)
+    r1_valid = load_r1_valid()
 
     r2_vout = r2_valid.copy()
     r2_vout["proficiency_level"] = r2_vout["proficiency_level_rac_chart"]
