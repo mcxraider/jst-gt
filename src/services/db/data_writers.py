@@ -14,55 +14,53 @@ from config import (
     INTERMEDIATE_OUTPUT_PATH,
     MISC_OUTPUT_PATH,
 )
-from services.storage import save_csv, save_excel
+from services.storage import save_parquet
 from .file_utils import rename_input_file, rename_output_file
 
 
 def write_input_file(abs_path, df, file_name):
     """
-    Write DataFrame to input directory in appropriate format based on extension.
+    Write DataFrame to input directory in Parquet format.
 
     Args:
         abs_path (str): Absolute path to directory or S3 URI
         df (pd.DataFrame): DataFrame to save
-        file_name (str): File name with extension
+        file_name (str): File name with extension (will be converted to .parquet)
 
-    Raises:
-        ValueError: If file extension is not supported (.csv or .xlsx)
+    Note:
+        All input files are now saved in Parquet format for optimal performance.
+        The extension will be changed to .parquet regardless of the original extension.
     """
+    # Convert file extension to .parquet
+    base_name = Path(file_name).stem
+    parquet_name = f"{base_name}.parquet"
+
     if abs_path.startswith("s3://"):
-        path = abs_path.rstrip("/") + "/" + file_name.lstrip("/")
+        path = abs_path.rstrip("/") + "/" + parquet_name.lstrip("/")
     else:
-        path = Path(abs_path) / file_name
+        path = Path(abs_path) / parquet_name
 
     print(f"PATH AFTER WRITE INPUT_FILE FUNCTION: {str(path)}")
-
-    ext = str(path).lower().split(".")[-1]
-    if ext == "csv":
-        save_csv(df, str(path))
-    elif ext == "xlsx":
-        save_excel(df, str(path))
-    else:
-        raise ValueError(f"Unsupported extension: '{ext}'")
+    save_parquet(df, str(path))
 
 
 def write_output_file(abs_path: str, df: pd.DataFrame, file_name: str):
     """
-    Write DataFrame as CSV to output directory.
+    Write DataFrame as Parquet to output directory.
 
     Args:
         abs_path (str): Absolute path to directory or S3 URI
         df (pd.DataFrame): DataFrame to save
-        file_name (str): File name (without extension, .csv will be added)
+        file_name (str): File name (without extension, .parquet will be added)
     """
     if abs_path.startswith("s3://"):
         # For S3, concatenate as string
-        path = abs_path.rstrip("/") + "/" + file_name.lstrip("/") + ".csv"
+        path = abs_path.rstrip("/") + "/" + file_name.lstrip("/") + ".parquet"
     else:
         # For local, use Path
-        path = Path(abs_path) / f"{file_name}.csv"
+        path = Path(abs_path) / f"{file_name}.parquet"
 
-    save_csv(df, str(path))
+    save_parquet(df, str(path))
 
 
 async def write_input_to_s3(
@@ -147,8 +145,10 @@ def write_r1_invalid_to_s3(df: pd.DataFrame, target_sector_alias: str):
         df (pd.DataFrame): Invalid skills DataFrame
         target_sector_alias (str): Sector alias for file naming
     """
-    path = f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_invalid_skill_pl.csv"
-    save_csv(df, path)
+    path = (
+        f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_invalid_skill_pl.parquet"
+    )
+    save_parquet(df, path)
 
 
 def write_r1_valid_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -159,8 +159,8 @@ def write_r1_valid_to_s3(df: pd.DataFrame, target_sector_alias: str):
         df (pd.DataFrame): Valid skills DataFrame
         target_sector_alias (str): Sector alias for file naming
     """
-    path = f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_valid_skill_pl.csv"
-    save_csv(df, path)
+    path = f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_valid_skill_pl.parquet"
+    save_parquet(df, path)
 
 
 def write_irrelevant_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -171,8 +171,8 @@ def write_irrelevant_to_s3(df: pd.DataFrame, target_sector_alias: str):
         df (pd.DataFrame): Irrelevant skills DataFrame
         target_sector_alias (str): Sector alias for file naming
     """
-    path = f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_irrelevant.csv"
-    save_csv(df, path)
+    path = f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_irrelevant.parquet"
+    save_parquet(df, path)
 
 
 def write_r2_raw_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -183,8 +183,8 @@ def write_r2_raw_to_s3(df: pd.DataFrame, target_sector_alias: str):
         df (pd.DataFrame): Raw course skill DataFrame
         target_sector_alias (str): Sector alias for file naming
     """
-    path = f"{MISC_OUTPUT_PATH}/{target_sector_alias}_course_skill_pl_rac_raw.csv"
-    save_csv(df, path)
+    path = f"{MISC_OUTPUT_PATH}/{target_sector_alias}_course_skill_pl_rac_raw.parquet"
+    save_parquet(df, path)
 
 
 def write_missing_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -195,8 +195,8 @@ def write_missing_to_s3(df: pd.DataFrame, target_sector_alias: str):
         df (pd.DataFrame): DataFrame containing courses with missing content.
         target_sector_alias (str): Sector alias used for naming the output file.
     """
-    path = f"{MISC_OUTPUT_PATH}/{target_sector_alias}_missing_content_course.csv"
-    save_csv(df, path)
+    path = f"{MISC_OUTPUT_PATH}/{target_sector_alias}_missing_content_course.parquet"
+    save_parquet(df, path)
 
 
 def write_rest_to_s3(df: pd.DataFrame, target_sector_alias: str):
@@ -207,5 +207,7 @@ def write_rest_to_s3(df: pd.DataFrame, target_sector_alias: str):
         df (pd.DataFrame): DataFrame containing courses with poor content quality.
         target_sector_alias (str): Sector alias used for naming the output file.
     """
-    path = f"{MISC_OUTPUT_PATH}/{target_sector_alias}_poor_content_quality_course.csv"
-    save_csv(df, path)
+    path = (
+        f"{MISC_OUTPUT_PATH}/{target_sector_alias}_poor_content_quality_course.parquet"
+    )
+    save_parquet(df, path)
