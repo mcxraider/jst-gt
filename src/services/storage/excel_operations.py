@@ -8,7 +8,7 @@ import pandas as pd
 from pathlib import Path
 
 from config import USE_S3
-from .s3_client import get_s3_client, parse_s3_path
+from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
 
 
 def save_excel(df, path):
@@ -24,11 +24,19 @@ def save_excel(df, path):
     """
     if USE_S3:
         print("no string: " + path + " with string: " + str(path))
-        bucket, key = parse_s3_path(str(path))
+        # Use hardcoded bucket name and extract just the key from the path
+        if str(path).startswith("s3://"):
+            _, key = parse_s3_path(str(path))
+        else:
+            # If path doesn't start with s3://, treat it as a key
+            key = str(path).lstrip("/")
+
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
-        get_s3_client().put_object(Bucket=bucket, Key=key, Body=buffer.getvalue())
+        get_s3_client().put_object(
+            Bucket=S3_BUCKET_NAME, Key=key, Body=buffer.getvalue()
+        )
     else:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         df.to_excel(path, index=False, engine="openpyxl")
@@ -50,8 +58,14 @@ def load_excel(path, usecols=None):
         Exception: If S3 download fails or local file read fails
     """
     if USE_S3:
-        bucket, key = parse_s3_path(str(path))
-        obj = get_s3_client().get_object(Bucket=bucket, Key=key)
+        # Use hardcoded bucket name and extract just the key from the path
+        if str(path).startswith("s3://"):
+            _, key = parse_s3_path(str(path))
+        else:
+            # If path doesn't start with s3://, treat it as a key
+            key = str(path).lstrip("/")
+
+        obj = get_s3_client().get_object(Bucket=S3_BUCKET_NAME, Key=key)
         return pd.read_excel(io.BytesIO(obj["Body"].read()), usecols=usecols)
     else:
         return pd.read_excel(path, usecols=usecols)

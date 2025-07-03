@@ -98,14 +98,14 @@ def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
         "Content coverage spans multiple competency areas at appropriate depth.",
         "Practical exercises and case studies indicate advanced skill development.",
         "Basic concepts and foundational knowledge align with entry-level expectations.",
-        "Intermediate skills development evident through course structure and content."
+        "Intermediate skills development evident through course structure and content.",
     ]
 
     # Create mock response
     mock_response = {
         "proficiency": random.choice(proficiency_levels),
         "reason": random.choice(reasons),
-        "confidence": random.choice(confidence_levels)
+        "confidence": random.choice(confidence_levels),
     }
 
     print(f"[DUMMY] Generated mock response: {mock_response}")

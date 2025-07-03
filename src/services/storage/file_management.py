@@ -4,9 +4,10 @@ File management operations for both local filesystem and S3 storage.
 Handles listing files and directory cleanup.
 """
 from pathlib import Path
+import os
 
 from config import USE_S3
-from .s3_client import get_s3_client, parse_s3_path
+from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
 from botocore.exceptions import ClientError
 
 
@@ -27,7 +28,13 @@ def list_files(directory, pattern="*"):
     """
     if USE_S3:
         try:
-            bucket, prefix = parse_s3_path(str(directory))
+            # Use hardcoded bucket name and extract just the prefix from the path
+            if str(directory).startswith("s3://"):
+                _, prefix = parse_s3_path(str(directory))
+            else:
+                # If path doesn't start with s3://, treat it as a prefix
+                prefix = str(directory).lstrip("/")
+
             s3 = get_s3_client()
             paginator = s3.get_paginator("list_objects_v2")
             file_list = []
@@ -38,14 +45,14 @@ def list_files(directory, pattern="*"):
             else:
                 suffix = ""
 
-            for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for page in paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=prefix):
                 for obj in page.get("Contents", []):
                     if not suffix or obj["Key"].endswith(suffix):
-                        file_list.append(f"s3://{bucket}/{obj['Key']}")
+                        file_list.append(f"s3://{S3_BUCKET_NAME}/{obj['Key']}")
             return file_list
 
         except ClientError as e:
-            raise ClientError(f"Failed to list S3 objects: {e}")
+            raise Exception(f"Failed to list S3 objects: {e}")
     else:
         try:
             directory_path = Path(directory)
@@ -73,31 +80,34 @@ def s3_list_files_by_filename_contains(directory, contains_string, file_ext=".cs
         Exception: For any other error
     """
     try:
-        bucket, prefix = parse_s3_path(str(directory))
+        # Use hardcoded bucket name and extract just the prefix from the path
+        if str(directory).startswith("s3://"):
+            _, prefix = parse_s3_path(str(directory))
+        else:
+            # If path doesn't start with s3://, treat it as a prefix
+            prefix = str(directory).lstrip("/")
+
         s3 = get_s3_client()
         paginator = s3.get_paginator("list_objects_v2")
         matches = []
-        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for page in paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=prefix):
             for obj in page.get("Contents", []):
                 key = obj["Key"]
                 filename = key.split("/")[-1]
                 if contains_string in filename and filename.endswith(file_ext):
-                    matches.append(f"s3://{bucket}/{key}")
+                    matches.append(f"s3://{S3_BUCKET_NAME}/{key}")
         return matches
     except ClientError as e:
-        raise ClientError(f"Failed to list S3 objects in {directory}: {e}")
+        raise Exception(f"Failed to list S3 objects in {directory}: {e}")
     except Exception as e:
         raise Exception(f"Unexpected error listing S3 files in {directory}: {e}")
-
-
-import os
-import shutil
-from botocore.exceptions import ClientError
 
 
 def delete_all(directory):
     """
     Delete all files in a given S3 prefix or local directory, but preserve the folder marker (if any) for S3.
+
+    Safety feature: For S3, only allows deletion in specific allowed prefixes to prevent accidental data loss.
 
     Args:
         directory (str): S3 directory/prefix path (e.g., 's3://bucket/prefix/')
@@ -108,16 +118,51 @@ def delete_all(directory):
     """
     deletion_summary = {"deleted_count": 0, "errors": []}
 
+    # Define allowed S3 prefixes for deletion
+    ALLOWED_S3_PREFIXES = [
+        "s3_checkpoint",
+        "s3_input",
+        "s3_intermediate",
+        "s3_misc_output",
+        "s3_output",
+    ]
+
     if USE_S3:
         try:
             print(f"\n[DEBUG] Starting deletion in: {directory}")
-            bucket, prefix = parse_s3_path(str(directory))
+            # Use hardcoded bucket name and extract just the prefix from the path
+            if str(directory).startswith("s3://"):
+                _, prefix = parse_s3_path(str(directory))
+            else:
+                # If path doesn't start with s3://, treat it as a prefix
+                prefix = str(directory).lstrip("/")
+
+            # Safety check: Only allow deletion in specific prefixes
+            prefix_normalized = prefix.lstrip("/").rstrip("/")
+
+            # Check if the prefix starts with any of the allowed prefixes
+            is_allowed = any(
+                prefix_normalized.startswith(allowed_prefix)
+                for allowed_prefix in ALLOWED_S3_PREFIXES
+            )
+
+            if not is_allowed:
+                error_msg = (
+                    f"Deletion not allowed for prefix '{prefix_normalized}'. "
+                    f"Only allowed prefixes: {', '.join(ALLOWED_S3_PREFIXES)}"
+                )
+                print(f"[DEBUG] {error_msg}")
+                deletion_summary["errors"].append(error_msg)
+                return deletion_summary
+
+            print(f"[DEBUG] Deletion allowed for prefix: {prefix_normalized}")
+
             # Normalize prefix: remove leading slash, ensure trailing slash
             prefix = prefix.lstrip("/")
             if prefix and not prefix.endswith("/"):
                 prefix += "/"
 
-            print(f"[DEBUG] Bucket: {bucket}")
+            print(f"[DEBUG] Bucket: {S3_BUCKET_NAME}")
             print(f"[DEBUG] Prefix: {prefix}")
             s3 = get_s3_client()
             paginator = s3.get_paginator("list_objects_v2")
@@ -125,7 +170,7 @@ def delete_all(directory):
             total_deleted = 0
 
             for page_num, page in enumerate(
-                paginator.paginate(Bucket=bucket, Prefix=prefix)
+                paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=prefix)
             ):
                 print(f"\n[DEBUG] Processing page {page_num + 1}")
                 objects = page.get("Contents", [])
@@ -150,7 +195,7 @@ def delete_all(directory):
                         for k in delete_batch:
                             print(f"  - {k['Key']}")
                         resp = s3.delete_objects(
-                            Bucket=bucket, Delete={"Objects": delete_batch}
+                            Bucket=S3_BUCKET_NAME, Delete={"Objects": delete_batch}
                         )
                         batch_deleted = len(resp.get("Deleted", []))
                         print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")
@@ -167,7 +212,7 @@ def delete_all(directory):
                     for k in delete_batch:
                         print(f"  - {k['Key']}")
                     resp = s3.delete_objects(
-                        Bucket=bucket, Delete={"Objects": delete_batch}
+                        Bucket=S3_BUCKET_NAME, Delete={"Objects": delete_batch}
                     )
                     batch_deleted = len(resp.get("Deleted", []))
                     print(f"[DEBUG] Deleted {batch_deleted} objects in this batch")

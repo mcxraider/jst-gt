@@ -147,7 +147,9 @@ def get_proficiency_level(
     available_levels = list(skill_info.keys()) if skill_info else [1, 2, 3, 4, 5]
 
     # Generate realistic dummy data
-    proficiency_level = random.choice(available_levels) if available_levels else random.randint(1, 5)
+    proficiency_level = (
+        random.choice(available_levels) if available_levels else random.randint(1, 5)
+    )
 
     confidence_levels = ["low", "medium", "high"]
     confidence = random.choice(confidence_levels)
@@ -162,7 +164,7 @@ def get_proficiency_level(
         "Practical exercises and case studies support this level classification.",
         "Course prerequisites and outcomes match proficiency expectations.",
         "Content depth and technical complexity align with level requirements.",
-        "Learning activities demonstrate skill application at appropriate level."
+        "Learning activities demonstrate skill application at appropriate level.",
     ]
 
     reason = random.choice(reasons)
@@ -171,13 +173,15 @@ def get_proficiency_level(
     mock_response = {
         "proficiency_level": proficiency_level,
         "reason": reason,
-        "confidence": confidence
+        "confidence": confidence,
     }
 
     # Convert to JSON string as expected by the original function
     json_response = json.dumps(mock_response)
 
-    print(f"[DUMMY R1] Skill: {skill_title[:30]}... -> Level: {proficiency_level}, Confidence: {confidence}")
+    print(
+        f"[DUMMY R1] Skill: {skill_title[:30]}... -> Level: {proficiency_level}, Confidence: {confidence}"
+    )
 
     return json_response
 

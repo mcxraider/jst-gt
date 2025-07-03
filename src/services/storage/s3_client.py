@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError, NoCredentialsError, ProfileNotFound
 from dotenv import load_dotenv
 from functools import lru_cache
 
-from config import S3_BUCKET_NAME, AWS_REGION
+from config import AWS_REGION
 from exceptions.storage_exceptions import S3Error, ValidationError
 
 
@@ -17,6 +17,9 @@ load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Hardcoded bucket name for now
+S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
 
 
 @lru_cache(maxsize=1)
@@ -40,15 +43,19 @@ def get_s3_client():
             session = boto3.Session(profile_name=aws_profile)
             s3 = session.client(
                 "s3",
-                region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+                region_name=os.environ.get("AWS_REGION")
+                or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
             )
-            logger.info("S3 client initialized successfully with profile '%s'", aws_profile)
+            logger.info(
+                "S3 client initialized successfully with profile '%s'", aws_profile
+            )
         else:
             # Kubernetes or other environments - use default credential chain
             logger.info("Using default AWS credential chain (service account/IAM role)")
             s3 = boto3.client(
                 "s3",
-                region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+                region_name=os.environ.get("AWS_REGION")
+                or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
             )
             logger.info("S3 client initialized successfully with default credentials")
 
@@ -59,7 +66,9 @@ def get_s3_client():
         raise S3Error(f"AWS profile not found: {profile_name}") from e
 
     except NoCredentialsError as e:
-        raise S3Error("Unable to locate AWS credentials. Ensure service account is properly configured or AWS_PROFILE is set.") from e
+        raise S3Error(
+            "Unable to locate AWS credentials. Ensure service account is properly configured or AWS_PROFILE is set."
+        ) from e
 
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "Unknown")
@@ -92,10 +101,19 @@ def parse_s3_path(s3_path):
         )
 
     s3_path_clean = s3_path.replace("s3://", "")
-    print(s3_path_clean)
+    logger.debug("Parsing S3 path: %s", s3_path_clean)
+
     if "/" not in s3_path_clean:
         raise ValidationError("S3 path must contain both bucket and key")
+
     bucket, key = s3_path_clean.split("/", 1)
+
+    if not bucket:
+        raise ValidationError(
+            f"Empty bucket name in S3 path: {s3_path}. "
+            "Check that S3_BUCKET_NAME environment variable is properly set."
+        )
+
     return bucket, key
 
 
