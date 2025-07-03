@@ -19,7 +19,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Hardcoded bucket name for now
-S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
+S3_BUCKET_NAME = "ssg-test-s3"
 
 
 @lru_cache(maxsize=1)
