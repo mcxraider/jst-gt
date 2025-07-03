@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError, NoCredentialsError, ProfileNotFound
 from dotenv import load_dotenv
 from functools import lru_cache
 
-from config import S3_BUCKET_NAME, AWS_REGION
+from config import AWS_REGION
 from exceptions.storage_exceptions import S3Error, ValidationError
 
 
@@ -17,6 +17,9 @@ load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Hardcoded bucket name for now
+S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
 
 
 @lru_cache(maxsize=1)
@@ -92,10 +95,19 @@ def parse_s3_path(s3_path):
         )
 
     s3_path_clean = s3_path.replace("s3://", "")
-    print(s3_path_clean)
+    logger.debug("Parsing S3 path: %s", s3_path_clean)
+
     if "/" not in s3_path_clean:
         raise ValidationError("S3 path must contain both bucket and key")
+
     bucket, key = s3_path_clean.split("/", 1)
+
+    if not bucket:
+        raise ValidationError(
+            f"Empty bucket name in S3 path: {s3_path}. "
+            "Check that S3_BUCKET_NAME environment variable is properly set."
+        )
+
     return bucket, key
 
 

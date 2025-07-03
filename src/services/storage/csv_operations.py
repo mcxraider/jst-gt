@@ -8,7 +8,7 @@ import pandas as pd
 from pathlib import Path
 
 from config import USE_S3
-from .s3_client import get_s3_client, parse_s3_path
+from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
 from botocore.exceptions import ClientError
 
 
@@ -35,17 +35,23 @@ def save_csv(df, path):
 
     if USE_S3:
         try:
-            bucket, key = parse_s3_path(str(path))
+            # Use hardcoded bucket name and extract just the key from the path
+            if str(path).startswith("s3://"):
+                _, key = parse_s3_path(str(path))
+            else:
+                # If path doesn't start with s3://, treat it as a key
+                key = str(path).lstrip("/")
+
             csv_buffer = io.StringIO()
             df.to_csv(csv_buffer, index=False, encoding="utf-8")
             get_s3_client().put_object(
-                Bucket=bucket,
+                Bucket=S3_BUCKET_NAME,
                 Key=key,
                 Body=csv_buffer.getvalue(),
                 ContentType="text/csv",
             )
         except ClientError as e:
-            raise ClientError(f"Failed to upload CSV to S3: {e}")
+            raise Exception(f"Failed to upload CSV to S3: {e}")
         except Exception as e:
             raise Exception(f"Unexpected error saving CSV to S3: {e}")
     else:
@@ -73,22 +79,28 @@ def load_csv(path):
     """
     if USE_S3:
         try:
-            bucket, key = parse_s3_path(str(path))
+            # Use hardcoded bucket name and extract just the key from the path
+            if str(path).startswith("s3://"):
+                _, key = parse_s3_path(str(path))
+            else:
+                # If path doesn't start with s3://, treat it as a key
+                key = str(path).lstrip("/")
+
             s3_client = get_s3_client()
 
             # Check if object exists
             try:
-                s3_client.head_object(Bucket=bucket, Key=key)
+                s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
             except ClientError as e:
                 if e.response["Error"]["Code"] == "404":
-                    raise FileNotFoundError(f"S3 object not found: {path}")
+                    raise FileNotFoundError(f"S3 object not found: s3://{S3_BUCKET_NAME}/{key}")
                 raise
 
-            obj = s3_client.get_object(Bucket=bucket, Key=key)
+            obj = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
             return pd.read_csv(io.BytesIO(obj["Body"].read()), encoding="utf-8")
 
         except ClientError as e:
-            raise ClientError(f"Failed to download CSV from S3: {e}")
+            raise Exception(f"Failed to download CSV from S3: {e}")
         except pd.errors.EmptyDataError:
             raise pd.errors.EmptyDataError(f"CSV file is empty: {path}")
     else:

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Set
 
 from config import USE_S3
-from services.storage.s3_client import get_s3_client, parse_s3_path, validate_file_size
+from services.storage.s3_client import get_s3_client, parse_s3_path, validate_file_size, S3_BUCKET_NAME
 from exceptions.storage_exceptions import S3Error, LocalStorageError, ValidationError
 from botocore.exceptions import ClientError, NoCredentialsError
 
@@ -71,9 +71,15 @@ def save_pickle(obj: Any, path: str, max_size_mb: int = 100) -> None:
 
     if USE_S3:
         try:
-            bucket, key = parse_s3_path(str(path))
+            # Use hardcoded bucket name and extract just the key from the path
+            if path.startswith("s3://"):
+                _, key = parse_s3_path(str(path))
+            else:
+                # If path doesn't start with s3://, treat it as a key
+                key = str(path).lstrip("/")
+
             get_s3_client().put_object(
-                Bucket=bucket,
+                Bucket=S3_BUCKET_NAME,
                 Key=key,
                 Body=buf.getvalue(),
                 ContentType="application/octet-stream",
@@ -82,7 +88,7 @@ def save_pickle(obj: Any, path: str, max_size_mb: int = 100) -> None:
                     "content-type": "pickle",
                 },
             )
-            logger.info(f"Successfully saved pickle to S3: {path}")
+            logger.info(f"Successfully saved pickle to S3: s3://{S3_BUCKET_NAME}/{key}")
 
         except Exception as e:
             raise S3Error(f"Failed to upload pickle to S3: {e}")
@@ -117,24 +123,30 @@ def load_pickle(path: str, safe_mode: bool = True) -> Any:
     """
     if USE_S3:
         try:
-            bucket, key = parse_s3_path(str(path))
+            # Use hardcoded bucket name and extract just the key from the path
+            if path.startswith("s3://"):
+                _, key = parse_s3_path(str(path))
+            else:
+                # If path doesn't start with s3://, treat it as a key
+                key = str(path).lstrip("/")
+
             s3_client = get_s3_client()
 
             # Check if object exists
             try:
-                head_response = s3_client.head_object(Bucket=bucket, Key=key)
+                head_response = s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
                 # Validate file size before downloading
                 file_size = head_response.get("ContentLength", 0)
                 validate_file_size(file_size)
 
             except ClientError as e:
                 if e.response["Error"]["Code"] == "404":
-                    raise ValidationError(f"S3 object not found: {path}")
+                    raise ValidationError(f"S3 object not found: s3://{S3_BUCKET_NAME}/{key}")
                 raise S3Error(f"Failed to check S3 object: {e}")
 
-            obj_response = s3_client.get_object(Bucket=bucket, Key=key)
+            obj_response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
             data = obj_response["Body"].read()
-            logger.info(f"Successfully downloaded pickle from S3: {path}")
+            logger.info(f"Successfully downloaded pickle from S3: s3://{S3_BUCKET_NAME}/{key}")
 
         except S3Error:
             raise
