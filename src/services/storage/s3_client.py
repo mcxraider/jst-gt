@@ -203,31 +203,17 @@ def get_s3_client():
                 )
             except ProfileNotFound:
                 logger.warning(
-                    "⚠️  AWS profile '%s' not found, falling back to 'default' profile",
+                    "⚠️  AWS profile '%s' not found, using default credential chain",
                     aws_profile,
                 )
-                try:
-                    session = boto3.Session(profile_name="default")
-                    s3 = session.client(
-                        "s3",
-                        region_name=os.environ.get("AWS_REGION")
-                        or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
-                    )
-                    logger.info(
-                        "✅ S3 client initialized successfully with fallback 'default' profile"
-                    )
-                except ProfileNotFound:
-                    logger.warning(
-                        "⚠️  'default' profile also not found, using default credential chain"
-                    )
-                    s3 = boto3.client(
-                        "s3",
-                        region_name=os.environ.get("AWS_REGION")
-                        or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
-                    )
-                    logger.info(
-                        "✅ S3 client initialized successfully with default credential chain"
-                    )
+                s3 = boto3.client(
+                    "s3",
+                    region_name=os.environ.get("AWS_REGION")
+                    or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+                )
+                logger.info(
+                    "✅ S3 client initialized successfully with default credential chain"
+                )
         else:
             # Kubernetes or other environments - use default credential chain
             logger.info(
