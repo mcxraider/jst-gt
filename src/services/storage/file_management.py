@@ -124,7 +124,7 @@ def delete_all(directory):
         "s3_input",
         "s3_intermediate",
         "s3_misc_output",
-        "s3_output"
+        "s3_output",
     ]
 
     if USE_S3:
@@ -141,12 +141,16 @@ def delete_all(directory):
             prefix_normalized = prefix.lstrip("/").rstrip("/")
 
             # Check if the prefix starts with any of the allowed prefixes
-            is_allowed = any(prefix_normalized.startswith(allowed_prefix)
-                           for allowed_prefix in ALLOWED_S3_PREFIXES)
+            is_allowed = any(
+                prefix_normalized.startswith(allowed_prefix)
+                for allowed_prefix in ALLOWED_S3_PREFIXES
+            )
 
             if not is_allowed:
-                error_msg = (f"Deletion not allowed for prefix '{prefix_normalized}'. "
-                           f"Only allowed prefixes: {', '.join(ALLOWED_S3_PREFIXES)}")
+                error_msg = (
+                    f"Deletion not allowed for prefix '{prefix_normalized}'. "
+                    f"Only allowed prefixes: {', '.join(ALLOWED_S3_PREFIXES)}"
+                )
                 print(f"[DEBUG] {error_msg}")
                 deletion_summary["errors"].append(error_msg)
                 return deletion_summary

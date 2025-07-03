@@ -43,15 +43,19 @@ def get_s3_client():
             session = boto3.Session(profile_name=aws_profile)
             s3 = session.client(
                 "s3",
-                region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+                region_name=os.environ.get("AWS_REGION")
+                or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
             )
-            logger.info("S3 client initialized successfully with profile '%s'", aws_profile)
+            logger.info(
+                "S3 client initialized successfully with profile '%s'", aws_profile
+            )
         else:
             # Kubernetes or other environments - use default credential chain
             logger.info("Using default AWS credential chain (service account/IAM role)")
             s3 = boto3.client(
                 "s3",
-                region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+                region_name=os.environ.get("AWS_REGION")
+                or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
             )
             logger.info("S3 client initialized successfully with default credentials")
 
@@ -62,7 +66,9 @@ def get_s3_client():
         raise S3Error(f"AWS profile not found: {profile_name}") from e
 
     except NoCredentialsError as e:
-        raise S3Error("Unable to locate AWS credentials. Ensure service account is properly configured or AWS_PROFILE is set.") from e
+        raise S3Error(
+            "Unable to locate AWS credentials. Ensure service account is properly configured or AWS_PROFILE is set."
+        ) from e
 
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "Unknown")

@@ -93,7 +93,9 @@ def load_csv(path):
                 s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
             except ClientError as e:
                 if e.response["Error"]["Code"] == "404":
-                    raise FileNotFoundError(f"S3 object not found: s3://{S3_BUCKET_NAME}/{key}")
+                    raise FileNotFoundError(
+                        f"S3 object not found: s3://{S3_BUCKET_NAME}/{key}"
+                    )
                 raise
 
             obj = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)

@@ -34,7 +34,9 @@ def save_excel(df, path):
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
-        get_s3_client().put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=buffer.getvalue())
+        get_s3_client().put_object(
+            Bucket=S3_BUCKET_NAME, Key=key, Body=buffer.getvalue()
+        )
     else:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         df.to_excel(path, index=False, engine="openpyxl")
