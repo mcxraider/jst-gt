@@ -19,7 +19,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Hardcoded bucket name for now
-S3_BUCKET_NAME = "ssg-test-s3"
+S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
 
 
 @lru_cache(maxsize=1)
@@ -35,7 +35,7 @@ def get_s3_client():
     """
     try:
         # Check if running in Kubernetes with service account
-        aws_profile = os.environ.get("AWS_PROFILE")
+        aws_profile = os.environ.get("AWS_PROFILE", "default")
 
         if aws_profile and aws_profile.strip():
             # Local development with AWS profile

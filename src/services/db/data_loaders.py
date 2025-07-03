@@ -13,13 +13,13 @@ from config import (
     INTERMEDIATE_OUTPUT_PATH,
     USE_S3,
 )
-from services.storage import load_csv, load_excel, load_pickle, list_files
+from services.storage import load_parquet, load_pickle, list_files
 from services.storage.file_management import s3_list_files_by_filename_contains
 
 
 def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
     """
-    Load DataFrame from CSV file and extract name from path.
+    Load DataFrame from Parquet file and extract name from path.
 
     Args:
         path (str): File path to load
@@ -27,14 +27,14 @@ def _fetch_df(path: str) -> tuple[pd.DataFrame, str]:
     Returns:
         tuple: (DataFrame, file_name_without_extension)
     """
-    df = load_csv(path)
+    df = load_parquet(path)
     name = Path(path).stem
     return df, name
 
 
 def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
     """
-    Find and load the first CSV file in the output directory whose name contains the given prefix.
+    Find and load the first Parquet file in the output directory whose name contains the given prefix.
 
     Args:
         prefix (str): File name prefix to search for
@@ -46,9 +46,9 @@ def fetch_by_prefix(prefix: str) -> tuple[pd.DataFrame, str]:
         FileNotFoundError: If no matching file is found
     """
     if USE_S3:
-        matches = s3_list_files_by_filename_contains(OUTPUT_PATH, prefix, ".csv")
+        matches = s3_list_files_by_filename_contains(OUTPUT_PATH, prefix, ".parquet")
     else:
-        matches = list_files(OUTPUT_PATH, f"*{prefix}*.csv")
+        matches = list_files(OUTPUT_PATH, f"*{prefix}*.parquet")
     if not matches:
         raise FileNotFoundError(f"No file containing '{prefix}' found in {OUTPUT_PATH}")
     return _fetch_df(matches[0])
@@ -149,18 +149,18 @@ def check_pkl_existence() -> bool:
 
 def check_output_existence() -> bool:
     """
-    Check if exactly 3 output CSV files exist in the output directory.
+    Check if exactly 3 output Parquet files exist in the output directory.
 
     Returns:
-        bool: True if exactly three .csv files exist, False otherwise.
+        bool: True if exactly three .parquet files exist, False otherwise.
     """
-    csv_files = list_files(OUTPUT_PATH, "*.csv")
-    return len(csv_files) == 3
+    parquet_files = list_files(OUTPUT_PATH, "*.parquet")
+    return len(parquet_files) == 3
 
 
 def load_sfw_file() -> pd.DataFrame:
     """
-    Load the SFW (Skills Framework) Excel file from input directory.
+    Load the SFW (Skills Framework) Parquet file from input directory.
 
     Returns:
         pd.DataFrame: Loaded SFW data
@@ -168,16 +168,16 @@ def load_sfw_file() -> pd.DataFrame:
     Raises:
         FileNotFoundError: If no file starting with 'SFW' is found
     """
-    files = list_files(INPUT_DATA_PATH, "*.xlsx")
+    files = list_files(INPUT_DATA_PATH, "*.parquet")
     for fp in files:
         if Path(fp).name.startswith("SFW"):
-            return load_excel(fp)
+            return load_parquet(fp)
     raise FileNotFoundError(f"No file starting with 'SFW' in {INPUT_DATA_PATH}")
 
 
 def load_sector_file(cols=None) -> pd.DataFrame:
     """
-    Load the sector Excel file (non-SFW file) from input directory.
+    Load the sector Parquet file (non-SFW file) from input directory.
 
     Args:
         cols (list, optional): Specific columns to load. Defaults to None.
@@ -188,16 +188,16 @@ def load_sector_file(cols=None) -> pd.DataFrame:
     Raises:
         FileNotFoundError: If no sector file is found
     """
-    files = list_files(INPUT_DATA_PATH, "*.xlsx")
+    files = list_files(INPUT_DATA_PATH, "*.parquet")
     for fp in files:
         if not Path(fp).name.startswith("SFW"):
-            return load_excel(fp, usecols=cols)
+            return load_parquet(fp, columns=cols)
     raise FileNotFoundError(f"No sector file found in {INPUT_DATA_PATH}")
 
 
 def load_r1_invalid() -> pd.DataFrame:
     """
-    Load the round 1 invalid skills CSV file from intermediate output directory.
+    Load the round 1 invalid skills Parquet file from intermediate output directory.
 
     Returns:
         pd.DataFrame: Loaded R1 invalid data
@@ -205,10 +205,10 @@ def load_r1_invalid() -> pd.DataFrame:
     Raises:
         FileNotFoundError: If no R1 invalid file is found
     """
-    files = list_files(INTERMEDIATE_OUTPUT_PATH, "*.csv")
+    files = list_files(INTERMEDIATE_OUTPUT_PATH, "*.parquet")
     for fp in files:
         if "r1_invalid" in Path(fp).name:
-            return load_csv(fp)
+            return load_parquet(fp)
     raise FileNotFoundError(
         f"No file containing 'r1_invalid' in {INTERMEDIATE_OUTPUT_PATH}"
     )
@@ -216,7 +216,7 @@ def load_r1_invalid() -> pd.DataFrame:
 
 def load_r1_valid():
     """
-    Load the round 1 valid skills CSV file from intermediate output directory.
+    Load the round 1 valid skills Parquet file from intermediate output directory.
 
     Returns:
         pd.DataFrame: Loaded R1 valid data
@@ -224,10 +224,10 @@ def load_r1_valid():
     Raises:
         FileNotFoundError: If no R1 valid file is found
     """
-    files = list_files(INTERMEDIATE_OUTPUT_PATH, "*.csv")
+    files = list_files(INTERMEDIATE_OUTPUT_PATH, "*.parquet")
     for fp in files:
         if "r1_valid" in Path(fp).name:
-            return load_csv(fp)
+            return load_parquet(fp)
     raise FileNotFoundError(
         f"No file containing 'r1_valid' in {INTERMEDIATE_OUTPUT_PATH}"
     )

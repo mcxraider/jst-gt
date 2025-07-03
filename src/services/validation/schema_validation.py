@@ -97,16 +97,24 @@ async def validate_sector_schema(uploaded_file_object) -> bool:
         expected_sheet_name = short_sector_code
 
         file_ext = Path(uploaded_file_object.name).suffix.lower()
-        if file_ext not in [".xlsx", ".xls"]:
+        if file_ext not in [".xlsx", ".xls", ".csv"]:
             raise FileValidationError(
-                f"Sorry, we can't read files of type '{file_ext}'. Please upload an Excel file. (.xlsx or .xls)"
+                f"Sorry, we can't read files of type '{file_ext}'. Please upload an Excel (.xlsx, .xls) or CSV file."
             )
 
         await validate_file_non_empty(uploaded_file_object)
-        excel_file = validate_excel_sheet_structure(
-            uploaded_file_object, expected_sheet_name
-        )
-        df = pd.read_excel(excel_file, sheet_name=expected_sheet_name)
+
+        if file_ext in [".xlsx", ".xls"]:
+            excel_file = validate_excel_sheet_structure(
+                uploaded_file_object, expected_sheet_name
+            )
+            df = pd.read_excel(excel_file, sheet_name=expected_sheet_name)
+        elif file_ext == ".csv":
+            uploaded_file_object.seek(0)
+            df = pd.read_csv(uploaded_file_object)
+        else:
+            raise FileValidationError(f"Unexpected file type: {file_ext}")
+
         validate_sector_data_structure(df)
         uploaded_file_object.seek(0)
         return True

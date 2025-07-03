@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from pathlib import Path
 from typing import Tuple, Callable, Optional
 
 
@@ -29,6 +30,7 @@ async def process_file_upload(
 def read_uploaded_file(uploaded) -> Optional[pd.DataFrame]:
     """
     Read uploaded file into a pandas DataFrame.
+    Supports both Excel (.xlsx, .xls) and CSV (.csv) formats.
 
     Args:
         uploaded: Streamlit uploaded file object
@@ -37,7 +39,18 @@ def read_uploaded_file(uploaded) -> Optional[pd.DataFrame]:
         pd.DataFrame or None: The dataframe if successful, None if error
     """
     try:
-        df = pd.read_excel(uploaded)
+        file_ext = Path(uploaded.name).suffix.lower()
+
+        if file_ext in [".xlsx", ".xls"]:
+            df = pd.read_excel(uploaded)
+        elif file_ext == ".csv":
+            df = pd.read_csv(uploaded)
+        else:
+            st.error(
+                f"Unsupported file format: {file_ext}. Please upload an Excel or CSV file."
+            )
+            return None
+
         return df
     except Exception as e:
         st.error(f"Error reading file {uploaded.name}: {e}")

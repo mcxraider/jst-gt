@@ -66,14 +66,14 @@ def list_files(directory, pattern="*"):
             raise OSError(f"Failed to access local directory: {e}")
 
 
-def s3_list_files_by_filename_contains(directory, contains_string, file_ext=".csv"):
+def s3_list_files_by_filename_contains(directory, contains_string, file_ext=".parquet"):
     """
     List S3 files in a directory whose filenames contain a substring (and optional extension).
 
     Args:
         directory (str): S3 prefix directory (e.g., 's3://bucket/prefix/')
         contains_string (str): Substring the filename must contain
-        file_ext (str): File extension (e.g., '.csv'). Use "" for any.
+        file_ext (str): File extension (e.g., '.parquet'). Use "" for any.
 
     Returns:
         list: List of file paths matching the criteria
