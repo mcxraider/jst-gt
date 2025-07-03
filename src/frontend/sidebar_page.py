@@ -13,7 +13,7 @@ def sidebar():
             st.markdown("---")
             sidebar_help()
             sidebar_contact()
-            sidebar_user()  # Add user info at the bottom
+            sidebar_user()
         else:
             st.markdown("### 🔐 Please Login")
             st.info("Access the application by logging in first.")

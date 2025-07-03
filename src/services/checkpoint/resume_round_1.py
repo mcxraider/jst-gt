@@ -39,7 +39,7 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {
                 executor.submit(
-                    process_row, rows.loc[idx], skill_info, sfw_df, lock, client
+                    process_row, rows.loc[idx], skill_info, sfw_df, lock
                 ): idx
                 for idx in batch
             }

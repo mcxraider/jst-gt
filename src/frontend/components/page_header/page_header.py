@@ -1,11 +1,13 @@
 import streamlit as st
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 # Function to create a decorative header with icon and timestamp
 def create_header():
     page_title = "Skill Proficiency AI Tagger"
-    current_time = datetime.now().strftime("%b %d, %Y • %I:%M %p")
+    sgt = ZoneInfo("Asia/Singapore")
+    current_time = datetime.now(sgt).strftime("%b %d, %Y • %I:%M %p")
 
     col1, col2 = st.columns([3, 1])
 

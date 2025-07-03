@@ -8,15 +8,16 @@ from utils.session_cache import save_session
 
 def login_form():
     """Render the login form with email and password inputs"""
-    email = st.text_input("E-mail", placeholder="Enter your SSG email address")
+    # email = st.text_input("E-mail", placeholder="Enter your SSG email address")
+    email = "Test user"
     password = st.text_input(
         "Password", placeholder="Enter your password", type="password"
     )
 
     if st.button("Login", use_container_width=True):
         time.sleep(2)
-        if not (email and password):
-            st.error("Please provide email and password")
+        if not (password):
+            st.error("You must have a password to Log in!")
         elif authenticate_user(email, password):
             # Create user info
             user_info = {"email": email, "role": "user", "login_time": time.time()}

@@ -1,20 +1,27 @@
+# file: services/llm_pipeline/resume_round_2.py
 import pandas as pd
-import time
 import hashlib
-import streamlit as st
+import time
+
+# Removed streamlit import
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 
 from services.llm_pipeline.r2_utils import *
 from services.checkpoint.checkpoint_manager import CheckpointManager
 from config import skill_proficiency_level_details
-from services.db import *
-from services.storage import *
-from utils.processing_utils import *
+from services.db.data_writers import (
+    write_r2_raw_to_s3,
+    write_missing_to_s3,
+)
+from services.db.data_loaders import (
+    load_r1_valid,
+    load_sector_file,
+)
 
 
 def resume_round_2(
-    target_sector: str,  # do not remove this input
+    target_sector: str,
     target_sector_alias: str,
     df_invalid: pd.DataFrame,
     sfw_raw: pd.DataFrame,
@@ -105,7 +112,7 @@ def resume_round_2(
                     )
                 except Exception as e:
                     error_msg = f"Round2 failed for {uid}: {e}"
-                    st.error(error_msg)
+                    print(f"[ERROR] {error_msg}")  # Changed from st.error to print
                     results.append(
                         {"unique_id": uid, "pl": 0, "reason": "", "confidence": ""}
                     )
@@ -174,7 +181,7 @@ def resume_round_2(
     r2_untagged = merged[merged.proficiency_level_rac_chart == 0]
     r2_tagged = merged[merged.proficiency_level_rac_chart > 0].reset_index(drop=True)
 
-    # f) Sanity‐check vs SFw
+    # f) Sanity-check vs SFw
     sanity = (
         r2_tagged.groupby("Skill Title")["proficiency_level_rac_chart"]
         .agg(set)
@@ -191,10 +198,11 @@ def resume_round_2(
     for skill, plset in zip(
         sanity["Skill Title"], sanity["proficiency_level_rac_chart"]
     ):
-        matches = sfw_sets.loc[
-            sfw_sets["skill_lower"] == skill.lower().strip(), "Proficiency Level"
-        ]
-        valid = matches.iloc[0] if not matches.empty else set()
+        skill_matches = sfw_sets[sfw_sets["skill_lower"] == skill.lower().strip()]
+        if not skill_matches.empty:
+            valid = skill_matches["Proficiency Level"].iloc[0]
+        else:
+            valid = set()
         bad = [p for p in plset if p not in valid]
         if bad:
             violations.append({"skill": skill, "invalid_pl": bad})
@@ -219,7 +227,7 @@ def resume_round_2(
                 how="outer",
             )
             .fillna(9)
-            .infer_objects(copy=False)
+            .infer_objects()
         )
 
         vf["invalid_pl"] = vf["invalid_pl"].astype(int)
@@ -234,7 +242,6 @@ def resume_round_2(
     r2_vout = r2_valid.copy()
     r2_vout["proficiency_level"] = r2_vout["proficiency_level_rac_chart"]
     r2_vout["reason"] = r2_vout["reason_rac_chart"]
-    r2_vout["confidence"] = r2_vout["confidence_rac_chart"]
     r2_vout.drop(
         columns=[
             "proficiency_level_rac_chart",
@@ -244,31 +251,32 @@ def resume_round_2(
         inplace=True,
     )
 
+    # Check for column existence before dropping
+    columns_to_drop = ["invalid_pl", "Skill Title_y", "Skill Title"]
+    # Ensure columns exist in r1_valid before trying to drop them
+    columns_to_drop = [col for col in columns_to_drop if col in r1_valid.columns]
+
     all_valid = (
         pd.concat([r1_valid, r2_vout], ignore_index=True)
-        .drop(columns=["invalid_pl", "Skill Title_y", "Skill Title"], errors="ignore")
+        .drop(columns=columns_to_drop, errors="ignore")
         .rename(columns={"Skill Title_x": "Skill Title"})
     )
 
     # i) Poor-data-quality courses
+    # Calling the S3 load_sector_file directly from services.db.data_readers
     orig = load_sector_file()
-
-    # raw_course is now an .xlsx, so use read_excel
     raw_course = load_sector_file(cols=["Skill Title", "Course Reference Number"])
 
-    # merge on the shared key
     merged_crs = pd.merge(orig, raw_course, on="Course Reference Number", how="inner")
 
-    # identify "poor" (i.e. not already merged)
     poor = merged_crs[
         ~merged_crs["Course Reference Number"].isin(merged["Course Reference Number"])
     ]
 
-    # split out those with completely missing titles
     missing = poor[poor["Course Title"].isnull()]
     write_missing_to_s3(missing, target_sector_alias)
 
-    # these are the completed outputs
     print("[Round 2 Complete] All processing complete, results saved to files.")
     r2_invalid = pd.concat([r2_untagged, r2_invalid], ignore_index=True)
+    # The return type here is a tuple of DataFrames
     return r2_valid, r2_invalid, all_valid
