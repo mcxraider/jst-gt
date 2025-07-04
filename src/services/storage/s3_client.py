@@ -184,48 +184,14 @@ def get_s3_client():
         S3Error: If client creation fails or credentials are unavailable.
     """
     try:
-        aws_profile = os.environ.get("AWS_PROFILE")
-
-        if aws_profile and aws_profile.strip() and aws_profile != "default":
-            # Local development with AWS profile
-            logger.info("🔧 Attempting to use AWS profile: %s", aws_profile)
-            try:
-                session = boto3.Session(profile_name=aws_profile)
-                s3 = session.client(
-                    "s3",
-                    region_name=os.environ.get("AWS_REGION")
-                    or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
-                )
-                logger.info(
-                    "✅ S3 client initialized successfully with profile '%s'",
-                    aws_profile,
-                )
-            except ProfileNotFound:
-                logger.warning(
-                    "⚠️  AWS profile '%s' not found, using default credential chain",
-                    aws_profile,
-                )
-                s3 = boto3.client(
-                    "s3",
-                    region_name=os.environ.get("AWS_REGION")
-                    or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
-                )
-                logger.info(
-                    "✅ S3 client initialized successfully with default credential chain"
-                )
-        else:
-            # Kubernetes or other environments - use default credential chain
-            logger.info(
-                "🔧 Using default AWS credential chain (service account/IAM role)"
-            )
-            s3 = boto3.client(
-                "s3",
-                region_name=os.environ.get("AWS_REGION")
-                or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
-            )
-            logger.info(
-                "✅ S3 client initialized successfully with default credentials"
-            )
+        # Always use default credential chain
+        logger.info("🔧 Using default AWS credential chain (service account/IAM role)")
+        s3 = boto3.client(
+            "s3",
+            region_name=os.environ.get("AWS_REGION")
+            or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+        )
+        logger.info("✅ S3 client initialized successfully with default credentials")
 
         # Get caller identity information
         get_caller_identity(s3)
