@@ -1,6 +1,11 @@
 # services/storage/s3_client.py
 """
 S3 client configuration and utilities with improved error handling.
+
+This module provides S3 client functionality for Kubernetes environments with:
+- Kubernetes service account authentication (service account: ns-writer)
+- Comprehensive permission checking and logging
+- Automatic credential handling via AWS credential chain
 """
 import os
 import logging
@@ -20,6 +25,12 @@ logger = logging.getLogger(__name__)
 
 # Hardcoded bucket name for now
 S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
+
+# Kubernetes service account configuration
+K8S_SERVICE_ACCOUNT_NAME = "ns-writer"
+
+
+
 
 
 def check_s3_permissions(s3_client, bucket_name):
@@ -161,8 +172,14 @@ def get_caller_identity(s3_client):
             logger.info("   🔑 Type: IAM User")
         elif ":role/" in arn:
             logger.info("   🔑 Type: IAM Role")
+            # Check if it's a service account role
+            if K8S_SERVICE_ACCOUNT_NAME in arn:
+                logger.info("   🚀 Kubernetes Service Account: %s", K8S_SERVICE_ACCOUNT_NAME)
         elif ":assumed-role/" in arn:
             logger.info("   🔑 Type: Assumed Role")
+            # Check if it's a service account assumed role
+            if K8S_SERVICE_ACCOUNT_NAME in arn:
+                logger.info("   🚀 Kubernetes Service Account: %s", K8S_SERVICE_ACCOUNT_NAME)
         else:
             logger.info("   🔑 Type: Unknown")
 
@@ -176,21 +193,25 @@ def get_s3_client():
     """
     Create and return a cached S3 client.
 
-    In Kubernetes environments, uses service account authentication.
-    In local development, can use AWS_PROFILE if available.
+    Uses Kubernetes service account authentication with the configured service account.
 
     Raises:
         S3Error: If client creation fails or credentials are unavailable.
     """
     try:
-        # Always use default credential chain
+        # Log Kubernetes service account usage
+        logger.info("🚀 Running in Kubernetes environment")
+        logger.info("🔧 Using service account: %s", K8S_SERVICE_ACCOUNT_NAME)
         logger.info("🔧 Using default AWS credential chain (service account/IAM role)")
+
+        # Create S3 client using default credential chain
         s3 = boto3.client(
             "s3",
             region_name=os.environ.get("AWS_REGION")
             or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
         )
-        logger.info("✅ S3 client initialized successfully with default credentials")
+
+        logger.info("✅ S3 client initialized successfully with Kubernetes service account")
 
         # Get caller identity information
         get_caller_identity(s3)
@@ -201,9 +222,11 @@ def get_s3_client():
         return s3
 
     except NoCredentialsError as e:
-        raise S3Error(
-            "Unable to locate AWS credentials. Ensure service account is properly configured or AWS profiles are set up."
-        ) from e
+        error_msg = (
+            f"Unable to locate AWS credentials. "
+            f"Ensure service account '{K8S_SERVICE_ACCOUNT_NAME}' is properly configured with IAM role."
+        )
+        raise S3Error(error_msg) from e
 
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "Unknown")
@@ -259,3 +282,23 @@ def validate_file_size(size_bytes, max_size_mb=100):
         raise ValidationError(
             f"File size ({size_bytes} bytes) exceeds limit ({max_size_mb}MB)"
         )
+
+
+def get_s3_config_info():
+    """
+    Get S3 client configuration information for debugging and monitoring.
+
+    Returns:
+        dict: Configuration information including environment, service account, and bucket details
+    """
+    config_info = {
+        "environment": "kubernetes",
+        "service_account_name": K8S_SERVICE_ACCOUNT_NAME,
+        "bucket_name": S3_BUCKET_NAME,
+        "aws_region": os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+        "k8s_namespace": os.environ.get("KUBERNETES_NAMESPACE"),
+        "k8s_pod_name": os.environ.get("HOSTNAME"),
+        "k8s_service_host": os.environ.get("KUBERNETES_SERVICE_HOST"),
+    }
+
+    return config_info
