@@ -184,10 +184,9 @@ def get_s3_client():
         S3Error: If client creation fails or credentials are unavailable.
     """
     try:
-        # Check if running in Kubernetes with service account
-        aws_profile = os.environ.get("AWS_PROFILE", "default")
+        aws_profile = os.environ.get("AWS_PROFILE")
 
-        if aws_profile and aws_profile.strip():
+        if aws_profile and aws_profile.strip() and aws_profile != "default":
             # Local development with AWS profile
             logger.info("🔧 Attempting to use AWS profile: %s", aws_profile)
             try:
