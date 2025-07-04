@@ -30,9 +30,6 @@ S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
 K8S_SERVICE_ACCOUNT_NAME = "ns-writer"
 
 
-
-
-
 def check_s3_permissions(s3_client, bucket_name):
     """
     Check and log available S3 permissions for the current credentials.
@@ -174,12 +171,16 @@ def get_caller_identity(s3_client):
             logger.info("   🔑 Type: IAM Role")
             # Check if it's a service account role
             if K8S_SERVICE_ACCOUNT_NAME in arn:
-                logger.info("   🚀 Kubernetes Service Account: %s", K8S_SERVICE_ACCOUNT_NAME)
+                logger.info(
+                    "   🚀 Kubernetes Service Account: %s", K8S_SERVICE_ACCOUNT_NAME
+                )
         elif ":assumed-role/" in arn:
             logger.info("   🔑 Type: Assumed Role")
             # Check if it's a service account assumed role
             if K8S_SERVICE_ACCOUNT_NAME in arn:
-                logger.info("   🚀 Kubernetes Service Account: %s", K8S_SERVICE_ACCOUNT_NAME)
+                logger.info(
+                    "   🚀 Kubernetes Service Account: %s", K8S_SERVICE_ACCOUNT_NAME
+                )
         else:
             logger.info("   🔑 Type: Unknown")
 
@@ -189,6 +190,7 @@ def get_caller_identity(s3_client):
         logger.warning("❌ Unexpected error getting caller identity: %s", e)
 
 
+@lru_cache(maxsize=1)
 def get_s3_client():
     """
     Create and return a cached S3 client.
@@ -211,7 +213,9 @@ def get_s3_client():
             or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
         )
 
-        logger.info("✅ S3 client initialized successfully with Kubernetes service account")
+        logger.info(
+            "✅ S3 client initialized successfully with Kubernetes service account"
+        )
 
         # Get caller identity information
         get_caller_identity(s3)
@@ -295,7 +299,8 @@ def get_s3_config_info():
         "environment": "kubernetes",
         "service_account_name": K8S_SERVICE_ACCOUNT_NAME,
         "bucket_name": S3_BUCKET_NAME,
-        "aws_region": os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
+        "aws_region": os.environ.get("AWS_REGION")
+        or os.environ.get("AWS_DEFAULT_REGION", AWS_REGION),
         "k8s_namespace": os.environ.get("KUBERNETES_NAMESPACE"),
         "k8s_pod_name": os.environ.get("HOSTNAME"),
         "k8s_service_host": os.environ.get("KUBERNETES_SERVICE_HOST"),
