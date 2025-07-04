@@ -172,7 +172,6 @@ def get_caller_identity(s3_client):
         logger.warning("❌ Unexpected error getting caller identity: %s", e)
 
 
-@lru_cache(maxsize=1)
 def get_s3_client():
     """
     Create and return a cached S3 client.
