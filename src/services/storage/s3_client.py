@@ -85,6 +85,7 @@ def check_s3_permissions(s3_client, bucket_name):
             Key=test_key,
             Body=b"test",
             ContentType="text/plain",
+            ServerSideEncryption="AES256",
         )
         permissions["put_object"] = True
         logger.info("✅ PutObject: ALLOWED")

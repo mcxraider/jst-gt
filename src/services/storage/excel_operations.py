@@ -45,7 +45,10 @@ def save_excel(df, path):
         logger.info(f"📄 Excel buffer size: {excel_size} bytes")
 
         get_s3_client().put_object(
-            Bucket=S3_BUCKET_NAME, Key=key, Body=buffer.getvalue()
+            Bucket=S3_BUCKET_NAME,
+            Key=key,
+            Body=buffer.getvalue(),
+            ServerSideEncryption="AES256",
         )
         logger.info(f"✅ Excel uploaded successfully to s3://{S3_BUCKET_NAME}/{key}")
     else:

@@ -64,6 +64,7 @@ def save_csv(df, path):
                 Key=key,
                 Body=csv_buffer.getvalue(),
                 ContentType="text/csv",
+                ServerSideEncryption="AES256",
             )
             logger.info(f"✅ CSV uploaded successfully to s3://{S3_BUCKET_NAME}/{key}")
         except ClientError as e:

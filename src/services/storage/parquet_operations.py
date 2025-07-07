@@ -113,6 +113,7 @@ def save_parquet(df, path, compression="snappy"):
                     Key=key,
                     Body=parquet_buffer.getvalue(),
                     ContentType="application/octet-stream",
+                    ServerSideEncryption="AES256",
                 )
             logger.info(
                 f"✅ Parquet uploaded successfully to s3://{S3_BUCKET_NAME}/{key}"
@@ -130,9 +131,7 @@ def save_parquet(df, path, compression="snappy"):
         try:
             Path(path).parent.mkdir(parents=True, exist_ok=True)
             df.to_parquet(path, index=False, compression=compression, engine="pyarrow")
-            logger.info(
-                f"✅ Parquet saved locally: {path} (compression: {compression})"
-            )
+            logger.info(f"✅ Parquet saved locally: {path} (compression: {compression})")
         except IOError as e:
             raise IOError(f"Failed to save Parquet locally: {e}")
 

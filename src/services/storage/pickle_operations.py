@@ -88,6 +88,7 @@ def save_pickle(obj: Any, path: str, max_size_mb: int = 100) -> None:
                 Key=key,
                 Body=buf.getvalue(),
                 ContentType="application/octet-stream",
+                ServerSideEncryption="AES256",
                 Metadata={
                     "pickle-version": str(pickle.HIGHEST_PROTOCOL),
                     "content-type": "pickle",
