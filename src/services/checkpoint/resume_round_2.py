@@ -251,16 +251,35 @@ def resume_round_2(
         inplace=True,
     )
 
-    # Check for column existence before dropping
-    columns_to_drop = ["invalid_pl", "Skill Title_y", "Skill Title"]
-    # Ensure columns exist in r1_valid before trying to drop them
-    columns_to_drop = [col for col in columns_to_drop if col in r1_valid.columns]
+    # Concatenate first, then handle duplicate columns
+    all_valid = pd.concat([r1_valid, r2_vout], ignore_index=True)
 
-    all_valid = (
-        pd.concat([r1_valid, r2_vout], ignore_index=True)
-        .drop(columns=columns_to_drop, errors="ignore")
-        .rename(columns={"Skill Title_x": "Skill Title"})
-    )
+    # Check for column existence in the concatenated dataframe before dropping
+    columns_to_drop = ["invalid_pl", "Skill Title_y"]
+    columns_to_drop = [col for col in columns_to_drop if col in all_valid.columns]
+
+    # Drop the identified columns
+    if columns_to_drop:
+        all_valid = all_valid.drop(columns=columns_to_drop, errors="ignore")
+
+    # Handle the Skill Title columns - rename _x version and drop any duplicate
+    if "Skill Title_x" in all_valid.columns:
+        all_valid = all_valid.rename(columns={"Skill Title_x": "Skill Title"})
+
+    # Remove any duplicate Skill Title columns (keep only the first occurrence)
+    if "Skill Title" in all_valid.columns:
+        # Get all columns and remove duplicates while preserving order
+        cols = list(all_valid.columns)
+        seen = set()
+        unique_cols = []
+        for col in cols:
+            if col not in seen:
+                unique_cols.append(col)
+                seen.add(col)
+            elif col == "Skill Title":
+                # Skip duplicate Skill Title columns
+                continue
+        all_valid = all_valid[unique_cols]
 
     # i) Poor-data-quality courses
     # Calling the S3 load_sector_file directly from services.db.data_readers

@@ -80,7 +80,7 @@ def save_parquet(df, path, compression="snappy"):
             )
             parquet_buffer = io.BytesIO()
             df.to_parquet(
-                parquet_buffer, index=False, compression=compression, engine="pyarrow"
+                parquet_buffer, index=False, compression=compression, engine="auto"
             )
             parquet_size = len(parquet_buffer.getvalue())
             logger.info(
@@ -113,7 +113,7 @@ def save_parquet(df, path, compression="snappy"):
             Path(path).parent.mkdir(parents=True, exist_ok=True)
 
             logger.info(f"💾 SAVE_PARQUET: Writing parquet file to local path: {path}")
-            df.to_parquet(path, index=False, compression=compression, engine="pyarrow")
+            df.to_parquet(path, index=False, compression=compression, engine="auto")
             logger.info(
                 f"✅ SAVE_PARQUET: Local save completed successfully: {path} (compression: {compression})"
             )
@@ -189,7 +189,7 @@ def load_parquet(path, columns=None):
 
             logger.info(f"🔄 LOAD_PARQUET: Processing downloaded data into DataFrame")
             df = pd.read_parquet(
-                io.BytesIO(obj["Body"].read()), columns=columns, engine="pyarrow"
+                io.BytesIO(obj["Body"].read()), columns=columns, engine="auto"
             )
             logger.info(
                 f"✅ LOAD_PARQUET: S3 load completed successfully - Shape: {df.shape}"
@@ -211,7 +211,7 @@ def load_parquet(path, columns=None):
 
         try:
             logger.info(f"📖 LOAD_PARQUET: Reading parquet file from local path: {path}")
-            df = pd.read_parquet(path, columns=columns, engine="pyarrow")
+            df = pd.read_parquet(path, columns=columns, engine="auto")
             logger.info(
                 f"✅ LOAD_PARQUET: Local load completed successfully - Shape: {df.shape}"
             )
