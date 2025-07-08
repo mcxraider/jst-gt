@@ -117,7 +117,7 @@ def test_s3_put_delete_object(content: str, key: str = "s3_test_object.txt"):
 
     try:
         s3_client = get_s3_client()
-        logger.info(f"S3_TEST: Writing content to s3://{S3_BUCKET_NAME}/{key}")
+        # logger.info(f"S3_TEST: Writing content to s3://{S3_BUCKET_NAME}/{key}")
         s3_client.put_object(
             Bucket=S3_BUCKET_NAME,
             Key=key,
@@ -125,7 +125,7 @@ def test_s3_put_delete_object(content: str, key: str = "s3_test_object.txt"):
             ContentType="text/plain",
             ServerSideEncryption="AES256",
         )
-        logger.info(f"S3_TEST: Deleting s3://{S3_BUCKET_NAME}/{key}")
+        # logger.info(f"S3_TEST: Deleting s3://{S3_BUCKET_NAME}/{key}")
         s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=key)
         logger.info("S3_TEST: Put/Delete test completed successfully.")
     except Exception as e:
