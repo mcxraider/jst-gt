@@ -81,7 +81,7 @@ def save_parquet(df, path, compression="snappy"):
             logger.info(
                 f"💾 SAVE_PARQUET: Writing to in-memory buffer with {compression} compression"
             )
-            df.head().to_parquet(buffer, index=False, compression=compression, engine="auto")
+            df.to_parquet(buffer, index=False, compression=compression, engine="auto")
             buffer.seek(0)  # Rewind buffer to the beginning for reading
 
             file_size = buffer.getbuffer().nbytes
