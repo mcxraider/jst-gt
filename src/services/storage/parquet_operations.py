@@ -4,6 +4,8 @@ Parquet file operations for both local filesystem and S3 storage.
 Handles saving, loading, and listing Parquet files for high-performance data I/O.
 """
 import io
+import os
+import tempfile
 import pandas as pd
 from pathlib import Path
 import logging
@@ -74,32 +76,42 @@ def save_parquet(df, path, compression="snappy"):
                 f"📊 SAVE_PARQUET: DataFrame info - Shape: {df.shape}, Memory usage: {df.memory_usage(deep=True).sum()} bytes"
             )
 
-            # Create parquet buffer
-            logger.info(
-                f"🔄 SAVE_PARQUET: Creating parquet buffer with {compression} compression"
-            )
-            parquet_buffer = io.BytesIO()
-            df.to_parquet(
-                parquet_buffer, index=False, compression=compression, engine="auto"
-            )
-            parquet_size = len(parquet_buffer.getvalue())
-            logger.info(
-                f"📄 SAVE_PARQUET: Parquet buffer created - Size: {parquet_size} bytes (compression: {compression})"
-            )
+            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp:
+                temp_path = tmp.name
 
-            logger.info(
-                f"🚀 SAVE_PARQUET: Starting S3 upload to s3://{S3_BUCKET_NAME}/{key}"
-            )
-            get_s3_client().put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=key,
-                Body=parquet_buffer.getvalue(),
-                ContentType="application/octet-stream",
-                ServerSideEncryption="AES256",
-            )
-            logger.info(
-                f"✅ SAVE_PARQUET: S3 upload completed successfully to s3://{S3_BUCKET_NAME}/{key}"
-            )
+            try:
+                # Save DataFrame to temporary file
+                logger.info(
+                    f"💾 SAVE_PARQUET: Saving to temporary file: {temp_path} with {compression} compression"
+                )
+                df.to_parquet(
+                    temp_path, index=False, compression=compression, engine="auto"
+                )
+                file_size = os.path.getsize(temp_path)
+                logger.info(
+                    f"📄 SAVE_PARQUET: Temporary file created - Size: {file_size} bytes"
+                )
+
+                # Upload the temporary file to S3
+                logger.info(
+                    f"🚀 SAVE_PARQUET: Starting S3 upload to s3://{S3_BUCKET_NAME}/{key}"
+                )
+                get_s3_client().upload_file(
+                    temp_path,
+                    S3_BUCKET_NAME,
+                    key,
+                    ExtraArgs={
+                        "ContentType": "application/octet-stream",
+                        "ServerSideEncryption": "AES256",
+                    },
+                )
+                logger.info(
+                    f"✅ SAVE_PARQUET: S3 upload completed successfully to s3://{S3_BUCKET_NAME}/{key}"
+                )
+            finally:
+                # Clean up the temporary file
+                logger.info(f"🗑️ SAVE_PARQUET: Deleting temporary file: {temp_path}")
+                os.remove(temp_path)
         except ClientError as e:
             logger.error(f"❌ SAVE_PARQUET: S3 CLIENT ERROR during upload: {e}")
             raise Exception(f"Failed to upload Parquet to S3: {e}")
