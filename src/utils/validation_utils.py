@@ -3,7 +3,11 @@ from typing import Union, Optional
 import json
 from ast import literal_eval
 
-from config import COURSE_DESCR_COLS
+from config import COURSE_DESCR_COLS, S3_BUCKET_NAME
+from services.storage.s3_client import get_s3_client
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def is_list_like_string(value: Union[str, None]) -> bool:
@@ -102,6 +106,30 @@ def extract_complex_skills(
         .reset_index(drop=True)
     )
     return exploded
+
+
+def test_s3_put_delete_object(content: str, key: str = "s3_test_object.txt"):
+    """
+    A simple test to write a string to S3 and then delete it.
+    """
+    if not content:
+        return
+
+    try:
+        s3_client = get_s3_client()
+        logger.info(f"S3_TEST: Writing content to s3://{S3_BUCKET_NAME}/{key}")
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=key,
+            Body=content.encode("utf-8"),
+            ContentType="text/plain",
+            ServerSideEncryption="AES256",
+        )
+        logger.info(f"S3_TEST: Deleting s3://{S3_BUCKET_NAME}/{key}")
+        s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=key)
+        logger.info("S3_TEST: Put/Delete test completed successfully.")
+    except Exception as e:
+        logger.error(f"S3_TEST: Put/Delete test failed: {e}")
 
 
 # --- Column Renaming ---
