@@ -1,5 +1,5 @@
 # Use S3 or local storage
-USE_S3: True
+USE_S3: False
 
 # Authentication and Session Configuration
 auth:

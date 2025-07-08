@@ -1,5 +1,5 @@
 # file: r1_utils.py
-from openai import OpenAI
+# from openai import OpenAI  # Commented out for dummy simulation
 from threading import Lock
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
@@ -7,25 +7,31 @@ import json
 from datetime import datetime
 import os
 from models.prompt_templates import R1_SYSTEM_PROMPT
-from dotenv import load_dotenv
+# from dotenv import load_dotenv  # Commented out since we're not using API keys
 
-load_dotenv()
+# load_dotenv()  # Commented out for dummy simulation
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
 
+# def get_openai_client():
+#     """
+#     Creates and returns a new OpenAI client instance.
+#     """
+#     api_key = os.getenv("OPENAI_API_KEY")
+#     if not api_key:
+#         # It's better to raise an error here if the key is missing
+#         raise ValueError("OPENAI_API_KEY environment variable is not set.")
+
+#     # We should return a new client every time this is called, for thread safety.
+#     client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
+#     return client
+
 def get_openai_client():
     """
-    Creates and returns a new OpenAI client instance.
+    Dummy client function for simulation - returns None since we're not using real OpenAI client.
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        # It's better to raise an error here if the key is missing
-        raise ValueError("OPENAI_API_KEY environment variable is not set.")
-
-    # We should return a new client every time this is called, for thread safety.
-    client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
-    return client
+    return None
 
 
 def get_skill_info(skill_title: str, skill_df: pd.DataFrame) -> dict:
@@ -135,7 +141,7 @@ def get_proficiency_level(
     course_learning: str,
     course_title: str,
     setup: int,
-    client: OpenAI,  # client is now a required argument
+    client=None,  # client is optional in dummy mode
 ) -> str:
     """
     Dummy function that returns mock responses based on R1_SYSTEM_PROMPT format.
@@ -195,18 +201,8 @@ def process_row(
     course_description = row["About This Course"]
     course_learning = row["What You'll Learn"]
 
-    # Create a new client instance for this thread
-    try:
-        thread_client = get_openai_client()
-    except ValueError as e:
-        print(f"[ERROR] Could not create OpenAI client: {e}. Skipping row.")
-        return {
-            "Skill Title": skill_title,
-            "Course Reference Number": row["Course Reference Number"],
-            "proficiency_level": 0,
-            "reason": "API Key missing",
-            "confidence": "none",
-        }
+    # Create a dummy client instance for this thread (not actually used in dummy mode)
+    thread_client = get_openai_client()
 
     with lock:
         if skill_title in skill_info_dict:
