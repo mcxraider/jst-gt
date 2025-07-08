@@ -15,9 +15,9 @@ def main():
     configure_page()
 
     # Check authentication first
-    # if not is_authenticated():
-    #     login_page()
-    #     return
+    if not is_authenticated():
+        login_page()
+        return
 
     sidebar()  # attach only when doing the demo
 
