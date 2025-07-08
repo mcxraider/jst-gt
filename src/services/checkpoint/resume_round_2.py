@@ -254,6 +254,19 @@ def resume_round_2(
     # Concatenate first, then handle duplicate columns
     all_valid = pd.concat([r1_valid, r2_vout], ignore_index=True)
 
+    # Debug: Print column names before cleaning
+    print(f"[DEBUG] Columns before cleaning: {list(all_valid.columns)}")
+    print(
+        f"[DEBUG] Duplicate columns found: {[col for col in all_valid.columns if list(all_valid.columns).count(col) > 1]}"
+    )
+
+    # Remove any duplicate columns using pandas loc with unique column selection
+    # This is more robust than manual iteration
+    all_valid = all_valid.loc[:, ~all_valid.columns.duplicated()]
+
+    # Debug: Print column names after duplicate removal
+    print(f"[DEBUG] Columns after duplicate removal: {list(all_valid.columns)}")
+
     # Check for column existence in the concatenated dataframe before dropping
     columns_to_drop = ["invalid_pl", "Skill Title_y"]
     columns_to_drop = [col for col in columns_to_drop if col in all_valid.columns]
@@ -265,21 +278,14 @@ def resume_round_2(
     # Handle the Skill Title columns - rename _x version and drop any duplicate
     if "Skill Title_x" in all_valid.columns:
         all_valid = all_valid.rename(columns={"Skill Title_x": "Skill Title"})
+        # After renaming, remove duplicates again if any were created
+        all_valid = all_valid.loc[:, ~all_valid.columns.duplicated()]
 
-    # Remove any duplicate Skill Title columns (keep only the first occurrence)
-    if "Skill Title" in all_valid.columns:
-        # Get all columns and remove duplicates while preserving order
-        cols = list(all_valid.columns)
-        seen = set()
-        unique_cols = []
-        for col in cols:
-            if col not in seen:
-                unique_cols.append(col)
-                seen.add(col)
-            elif col == "Skill Title":
-                # Skip duplicate Skill Title columns
-                continue
-        all_valid = all_valid[unique_cols]
+    # Debug: Print final column names
+    print(f"[DEBUG] Final columns: {list(all_valid.columns)}")
+    print(
+        f"[DEBUG] Any remaining duplicates: {[col for col in all_valid.columns if list(all_valid.columns).count(col) > 1]}"
+    )
 
     # i) Poor-data-quality courses
     # Calling the S3 load_sector_file directly from services.db.data_readers

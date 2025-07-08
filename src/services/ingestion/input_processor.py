@@ -150,7 +150,9 @@ def process_sfw_upload(
         logger.info(f"💾 PROCESS_SFW_UPLOAD: Saving SFW DataFrame as Parquet")
         save_parquet(df, parquet_path)
 
-        logger.info(f"✅ PROCESS_SFW_UPLOAD: Successfully converted SFW file to Parquet")
+        logger.info(
+            f"✅ PROCESS_SFW_UPLOAD: Successfully converted SFW file to Parquet"
+        )
         logger.info(f"📍 PROCESS_SFW_UPLOAD: Final location: {parquet_path}")
         logger.info(f"📊 PROCESS_SFW_UPLOAD: Final DataFrame shape: {df.shape}")
 

@@ -241,9 +241,7 @@ def write_r1_invalid_to_s3(df: pd.DataFrame, target_sector_alias: str):
         target_sector_alias (str): Sector alias for file naming
     """
     logger.info(f"📝 WRITE_R1_INVALID_TO_S3: Starting R1 invalid skills write")
-    logger.info(
-        f"🏷️ WRITE_R1_INVALID_TO_S3: Target sector alias: {target_sector_alias}"
-    )
+    logger.info(f"🏷️ WRITE_R1_INVALID_TO_S3: Target sector alias: {target_sector_alias}")
     logger.info(f"📊 WRITE_R1_INVALID_TO_S3: DataFrame shape: {df.shape}")
 
     path = (
@@ -297,9 +295,7 @@ def write_irrelevant_to_s3(df: pd.DataFrame, target_sector_alias: str):
         target_sector_alias (str): Sector alias for file naming
     """
     logger.info(f"📝 WRITE_IRRELEVANT_TO_S3: Starting irrelevant skills write")
-    logger.info(
-        f"🏷️ WRITE_IRRELEVANT_TO_S3: Target sector alias: {target_sector_alias}"
-    )
+    logger.info(f"🏷️ WRITE_IRRELEVANT_TO_S3: Target sector alias: {target_sector_alias}")
     logger.info(f"📊 WRITE_IRRELEVANT_TO_S3: DataFrame shape: {df.shape}")
 
     path = f"{INTERMEDIATE_OUTPUT_PATH}/{target_sector_alias}_r1_irrelevant.parquet"

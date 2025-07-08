@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 import os
 from models.prompt_templates import R1_SYSTEM_PROMPT
+
 # from dotenv import load_dotenv  # Commented out since we're not using API keys
 
 # load_dotenv()  # Commented out for dummy simulation
@@ -26,6 +27,7 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 #     # We should return a new client every time this is called, for thread safety.
 #     client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
 #     return client
+
 
 def get_openai_client():
     """

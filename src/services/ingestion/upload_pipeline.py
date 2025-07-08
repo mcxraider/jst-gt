@@ -173,7 +173,9 @@ def process_uploaded_files(
             logger.info("🔄 STEP 5: SESSION STATE UPDATE INITIATED")
             logger.info("📝 Setting st.session_state.results")
             st.session_state.results = results
-            logger.info("📝 Setting st.session_state.csv_yes = True (enables downloads)")
+            logger.info(
+                "📝 Setting st.session_state.csv_yes = True (enables downloads)"
+            )
             st.session_state.csv_yes = True
             logger.info("📝 Setting st.session_state.app_stage = 'results_ready'")
             st.session_state.app_stage = "results_ready"
