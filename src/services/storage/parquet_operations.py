@@ -142,7 +142,9 @@ def load_parquet(path, columns=None):
         Exception: If Parquet loading fails
     """
     logger.info(f"📂 LOAD_PARQUET: Starting load operation for path: {path}")
-    logger.info(f"🔧 LOAD_PARQUET: Configuration - USE_S3: {USE_S3}, Columns: {columns}")
+    logger.info(
+        f"🔧 LOAD_PARQUET: Configuration - USE_S3: {USE_S3}, Columns: {columns}"
+    )
 
     if USE_S3:
         logger.info("☁️ LOAD_PARQUET: Using S3 storage mode")
@@ -210,7 +212,9 @@ def load_parquet(path, columns=None):
             raise FileNotFoundError(f"Local file not found: {path}")
 
         try:
-            logger.info(f"📖 LOAD_PARQUET: Reading parquet file from local path: {path}")
+            logger.info(
+                f"📖 LOAD_PARQUET: Reading parquet file from local path: {path}"
+            )
             df = pd.read_parquet(path, columns=columns, engine="auto")
             logger.info(
                 f"✅ LOAD_PARQUET: Local load completed successfully - Shape: {df.shape}"
@@ -271,7 +275,9 @@ def get_parquet_file_info(path):
             parquet_file = path
 
         # Use pyarrow to read metadata efficiently
-        logger.info(f"🔍 GET_PARQUET_FILE_INFO: Analyzing parquet metadata with pyarrow")
+        logger.info(
+            f"🔍 GET_PARQUET_FILE_INFO: Analyzing parquet metadata with pyarrow"
+        )
         import pyarrow.parquet as pq
 
         parquet_metadata = pq.read_metadata(parquet_file)

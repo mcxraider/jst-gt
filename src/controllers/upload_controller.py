@@ -30,7 +30,9 @@ def upload_sfw_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
         return None, None
 
     # Show file info
-    st.write(f"📁 **File uploaded:** {uploaded.name} with size: {uploaded.size:,} bytes")
+    st.write(
+        f"📁 **File uploaded:** {uploaded.name} with size: {uploaded.size:,} bytes"
+    )
 
     # Validate file again upon upload
     try:
@@ -77,7 +79,9 @@ def upload_sector_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
         return None, None
 
     # Show file info
-    st.write(f"📁 **File uploaded:** {uploaded.name} with size: {uploaded.size:,} bytes")
+    st.write(
+        f"📁 **File uploaded:** {uploaded.name} with size: {uploaded.size:,} bytes"
+    )
 
     # Initial validation
     try:
