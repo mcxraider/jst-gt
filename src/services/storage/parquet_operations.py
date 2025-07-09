@@ -5,7 +5,6 @@ Handles saving, loading, and listing Parquet files for high-performance data I/O
 """
 import io
 import os
-import tempfile
 import pandas as pd
 from pathlib import Path
 import logging
@@ -76,38 +75,39 @@ def save_parquet(df, path, compression="snappy"):
                 f"📊 SAVE_PARQUET: DataFrame info - Shape: {df.shape}, Memory usage: {df.memory_usage(deep=True).sum()} bytes"
             )
 
-            # Create a temporary directory to store the parquet file before uploading
-            with tempfile.TemporaryDirectory() as temp_dir:
-                local_path = os.path.join(temp_dir, "temp-dataframe.parquet")
+            # Save the parquet file to a fixed temp location before uploading
+            fixed_temp_dir = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "../../../s3_bucket/s3_temp")
+            )
+            os.makedirs(fixed_temp_dir, exist_ok=True)
+            local_path = os.path.join(fixed_temp_dir, "temp-dataframe.parquet")
 
-                logger.info(
-                    f"💾 SAVE_PARQUET: Writing to temporary local file: {local_path}"
-                )
-                df.to_parquet(
-                    local_path, index=False, compression=compression, engine="auto"
-                )
+            logger.info(f"💾 SAVE_PARQUET: Writing to fixed temp file: {local_path}")
+            df.to_parquet(
+                local_path, index=False, compression=compression, engine="auto"
+            )
 
-                file_size = os.path.getsize(local_path)
-                logger.info(
-                    f"📄 SAVE_PARQUET: Temporary file created - Size: {file_size} bytes"
-                )
+            file_size = os.path.getsize(local_path)
+            logger.info(
+                f"📄 SAVE_PARQUET: Fixed temp file created - Size: {file_size} bytes"
+            )
 
-                # Upload the file from the temporary path to S3
-                logger.info(
-                    f"🚀 SAVE_PARQUET: Starting S3 upload from {local_path} to s3://{S3_BUCKET_NAME}/{key}"
-                )
-                get_s3_client().upload_file(
-                    local_path,
-                    S3_BUCKET_NAME,
-                    key,
-                    ExtraArgs={
-                        "ContentType": "application/octet-stream",
-                        "ServerSideEncryption": "AES256",
-                    },
-                )
-                logger.info(
-                    f"✅ SAVE_PARQUET: S3 upload completed successfully to s3://{S3_BUCKET_NAME}/{key}"
-                )
+            # Upload the file from the fixed temp path to S3
+            logger.info(
+                f"🚀 SAVE_PARQUET: Starting S3 upload from {local_path} to s3://{S3_BUCKET_NAME}/{key}"
+            )
+            get_s3_client().upload_file(
+                local_path,
+                S3_BUCKET_NAME,
+                key,
+                ExtraArgs={
+                    "ContentType": "application/octet-stream",
+                    "ServerSideEncryption": "AES256",
+                },
+            )
+            logger.info(
+                f"✅ SAVE_PARQUET: S3 upload completed successfully to s3://{S3_BUCKET_NAME}/{key}"
+            )
 
         except ClientError as e:
             logger.error(f"❌ SAVE_PARQUET: S3 CLIENT ERROR during upload: {e}")
