@@ -8,6 +8,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import logging
+import uuid
 
 from config import USE_S3
 from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
@@ -80,7 +81,8 @@ def save_parquet(df, path, compression="snappy"):
                 os.path.join(os.path.dirname(__file__), "../../../s3_bucket/s3_temp")
             )
             os.makedirs(fixed_temp_dir, exist_ok=True)
-            local_path = os.path.join(fixed_temp_dir, "temp-dataframe.parquet")
+            unique_id = uuid.uuid4().hex
+            local_path = os.path.join(fixed_temp_dir, f"temp-dataframe-{unique_id}.parquet")
 
             logger.info(f"💾 SAVE_PARQUET: Writing to fixed temp file: {local_path}")
             df.to_parquet(
