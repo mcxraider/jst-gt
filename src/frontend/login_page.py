@@ -2,36 +2,28 @@ import streamlit as st
 from frontend.components.login import (
     login_header,
     login_form,
-    security_notice,
 )
 from utils.time_auth_utils import generate_valid_passwords
+from frontend.components.login.system_health import (
+    check_all_systems_health,
+    display_system_health,
+)
 
 
 def simulate_password_provision():
     """Display the current valid time-based passwords for authentication"""
     valid_passwords = generate_valid_passwords()
 
-    # UI Presentation
-    st.info("🔐 Simulated Password Provision")
-
     # Display current hour password (primary)
-    st.write("**Current Hour Password:**")
+    st.write("**Simulated Password:**")
     st.code(valid_passwords[0], language="text")
-
-    # Display next hour password (backup)
-    st.write("**Next Hour Password (backup):**")
-    st.code(valid_passwords[1], language="text")
-
-    st.caption(
-        "Copy either password above for authentication. Please use the current hour password for now."
-    )
 
 
 def login_page():
     """Main login page with modular components"""
 
-    with st.empty().container(border=True):
-        col1, col2, col3 = st.columns([3, 4, 3])
+    with st.empty().container(border=False):
+        _, col2, _ = st.columns([3, 4, 3])
 
         with col2:
             # Add top spacing
@@ -41,13 +33,16 @@ def login_page():
             # Header section
             login_header()
 
+            # Perform health check in the background
+            all_systems_healthy, openai_healthy, s3_healthy = check_all_systems_health()
+
             # Login form
-            login_form()
+            login_form(disabled=not all_systems_healthy)
 
             simulate_password_provision()
 
-            # Security notice
-            security_notice()
+            # Display health status at the bottom
+            display_system_health(openai_healthy, s3_healthy)
 
             # Add bottom spacing
             st.write("")

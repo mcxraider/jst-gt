@@ -6,16 +6,18 @@ from utils.db_handler import authenticate_user
 from utils.session_cache import save_session
 
 
-def login_form():
+def login_form(disabled: bool = False):
     """Render the login form with email and password inputs"""
     # email = st.text_input("E-mail", placeholder="Enter your SSG email address")
     email = "Test user"
     password = st.text_input(
-        "Password", placeholder="Enter your password", type="password"
+        "Password",
+        placeholder="Enter your copied password",
+        type="password",
+        disabled=disabled,
     )
 
-    if st.button("Login", use_container_width=True):
-        time.sleep(2)
+    if st.button("Login", use_container_width=True, disabled=disabled):
         if not (password):
             st.error("You must have a password to Log in!")
         elif authenticate_user(email, password):

@@ -4,51 +4,16 @@ Parquet file operations for both local filesystem and S3 storage.
 Handles saving, loading, and listing Parquet files for high-performance data I/O.
 """
 import io
+import os
 import pandas as pd
 from pathlib import Path
 import logging
-import signal
-from contextlib import contextmanager
 
-from config import USE_S3
-from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
+from config import USE_S3, S3_BUCKET_NAME
+from .s3_client import get_s3_client, parse_s3_path
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
-
-
-class S3TimeoutError(Exception):
-    """Custom exception for S3 operation timeouts."""
-
-    pass
-
-
-@contextmanager
-def timeout_handler(seconds=60, error_message="Operation timed out"):
-    """
-    Context manager to handle operation timeouts.
-
-    Args:
-        seconds (int): Timeout duration in seconds
-        error_message (str): Error message to raise on timeout
-
-    Raises:
-        S3TimeoutError: If operation exceeds timeout duration
-    """
-
-    def timeout_signal_handler(signum, frame):
-        raise S3TimeoutError(error_message)
-
-    # Set up the signal handler
-    old_handler = signal.signal(signal.SIGALRM, timeout_signal_handler)
-    signal.alarm(seconds)
-
-    try:
-        yield
-    finally:
-        # Clean up
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_handler)
 
 
 def save_parquet(df, path, compression="snappy"):
@@ -64,76 +29,101 @@ def save_parquet(df, path, compression="snappy"):
         ValueError: If DataFrame is empty or path is invalid
         ClientError: If S3 upload fails
         IOError: If local file write fails
-        S3TimeoutError: If S3 operation times out after 1 minute
     """
+    logger.info(f"🎯 SAVE_PARQUET: Starting save operation for path: {path}")
+    logger.info(
+        f"🔧 SAVE_PARQUET: Configuration - USE_S3: {USE_S3}, Compression: {compression}"
+    )
+
+    # Validate DataFrame
+    if df is None:
+        logger.error("❌ SAVE_PARQUET: DataFrame is None")
+        raise ValueError("DataFrame cannot be None")
+
     if (
-        df is None
-        or df.empty
+        df.empty
         and "missing_content" not in str(path)
         and "poor_content" not in str(path)
     ):
-        raise ValueError("DataFrame cannot be None or empty")
+        logger.error("❌ SAVE_PARQUET: DataFrame is empty (and not a special case)")
+        raise ValueError("DataFrame cannot be empty")
+
+    if df.empty:
+        logger.warning(
+            "⚠️ SAVE_PARQUET: DataFrame is empty but saving anyway (special case detected)"
+        )
+
+    logger.info(f"📊 SAVE_PARQUET: DataFrame validation passed - Shape: {df.shape}")
 
     if USE_S3:
+        logger.info("☁️ SAVE_PARQUET: Using S3 storage mode")
         try:
             # Use hardcoded bucket name and extract just the key from the path
             if str(path).startswith("s3://"):
                 _, key = parse_s3_path(str(path))
                 logger.info(
-                    f"📤 PARQUET S3 UPLOAD: Parsed path - Bucket: {S3_BUCKET_NAME}, Key: {key}"
+                    f"📤 SAVE_PARQUET: Parsed S3 path - Bucket: {S3_BUCKET_NAME}, Key: {key}"
                 )
             else:
                 # If path doesn't start with s3://, treat it as a key
                 key = str(path).lstrip("/")
                 logger.info(
-                    f"📤 PARQUET S3 UPLOAD: Using path as key - Bucket: {S3_BUCKET_NAME}, Key: {key}"
+                    f"📤 SAVE_PARQUET: Using path as key - Bucket: {S3_BUCKET_NAME}, Key: {key}"
                 )
 
             logger.info(
-                f"📊 DataFrame info: Shape {df.shape}, Size: {df.memory_usage(deep=True).sum()} bytes"
+                f"📊 SAVE_PARQUET: DataFrame info - Shape: {df.shape}, Memory usage: {df.memory_usage(deep=True).sum()} bytes"
             )
 
-            # Create parquet buffer
-            parquet_buffer = io.BytesIO()
-            df.to_parquet(
-                parquet_buffer, index=False, compression=compression, engine="pyarrow"
-            )
-            parquet_size = len(parquet_buffer.getvalue())
+            # Save the parquet file to a BytesIO buffer before uploading
+            buffer = io.BytesIO()
+            df.to_parquet(buffer, index=False, compression=compression, engine="auto")
+            buffer.seek(0)
+            file_size = buffer.getbuffer().nbytes
             logger.info(
-                f"📄 Parquet buffer size: {parquet_size} bytes (compression: {compression})"
+                f"📄 SAVE_PARQUET: Parquet buffer created - Size: {file_size} bytes"
             )
 
-            logger.info(f"🚀 Starting S3 upload to s3://{S3_BUCKET_NAME}/{key}")
-            with timeout_handler(
-                60,
-                "S3 parquet upload timed out after 1 minute. This may indicate permission issues or network problems.",
-            ):
-                get_s3_client().put_object(
-                    Bucket=S3_BUCKET_NAME,
-                    Key=key,
-                    Body=parquet_buffer.getvalue(),
-                    ContentType="application/octet-stream",
-                    ServerSideEncryption="AES256",
-                )
+            # Upload the buffer to S3
             logger.info(
-                f"✅ Parquet uploaded successfully to s3://{S3_BUCKET_NAME}/{key}"
+                f"🚀 SAVE_PARQUET: Starting S3 upload from buffer to s3://{S3_BUCKET_NAME}/{key}"
             )
-        except S3TimeoutError as e:
-            logger.error(f"⏰ S3 TIMEOUT ERROR during Parquet upload: {e}")
-            raise Exception(f"S3 upload timed out: {e}")
+            get_s3_client().upload_fileobj(
+                buffer,
+                S3_BUCKET_NAME,
+                key,
+                ExtraArgs={
+                    "ContentType": "application/octet-stream",
+                    "ServerSideEncryption": "AES256",
+                },
+            )
+            logger.info(
+                f"✅ SAVE_PARQUET: S3 upload completed successfully to s3://{S3_BUCKET_NAME}/{key}"
+            )
+
         except ClientError as e:
-            logger.error(f"❌ S3 CLIENT ERROR during Parquet upload: {e}")
+            logger.error(f"❌ SAVE_PARQUET: S3 CLIENT ERROR during upload: {e}")
             raise Exception(f"Failed to upload Parquet to S3: {e}")
         except Exception as e:
-            logger.error(f"❌ UNEXPECTED ERROR during Parquet upload: {e}")
+            logger.error(f"❌ SAVE_PARQUET: UNEXPECTED ERROR during S3 upload: {e}")
             raise Exception(f"Unexpected error saving Parquet to S3: {e}")
     else:
+        logger.info("💾 SAVE_PARQUET: Using local filesystem mode")
         try:
+            logger.info(f"📁 SAVE_PARQUET: Creating parent directories for: {path}")
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-            df.to_parquet(path, index=False, compression=compression, engine="pyarrow")
-            logger.info(f"✅ Parquet saved locally: {path} (compression: {compression})")
+
+            logger.info(f"💾 SAVE_PARQUET: Writing parquet file to local path: {path}")
+            df.to_parquet(path, index=False, compression=compression, engine="auto")
+            logger.info(
+                f"✅ SAVE_PARQUET: Local save completed successfully: {path} (compression: {compression})"
+            )
         except IOError as e:
+            logger.error(f"❌ SAVE_PARQUET: IO ERROR during local save: {e}")
             raise IOError(f"Failed to save Parquet locally: {e}")
+        except Exception as e:
+            logger.error(f"❌ SAVE_PARQUET: UNEXPECTED ERROR during local save: {e}")
+            raise Exception(f"Unexpected error saving Parquet locally: {e}")
 
 
 def load_parquet(path, columns=None):
@@ -151,73 +141,88 @@ def load_parquet(path, columns=None):
         FileNotFoundError: If file doesn't exist
         ClientError: If S3 download fails
         Exception: If Parquet loading fails
-        S3TimeoutError: If S3 operation times out after 1 minute
     """
+    logger.info(f"📂 LOAD_PARQUET: Starting load operation for path: {path}")
+    logger.info(
+        f"🔧 LOAD_PARQUET: Configuration - USE_S3: {USE_S3}, Columns: {columns}"
+    )
+
     if USE_S3:
+        logger.info("☁️ LOAD_PARQUET: Using S3 storage mode")
         try:
-            with timeout_handler(
-                60,
-                "S3 parquet download timed out after 1 minute. This may indicate permission issues or network problems.",
-            ):
-                # Use hardcoded bucket name and extract just the key from the path
-                if str(path).startswith("s3://"):
-                    _, key = parse_s3_path(str(path))
-                    logger.info(
-                        f"📥 PARQUET S3 DOWNLOAD: Parsed path - Bucket: {S3_BUCKET_NAME}, Key: {key}"
-                    )
-                else:
-                    # If path doesn't start with s3://, treat it as a key
-                    key = str(path).lstrip("/")
-                    logger.info(
-                        f"📥 PARQUET S3 DOWNLOAD: Using path as key - Bucket: {S3_BUCKET_NAME}, Key: {key}"
-                    )
-
-                s3_client = get_s3_client()
-
-                # Check if object exists
-                try:
-                    head_response = s3_client.head_object(
-                        Bucket=S3_BUCKET_NAME, Key=key
-                    )
-                    file_size = head_response.get("ContentLength", 0)
-                    logger.info(f"📄 Found Parquet file: Size {file_size} bytes")
-                except ClientError as e:
-                    if e.response["Error"]["Code"] == "404":
-                        logger.error(
-                            f"❌ Parquet file not found: s3://{S3_BUCKET_NAME}/{key}"
-                        )
-                        raise FileNotFoundError(
-                            f"S3 object not found: s3://{S3_BUCKET_NAME}/{key}"
-                        )
-                    logger.error(f"❌ Error checking Parquet file: {e}")
-                    raise
-
-                logger.info(f"📥 Starting S3 download from s3://{S3_BUCKET_NAME}/{key}")
-                obj = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
-                df = pd.read_parquet(
-                    io.BytesIO(obj["Body"].read()), columns=columns, engine="pyarrow"
+            # Use hardcoded bucket name and extract just the key from the path
+            if str(path).startswith("s3://"):
+                _, key = parse_s3_path(str(path))
+                logger.info(
+                    f"📥 LOAD_PARQUET: Parsed S3 path - Bucket: {S3_BUCKET_NAME}, Key: {key}"
                 )
-                logger.info(f"✅ Parquet loaded successfully: Shape {df.shape}")
-                return df
+            else:
+                # If path doesn't start with s3://, treat it as a key
+                key = str(path).lstrip("/")
+                logger.info(
+                    f"📥 LOAD_PARQUET: Using path as key - Bucket: {S3_BUCKET_NAME}, Key: {key}"
+                )
 
-        except S3TimeoutError as e:
-            logger.error(f"⏰ S3 TIMEOUT ERROR during Parquet download: {e}")
-            raise Exception(f"S3 download timed out: {e}")
+            logger.info(f"🔗 LOAD_PARQUET: Getting S3 client")
+            s3_client = get_s3_client()
+
+            # Check if object exists
+            logger.info(f"🔍 LOAD_PARQUET: Checking if S3 object exists: {key}")
+            try:
+                head_response = s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
+                file_size = head_response.get("ContentLength", 0)
+                logger.info(
+                    f"📄 LOAD_PARQUET: Found Parquet file - Size: {file_size} bytes"
+                )
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "404":
+                    logger.error(
+                        f"❌ LOAD_PARQUET: File not found - s3://{S3_BUCKET_NAME}/{key}"
+                    )
+                    raise FileNotFoundError(
+                        f"S3 object not found: s3://{S3_BUCKET_NAME}/{key}"
+                    )
+                logger.error(f"❌ LOAD_PARQUET: Error checking S3 object: {e}")
+                raise
+
+            logger.info(
+                f"📥 LOAD_PARQUET: Starting S3 download from s3://{S3_BUCKET_NAME}/{key}"
+            )
+            obj = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
+
+            logger.info(f"🔄 LOAD_PARQUET: Processing downloaded data into DataFrame")
+            df = pd.read_parquet(
+                io.BytesIO(obj["Body"].read()), columns=columns, engine="auto"
+            )
+            logger.info(
+                f"✅ LOAD_PARQUET: S3 load completed successfully - Shape: {df.shape}"
+            )
+            return df
+
         except ClientError as e:
-            logger.error(f"❌ S3 CLIENT ERROR during Parquet download: {e}")
+            logger.error(f"❌ LOAD_PARQUET: S3 CLIENT ERROR during download: {e}")
             raise Exception(f"Failed to download Parquet from S3: {e}")
         except Exception as e:
-            logger.error(f"❌ UNEXPECTED ERROR during Parquet download: {e}")
+            logger.error(f"❌ LOAD_PARQUET: UNEXPECTED ERROR during S3 download: {e}")
             raise Exception(f"Unexpected error loading Parquet from S3: {e}")
     else:
+        logger.info("💾 LOAD_PARQUET: Using local filesystem mode")
+        logger.info(f"📁 LOAD_PARQUET: Checking if local file exists: {path}")
         if not Path(path).exists():
+            logger.error(f"❌ LOAD_PARQUET: Local file not found: {path}")
             raise FileNotFoundError(f"Local file not found: {path}")
+
         try:
-            df = pd.read_parquet(path, columns=columns, engine="pyarrow")
-            logger.info(f"✅ Parquet loaded locally: Shape {df.shape}")
+            logger.info(
+                f"📖 LOAD_PARQUET: Reading parquet file from local path: {path}"
+            )
+            df = pd.read_parquet(path, columns=columns, engine="auto")
+            logger.info(
+                f"✅ LOAD_PARQUET: Local load completed successfully - Shape: {df.shape}"
+            )
             return df
         except Exception as e:
-            logger.error(f"❌ Error loading local Parquet file: {e}")
+            logger.error(f"❌ LOAD_PARQUET: ERROR during local file read: {e}")
             raise Exception(f"Failed to load Parquet file: {e}")
 
 
@@ -234,35 +239,52 @@ def get_parquet_file_info(path):
     Raises:
         FileNotFoundError: If file doesn't exist
         Exception: If metadata reading fails
-        S3TimeoutError: If S3 operation times out after 1 minute
     """
+    logger.info(f"📊 GET_PARQUET_FILE_INFO: Starting metadata read for path: {path}")
+    logger.info(f"🔧 GET_PARQUET_FILE_INFO: Configuration - USE_S3: {USE_S3}")
+
     try:
         if USE_S3:
-            with timeout_handler(
-                60,
-                "S3 parquet metadata read timed out after 1 minute. This may indicate permission issues or network problems.",
-            ):
-                if str(path).startswith("s3://"):
-                    _, key = parse_s3_path(str(path))
-                else:
-                    key = str(path).lstrip("/")
-
+            logger.info("☁️ GET_PARQUET_FILE_INFO: Using S3 storage mode")
+            if str(path).startswith("s3://"):
+                _, key = parse_s3_path(str(path))
                 logger.info(
-                    f"📄 Reading Parquet metadata from s3://{S3_BUCKET_NAME}/{key}"
+                    f"📥 GET_PARQUET_FILE_INFO: Parsed S3 path - Bucket: {S3_BUCKET_NAME}, Key: {key}"
                 )
-                s3_client = get_s3_client()
-                obj = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
-                parquet_file = io.BytesIO(obj["Body"].read())
+            else:
+                key = str(path).lstrip("/")
+                logger.info(
+                    f"📥 GET_PARQUET_FILE_INFO: Using path as key - Bucket: {S3_BUCKET_NAME}, Key: {key}"
+                )
+
+            logger.info(
+                f"📄 GET_PARQUET_FILE_INFO: Reading metadata from s3://{S3_BUCKET_NAME}/{key}"
+            )
+            s3_client = get_s3_client()
+
+            logger.info(
+                f"🔄 GET_PARQUET_FILE_INFO: Downloading S3 object for metadata analysis"
+            )
+            obj = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
+            parquet_file = io.BytesIO(obj["Body"].read())
+            logger.info(f"📦 GET_PARQUET_FILE_INFO: S3 object downloaded successfully")
         else:
+            logger.info("💾 GET_PARQUET_FILE_INFO: Using local filesystem mode")
+            logger.info(
+                f"📁 GET_PARQUET_FILE_INFO: Reading metadata from local path: {path}"
+            )
             parquet_file = path
 
         # Use pyarrow to read metadata efficiently
+        logger.info(
+            f"🔍 GET_PARQUET_FILE_INFO: Analyzing parquet metadata with pyarrow"
+        )
         import pyarrow.parquet as pq
 
         parquet_metadata = pq.read_metadata(parquet_file)
         schema = pq.read_schema(parquet_file)
 
-        return {
+        metadata_info = {
             "num_rows": parquet_metadata.num_rows,
             "num_columns": len(schema.names),
             "column_names": schema.names,
@@ -274,9 +296,13 @@ def get_parquet_file_info(path):
             ),
         }
 
-    except S3TimeoutError as e:
-        logger.error(f"⏰ S3 TIMEOUT ERROR during Parquet metadata read: {e}")
-        raise Exception(f"S3 metadata read timed out: {e}")
+        logger.info(f"📊 GET_PARQUET_FILE_INFO: Metadata analysis completed")
+        logger.info(
+            f"📈 GET_PARQUET_FILE_INFO: Results - Rows: {metadata_info['num_rows']}, Columns: {metadata_info['num_columns']}, Size: {metadata_info['file_size_bytes']} bytes, Compression: {metadata_info['compression']}"
+        )
+
+        return metadata_info
+
     except Exception as e:
-        logger.error(f"❌ Error reading Parquet metadata: {e}")
+        logger.error(f"❌ GET_PARQUET_FILE_INFO: ERROR during metadata read: {e}")
         raise Exception(f"Failed to read Parquet metadata: {e}")

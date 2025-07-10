@@ -1,31 +1,37 @@
 # file: r1_utils.py
 from openai import OpenAI
-from threading import Lock
+from threading import Lock, local
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 import json
 from datetime import datetime
 import os
 from models.prompt_templates import R1_SYSTEM_PROMPT
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
+# Thread-local storage for OpenAI client
+thread_local = local()
+
 
 def get_openai_client():
     """
-    Creates and returns a new OpenAI client instance.
+    Returns a thread-local OpenAI client instance, creating one if it doesn't exist.
+    Raises a ValueError if the API key is not found.
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        # It's better to raise an error here if the key is missing
-        raise ValueError("OPENAI_API_KEY environment variable is not set.")
-
-    # We should return a new client every time this is called, for thread safety.
-    client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
-    return client
+    if not hasattr(thread_local, "client"):
+        api_key = os.getenv("API_KEY")
+        if not api_key:
+            raise ValueError("API_KEY environment variable is not set.")
+        # Create a new client for this thread and store it in thread_local.
+        thread_local.client = OpenAI(
+            api_key=api_key, base_url="https://litellm.govtext.gov.sg/"
+        )
+    return thread_local.client
 
 
 def get_skill_info(skill_title: str, skill_df: pd.DataFrame) -> dict:
@@ -86,48 +92,6 @@ def format_for_openai(proficiency_info: dict, setup: int) -> str:
 
 
 # Original get_proficiency_level function (commented out for testing)
-# def get_proficiency_level(
-#     skill_title: str,
-#     skill_info: dict,
-#     course_description: str,
-#     course_learning: str,
-#     course_title: str,
-#     setup: int,
-#     client: OpenAI,  # client is now a required argument
-# ) -> str:
-#     """
-#     Function to call OpenAI API.
-#     """
-#     formatted_data = format_for_openai(skill_info, setup)
-#     sys_messages = [
-#         {"role": "system", "content": R1_SYSTEM_PROMPT},
-#         {
-#             "role": "user",
-#             "content": (
-#                 f'Determine the appropriate proficency level for skill: "{skill_title}", '
-#                 f"based on how it's taught in the following description of a course: {course_title}, "
-#                 f"Course Description: {course_description} Course Learning Objectives: {course_learning}. "
-#                 f"And how its proficiency levels are defined: {formatted_data}."
-#             ),
-#         },
-#     ]
-#     try:
-#         response = client.chat.completions.create(
-#             model="gpt-4o",
-#             messages=sys_messages,
-#             response_format={"type": "json_object"},
-#             seed=6800,
-#             temperature=0.1,
-#         )
-#         completion_output = response.choices[0].message.content
-#     except Exception as e:
-#         # Added a more descriptive error message and return value
-#         print(f"[ERROR] OpenAI API call failed in get_proficiency_level: {e}")
-#         completion_output = ""
-#     return completion_output
-
-
-# Dummy function for testing purposes
 def get_proficiency_level(
     skill_title: str,
     skill_info: dict,
@@ -138,75 +102,48 @@ def get_proficiency_level(
     client: OpenAI,  # client is now a required argument
 ) -> str:
     """
-    Dummy function that returns mock responses based on R1_SYSTEM_PROMPT format.
-    Returns JSON string with format: {"proficiency_level": int, "reason": str, "confidence": str}
+    Function to call OpenAI API.
     """
-    import random
-
-    # Extract available proficiency levels from skill_info
-    available_levels = list(skill_info.keys()) if skill_info else [1, 2, 3, 4, 5]
-
-    # Generate realistic dummy data
-    proficiency_level = (
-        random.choice(available_levels) if available_levels else random.randint(1, 5)
-    )
-
-    confidence_levels = ["low", "medium", "high"]
-    confidence = random.choice(confidence_levels)
-
-    # Generate realistic reasons based on skill assessment context
-    reasons = [
-        "Course content demonstrates practical application matching this proficiency level.",
-        "Learning objectives align with knowledge requirements for this level.",
-        "Assessment methods and course depth correspond to expected proficiency.",
-        "Training materials show appropriate complexity for this skill level.",
-        "Course structure indicates comprehensive coverage at this proficiency.",
-        "Practical exercises and case studies support this level classification.",
-        "Course prerequisites and outcomes match proficiency expectations.",
-        "Content depth and technical complexity align with level requirements.",
-        "Learning activities demonstrate skill application at appropriate level.",
+    formatted_data = format_for_openai(skill_info, setup)
+    sys_messages = [
+        {"role": "system", "content": R1_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f'Determine the appropriate proficency level for skill: "{skill_title}", '
+                f"based on how it's taught in the following description of a course: {course_title}, "
+                f"Course Description: {course_description} Course Learning Objectives: {course_learning}. "
+                f"And how its proficiency levels are defined: {formatted_data}."
+            ),
+        },
     ]
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-prd-gcc2-lb",
+            messages=sys_messages,
+            response_format={"type": "json_object"},
+            seed=6800,
+            temperature=0.1,
+        )
+        completion_output = response.choices[0].message.content
+    except Exception as e:
+        # Added a more descriptive error message and return value
+        print(f"[ERROR] OpenAI API call failed in get_proficiency_level: {e}")
+        completion_output = ""
 
-    reason = random.choice(reasons)
-
-    # Create mock response in the expected JSON format
-    mock_response = {
-        "proficiency_level": proficiency_level,
-        "reason": reason,
-        "confidence": confidence,
-    }
-
-    # Convert to JSON string as expected by the original function
-    json_response = json.dumps(mock_response)
-
-    print(
-        f"[DUMMY R1] Skill: {skill_title[:30]}... -> Level: {proficiency_level}, Confidence: {confidence}"
-    )
-
-    return json_response
+    if completion_output is None:
+        return ""
+    return completion_output
 
 
-def process_row(
-    row, skill_info_dict, knowledge_df, lock
-):  # Removed 'client' from arguments
-    bad_course_filepath = "./bad_course_list.txt"
+def process_row(row, skill_info_dict, knowledge_df, lock):
     skill_title = row["Skill Title"]
     course_title = row["Course Title"]
     course_description = row["About This Course"]
     course_learning = row["What You'll Learn"]
 
-    # Create a new client instance for this thread
-    try:
-        thread_client = get_openai_client()
-    except ValueError as e:
-        print(f"[ERROR] Could not create OpenAI client: {e}. Skipping row.")
-        return {
-            "Skill Title": skill_title,
-            "Course Reference Number": row["Course Reference Number"],
-            "proficiency_level": 0,
-            "reason": "API Key missing",
-            "confidence": "none",
-        }
+    # Get the thread-local client.
+    thread_client = get_openai_client()
 
     with lock:
         if skill_title in skill_info_dict:
@@ -222,19 +159,8 @@ def process_row(
         course_learning,
         course_title,
         3,
-        thread_client,  # Pass the newly created client
+        thread_client,
     )
-    if proficiency_level_with_reason == "":
-        with open(bad_course_filepath, "a") as fi:  # Use 'a' for append
-            fi.write(f"""{row["Course Reference Number"]}\n""")
-        res_dict = {
-            "proficiency_level": 0,
-            "reason": "LLM call failed or returned empty response",
-            "confidence": "none",
-            "Skill Title": row["Skill Title"],
-            "Course Reference Number": row["Course Reference Number"],
-        }
-        return res_dict
 
     try:
         res_dict = json.loads(proficiency_level_with_reason)
@@ -265,7 +191,7 @@ def run_in_parallel(course_df, knowledge_df):
         futures = [
             executor.submit(
                 process_row, row, skill_info_dict, knowledge_df, lock
-            )  # <<< FIX IS HERE: client is no longer passed as an argument
+            )  # client is no longer passed as an argument
             for _, row in course_df.iterrows()
         ]
         for future in futures:

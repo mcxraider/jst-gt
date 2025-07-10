@@ -61,23 +61,3 @@ def display_file_preview(df: pd.DataFrame, file_type: str) -> None:
     """Display a preview of the uploaded file."""
     st.write(f"**Preview of {file_type}:**")
     st.dataframe(df.head())
-
-    # # Show basic info about the file
-    # st.write(f"**File Summary:**")
-    # st.write(f"- Total rows: {len(df):,}")
-    # st.write(f"- Total columns: {len(df.columns)}")
-
-    # # Show column info
-    # with st.expander("Click to see column details"):
-    #     st.write("**Columns and Data Types:**")
-    #     col_info = pd.DataFrame(
-    #         {
-    #             "Column Name": df.columns,
-    #             "Data Type": [str(dtype) for dtype in df.dtypes],
-    #             "Non-Null Count": [
-    #                 f"{df[col].count():,} / {len(df):,}" for col in df.columns
-    #             ],
-    #             "Null Count": [f"{df[col].isnull().sum():,}" for col in df.columns],
-    #         }
-    #     )
-    #     st.dataframe(col_info, use_container_width=True)

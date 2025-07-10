@@ -19,7 +19,7 @@ def main():
         login_page()
         return
 
-    sidebar()  # attach only when doing the demo
+    sidebar()
 
     # --- Initial Choice Stage ---
     if st.session_state.app_stage == "initial_choice":

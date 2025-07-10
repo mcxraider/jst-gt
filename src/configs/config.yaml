@@ -13,7 +13,7 @@ auth:
 ui:
   page_title: "SAIL - Skills Proficiency Tagging Portal"
   page_icon: "../public/assets/images/SAIL logo.png"
-  app_name_display: "SAIL"
+  app_name_display: "Skills Proficiency Tagging Portal"
 
 # Directory paths (local)
 base_dir: "../s3_bucket"
@@ -29,6 +29,13 @@ s3_intermediate_prefix: "idd-ai-pl-tagging-bucket_intermediate"
 s3_output_prefix: "idd-ai-pl-tagging-bucket_output"
 s3_misc_output_prefix: "idd-ai-pl-tagging-bucket_misc_output"
 s3_checkpoint_prefix: "idd-ai-pl-tagging-bucket_checkpoint"
+
+ALLOWED_S3_BUCKET_PREFIXES:
+  - "idd-ai-pl-tagging-bucket_checkpoint"
+  - "idd-ai-pl-tagging-bucket_input"
+  - "idd-ai-pl-tagging-bucket_intermediate"
+  - "idd-ai-pl-tagging-bucket_misc_output"
+  - "idd-ai-pl-tagging-bucket_output"
 
 PDF_URL: "../public/assets/PDF/File Format Guide for SFW and Sector File.pdf"
 

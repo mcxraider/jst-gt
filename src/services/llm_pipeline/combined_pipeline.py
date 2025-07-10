@@ -13,7 +13,6 @@ from services.checkpoint.checkpoint_manager import CheckpointManager
 
 pd.set_option("future.no_silent_downcasting", True)
 
-NUM_ROWS = 200
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
@@ -65,11 +64,9 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     irrelevant_initial = course_df[course_df["Sector Relevance"] == "Not in sector"]
     # irrelevant_initial.to_csv(irrelevant_output_path, index=False, encoding="utf-8")
     write_irrelevant_to_s3(irrelevant_initial, target_sector_alias)
-    work_df = (
-        course_df[course_df["Sector Relevance"] == "In Sector"]
-        .reset_index(drop=True)
-        .head(NUM_ROWS)
-    )  # remove the head(90) this if need testing
+    work_df = course_df[course_df["Sector Relevance"] == "In Sector"].reset_index(
+        drop=True
+    )
 
     # Initialize Round 1 checkpoint state
     ckpt.state = {"round": "r1", "r1_pending": list(work_df.index), "r1_results": []}
@@ -77,7 +74,7 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
 
     # === Round 1 Execution ===
     caption.caption("[Status] Processing 1st Stage...")
-    r1_results = resume_round_1(work_df, sfw, ckpt, progress_bar)
+    r1_results = resume_round_1(work_df, sfw, ckpt, progress_bar, caption)
 
     # === Round 1 Post-processing ===
     r1_df = pd.DataFrame(r1_results)
@@ -169,7 +166,13 @@ def handle_core_processing(caption, target_sector, target_sector_alias):
     caption.caption("[Status] Processing 2nd Stage...")
 
     r2_valid, r2_invalid, all_valid = resume_round_2(
-        target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
+        target_sector,
+        target_sector_alias,
+        df_r2_input,
+        sfw,
+        ckpt,
+        progress_bar,
+        caption,
     )
 
     st.success(f"Round 2 complete, all files saved in S3.")

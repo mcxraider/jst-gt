@@ -15,8 +15,11 @@ with open("./configs/skill_rac_chart.yaml", "r") as f:
 
 # === AWS S3 Configuration ===
 USE_S3 = config.get("USE_S3", False)
-S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"  # Hardcoded for now
 AWS_REGION = os.environ.get("AWS_REGION", "")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "")
+K8S_SERVICE_ACCOUNT_NAME = os.environ.get("K8S_SERVICE_ACCOUNT_NAME", "")
+ALLOWED_S3_BUCKET_PREFIXES = config.get("ALLOWED_S3_BUCKET_PREFIXES", [])
+
 
 # Validate S3 configuration if S3 is enabled
 if USE_S3 and not S3_BUCKET_NAME:

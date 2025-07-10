@@ -62,7 +62,7 @@ def handle_checkpoint_processing(
 
         # Resume Round 1
         caption.caption("[Status] Processing 1st Stage...")
-        r1_results = resume_round_1(work_df, sfw, ckpt, progress_bar)
+        r1_results = resume_round_1(work_df, sfw, ckpt, progress_bar, caption)
 
         # === Round 1 Post-processing ===
         r1_df = pd.DataFrame(r1_results)
@@ -174,7 +174,13 @@ def handle_checkpoint_processing(
 
         # Start Round 2 processing
         r2_valid, r2_invalid, all_valid = resume_round_2(
-            target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
+            target_sector,
+            target_sector_alias,
+            df_r2_input,
+            sfw,
+            ckpt,
+            progress_bar,
+            caption,
         )
 
         # Check if early exit was triggered
@@ -267,7 +273,13 @@ def handle_checkpoint_processing(
 
         # Resume Round 2 processing
         r2_valid, r2_invalid, all_valid = resume_round_2(
-            target_sector, target_sector_alias, df_r2_input, sfw, ckpt, progress_bar
+            target_sector,
+            target_sector_alias,
+            df_r2_input,
+            sfw,
+            ckpt,
+            progress_bar,
+            caption,
         )
 
         st.success(f"Round 2 complete after resuming from checkpoint, all files saved.")

@@ -29,9 +29,6 @@ def upload_sfw_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     if uploaded is None:
         return None, None
 
-    # Show file info
-    st.write(f"📁 **File uploaded:** {uploaded.name} with size: {uploaded.size:,} bytes")
-
     # Validate file again upon upload
     try:
         valid, error_message = asyncio.run(
@@ -67,7 +64,7 @@ def upload_sector_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
         Tuple[Optional[pd.DataFrame], Optional[str]]: (dataframe, filename) or (None, None)
     """
     uploaded = st.file_uploader(
-        "Upload Sector File (Note: Sector file is large and takes awhile longer to process)",
+        "Upload Sector File (Note: Sector file is large and may take awhile longer to validate)",
         type=["xlsx"],
         key="sector_file",
         help="Upload your sector file. Format: [SECTOR]_[Full_Name]_sector_course_listing_curated.xlsx",
@@ -75,9 +72,6 @@ def upload_sector_file() -> Tuple[Optional[pd.DataFrame], Optional[str]]:
 
     if uploaded is None:
         return None, None
-
-    # Show file info
-    st.write(f"📁 **File uploaded:** {uploaded.name} with size: {uploaded.size:,} bytes")
 
     # Initial validation
     try:
