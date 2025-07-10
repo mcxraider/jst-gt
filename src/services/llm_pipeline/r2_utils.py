@@ -72,6 +72,11 @@ def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
     Returns responses in the format: {'proficiency': int, 'reason': str, 'confidence': str}
     """
     import random
+    import time
+
+    # Simulate API latency with random delay between 0.3-0.7 seconds (average ~0.5s)
+    api_delay = random.uniform(0.3, 0.7)
+    time.sleep(api_delay)
 
     # Extract user message to understand what's being asked
     user_content = ""

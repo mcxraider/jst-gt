@@ -56,11 +56,11 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
                         progress = processed / total
                         progress_bar.progress(progress)
 
-                    if api_calls % 40 == 0:
+                    if api_calls % 60 == 0:
                         print(
                             "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
                         )
-                        time.sleep(1)
+                        time.sleep(10)
 
                     if processed % 30 == 0:
                         # checkpoint every 30 processed

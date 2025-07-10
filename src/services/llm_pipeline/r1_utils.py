@@ -150,14 +150,22 @@ def get_proficiency_level(
     Returns JSON string with format: {"proficiency_level": int, "reason": str, "confidence": str}
     """
     import random
+    import time
+
+    # Simulate API latency with random delay between 0.3-0.7 seconds (average ~0.5s)
+    api_delay = random.uniform(0.3, 0.7)
+    time.sleep(api_delay)
 
     # Extract available proficiency levels from skill_info
     available_levels = list(skill_info.keys()) if skill_info else [1, 2, 3, 4, 5]
 
-    # Generate realistic dummy data
-    proficiency_level = (
-        random.choice(available_levels) if available_levels else random.randint(1, 5)
-    )
+    # Generate realistic dummy data - convert to native Python int to avoid JSON serialization issues
+    if available_levels:
+        proficiency_level = int(
+            random.choice(available_levels)
+        )  # Convert to native Python int
+    else:
+        proficiency_level = random.randint(1, 5)
 
     confidence_levels = ["low", "medium", "high"]
     confidence = random.choice(confidence_levels)
@@ -179,13 +187,23 @@ def get_proficiency_level(
 
     # Create mock response in the expected JSON format
     mock_response = {
-        "proficiency_level": proficiency_level,
+        "proficiency_level": proficiency_level,  # Now guaranteed to be native Python int
         "reason": reason,
         "confidence": confidence,
     }
 
     # Convert to JSON string as expected by the original function
-    json_response = json.dumps(mock_response)
+    try:
+        json_response = json.dumps(mock_response)
+    except TypeError as e:
+        # Fallback if there are still serialization issues
+        print(f"[ERROR] JSON serialization failed: {e}")
+        fallback_response = {
+            "proficiency_level": 1,  # Safe fallback
+            "reason": "JSON serialization error occurred",
+            "confidence": "low",
+        }
+        json_response = json.dumps(fallback_response)
 
     print(
         f"[DUMMY R1] Skill: {skill_title[:30]}... -> Level: {proficiency_level}, Confidence: {confidence}"

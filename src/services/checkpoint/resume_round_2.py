@@ -127,11 +127,11 @@ def resume_round_2(
                     progress_bar.progress(progress)
 
                 # rate‐limit pause
-                if api_calls % 40 == 0:
+                if api_calls % 60 == 0:
                     print(
                         "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
                     )
-                    time.sleep(1)
+                    time.sleep(10)
 
                 # checkpoint every 30 rows
                 if processed % 30 == 0:
