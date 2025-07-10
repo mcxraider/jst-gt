@@ -24,10 +24,10 @@ def check_openai_api_health():
     """
     logger.info("Performing OpenAI API health check...")
     try:
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("API_KEY")
         if not api_key:
             logger.error(
-                "OpenAI API health check failed: `OPENAI_API_KEY` environment variable is not set."
+                "OpenAI API health check failed: `API_KEY` environment variable is not set."
             )
             return False
 

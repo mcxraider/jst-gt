@@ -28,9 +28,9 @@ def get_openai_client():
     Raises a ValueError if the API key is not found.
     """
     if not hasattr(thread_local, "client"):
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set.")
+            raise ValueError("API_KEY environment variable is not set.")
 
         # Create a new client for this thread and store it in thread_local.
         thread_local.client = OpenAI(
