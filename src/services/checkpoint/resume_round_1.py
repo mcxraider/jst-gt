@@ -6,13 +6,14 @@ from threading import Lock
 from services.llm_pipeline.r1_utils import process_row
 
 
-def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
+def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None, caption=None):
     """
     Batch-process Round 1 prompts with:
       - 10 workers
       - Sleep 10s every 40 calls
       - Checkpoint every 30
       - Show tqdm progress bar and Streamlit progress
+      - Display estimated time remaining
     """
     client = None
 
@@ -21,6 +22,10 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
     results = ckpt.state["r1_results"][:]  # list of already-done
 
     total = len(pending) + len(results)  # how many in total
+
+    # Time estimation parameters based on experimentation
+    ROUND1_RATE = 1.79  # rows per second
+
     pbar = tqdm(
         total=total, initial=len(results), desc="Round1 rows processed", unit="row"
     )
@@ -28,6 +33,41 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
     skill_info, lock = {}, Lock()
     api_calls = len(results)
     processed = len(results)
+
+    # Track start time for better estimation
+    start_time = time.time()
+
+    def update_caption_with_eta(processed, total):
+        if caption is not None:
+            remaining = total - processed
+            if processed > 0:
+                # Calculate dynamic rate based on actual progress
+                elapsed = time.time() - start_time
+                actual_rate = processed / elapsed if elapsed > 0 else ROUND1_RATE
+                # Use a blend of actual rate and expected rate for stability
+                estimated_rate = (actual_rate + ROUND1_RATE) / 2
+            else:
+                estimated_rate = ROUND1_RATE
+
+            eta_seconds = remaining / estimated_rate if estimated_rate > 0 else 0
+
+            if eta_seconds > 3600:  # More than 1 hour
+                eta_minutes = int(
+                    (eta_seconds / 60) + 0.5
+                )  # Round up to nearest minute
+                eta_str = f"ETA {eta_minutes} minutes"
+            elif eta_seconds > 60:  # More than 1 minute
+                eta_minutes = int(
+                    (eta_seconds / 60) + 0.5
+                )  # Round up to nearest minute
+                eta_str = f"ETA {eta_minutes} minutes"
+            else:
+                eta_str = "ETA less than 1 minute"
+
+            caption.caption(f"[Status] Processing 1st Stage... ({eta_str})")
+
+    # Initial caption update
+    update_caption_with_eta(processed, total)
 
     while pending:
 
@@ -55,6 +95,9 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
                         progress = processed / total
                         progress_bar.progress(progress)
 
+                    # Update caption with ETA
+                    update_caption_with_eta(processed, total)
+
                     if api_calls % 60 == 0:
                         print(
                             "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
@@ -65,6 +108,9 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
                         # checkpoint every 30 processed
                         ckpt.state["r1_pending"] = pending
                         ckpt.state["r1_results"] = results
+                        ckpt.last_progress = (
+                            processed / total
+                        )  # Save progress for main pipeline
                         ckpt.save()
                         print(
                             f"Checkpoint saved at {processed}/{total} rows processed."
@@ -77,6 +123,7 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
     # final checkpoint
     ckpt.state["r1_pending"] = pending
     ckpt.state["r1_results"] = results
+    ckpt.last_progress = processed / total  # Save final progress
     ckpt.save()
 
     pbar.close()

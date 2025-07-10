@@ -24,6 +24,7 @@ def resume_round_2(
     sfw_raw: pd.DataFrame,
     ckpt: CheckpointManager,
     progress_bar=None,
+    caption=None,
 ):
     """
     Process Round 2 on the "invalid" from Round 1, exactly as in round2_processing.py,
@@ -72,9 +73,48 @@ def resume_round_2(
     processed = len(results)
 
     total = len(pending) + len(results)
+
+    # Time estimation parameters (assuming similar rate to Round 1)
+    ROUND2_RATE = 1.79  # rows per second, same as Round 1
+
     pbar = tqdm(
         total=total, initial=len(results), desc="Round2 rows processed", unit="row"
     )
+
+    # Track start time for better estimation
+    start_time = time.time()
+
+    def update_caption_with_eta(processed, total):
+        if caption is not None:
+            remaining = total - processed
+            if processed > 0:
+                # Calculate dynamic rate based on actual progress
+                elapsed = time.time() - start_time
+                actual_rate = processed / elapsed if elapsed > 0 else ROUND2_RATE
+                # Use a blend of actual rate and expected rate for stability
+                estimated_rate = (actual_rate + ROUND2_RATE) / 2
+            else:
+                estimated_rate = ROUND2_RATE
+
+            eta_seconds = remaining / estimated_rate if estimated_rate > 0 else 0
+
+            if eta_seconds > 3600:  # More than 1 hour
+                eta_minutes = int(
+                    (eta_seconds / 60) + 0.5
+                )  # Round up to nearest minute
+                eta_str = f"ETA {eta_minutes} minutes"
+            elif eta_seconds > 60:  # More than 1 minute
+                eta_minutes = int(
+                    (eta_seconds / 60) + 0.5
+                )  # Round up to nearest minute
+                eta_str = f"ETA {eta_minutes} minutes"
+            else:
+                eta_str = "ETA less than 1 minute"
+
+            caption.caption(f"[Status] Processing 2nd Stage... ({eta_str})")
+
+    # Initial caption update
+    update_caption_with_eta(processed, total)
 
     # 4) Process in batches of 10
     while pending:
@@ -123,6 +163,9 @@ def resume_round_2(
                     progress = processed / total
                     progress_bar.progress(progress)
 
+                # Update caption with ETA
+                update_caption_with_eta(processed, total)
+
                 # rate-limit pause
                 if api_calls % 60 == 0:
                     # print("[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits...")
@@ -133,11 +176,15 @@ def resume_round_2(
                     # print(f"Checkpoint saved at {processed}/{total} rows processed.")
                     ckpt.state["r2_pending"] = pending
                     ckpt.state["r2_results"] = results
+                    ckpt.last_progress = (
+                        processed / total
+                    )  # Save progress for main pipeline
                     ckpt.save()
 
     # final checkpoint
     ckpt.state["r2_pending"] = pending
     ckpt.state["r2_results"] = results
+    ckpt.last_progress = processed / total  # Save final progress
     ckpt.save()
 
     pbar.close()
@@ -255,22 +302,6 @@ def resume_round_2(
         all_valid = all_valid.rename(columns={"Skill Title_x": "Skill Title"})
         # After renaming, remove duplicates again if any were created
         all_valid = all_valid.loc[:, ~all_valid.columns.duplicated()]
-
-    # Commmenting out to reduce S3 I/O tasks
-
-    # # i) Poor-data-quality courses
-    # # Calling the S3 load_sector_file directly from services.db.data_readers
-    # orig = load_sector_file()
-    # raw_course = load_sector_file(cols=["Skill Title", "Course Reference Number"])
-
-    # merged_crs = pd.merge(orig, raw_course, on="Course Reference Number", how="inner")
-
-    # poor = merged_crs[
-    #     ~merged_crs["Course Reference Number"].isin(merged["Course Reference Number"])
-    # ]
-
-    # missing = poor[poor["Course Title"].isnull()]
-    # write_missing_to_s3(missing, target_sector_alias)
 
     r2_invalid = pd.concat([r2_untagged, r2_invalid], ignore_index=True)
     # The return type here is a tuple of DataFrames
