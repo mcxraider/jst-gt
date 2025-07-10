@@ -8,10 +8,14 @@ from tqdm import tqdm
 import json  # Ensure json is imported for loads()
 from models.prompt_templates import R2_SYSTEM_PROMPT
 from dotenv import load_dotenv
+from threading import local
 
 load_dotenv()
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+# Thread-local storage for OpenAI client
+thread_local = local()
 
 
 def generate_hash(text):
@@ -22,99 +26,102 @@ def generate_hash(text):
 
 def get_openai_client():
     """
-    Creates and returns a new OpenAI client instance.
+    Creates and returns a thread-local OpenAI client instance.
     Raises a ValueError if the API key is not found.
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is not set.")
+    if not hasattr(thread_local, "client"):
+        api_key = os.getenv("API_KEY")
+        if not api_key:
+            raise ValueError("API_KEY environment variable is not set.")
 
-    # Return a new client instance for thread-safety.
-    client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
-    return client
+        # Create a new client for this thread and store it in thread_local.
+        thread_local.client = OpenAI(
+            api_key=api_key, base_url="https://ai-api.analytics.gov.sg"
+        )
+    return thread_local.client
 
 
 # The actual get_gpt_completion function (commented out for testing)
-# def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
-#     """
-#     Calls the OpenAI API to get a completion.
-#     """
-#     try:
-#         # Create a client instance for this specific API call/thread.
-#         client = get_openai_client()
+def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
+    """
+    Calls the OpenAI API to get a completion.
+    """
+    try:
+        # Create a client instance for this specific API call/thread.
+        client = get_openai_client()
 
-#         response = client.chat.completions.create(
-#             model=model,
-#             messages=sys_msg,
-#             response_format={"type": "json_object"},
-#             seed=6800,
-#             temperature=temperature,
-#         )
-#         completion_output = json.loads(response.choices[0].message.content)
+        response = client.chat.completions.create(
+            model=model,
+            messages=sys_msg,
+            response_format={"type": "json_object"},
+            seed=6800,
+            temperature=temperature,
+        )
+        completion_output = json.loads(response.choices[0].message.content)
 
-#     except ValueError as e:
-#         # Catches the specific error from get_openai_client if API key is missing
-#         print(f"[ERROR] Could not create OpenAI client: {e}")
-#         completion_output = {}
+    except ValueError as e:
+        # Catches the specific error from get_openai_client if API key is missing
+        print(f"[ERROR] Could not create OpenAI client: {e}")
+        completion_output = {}
 
-#     except Exception as e:
-#         # Catches other potential API or parsing errors
-#         print(f"[ERROR] OpenAI API call failed in get_gpt_completion: {e}")
-#         completion_output = {}
+    except Exception as e:
+        # Catches other potential API or parsing errors
+        print(f"[ERROR] OpenAI API call failed in get_gpt_completion: {e}")
+        completion_output = {}
 
-#     return completion_output
+    return completion_output
 
 
 # Dummy function for testing purposes
-def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
-    """
-    Dummy function that returns mock responses based on R2_SYSTEM_PROMPT format.
-    Returns responses in the format: {'proficiency': int, 'reason': str, 'confidence': str}
-    """
-    import random
-    import time
+# def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
+#     """
+#     Dummy function that returns mock responses based on R2_SYSTEM_PROMPT format.
+#     Returns responses in the format: {'proficiency': int, 'reason': str, 'confidence': str}
+#     """
+#     import random
+#     import time
 
-    # Simulate API latency with random delay between 0.3-0.7 seconds (average ~0.5s)
-    api_delay = random.uniform(0.3, 0.7)
-    time.sleep(api_delay)
+#     # Simulate API latency with random delay between 0.3-0.7 seconds (average ~0.5s)
+#     api_delay = random.uniform(0.3, 0.7)
+#     time.sleep(api_delay)
 
-    # Extract user message to understand what's being asked
-    user_content = ""
-    for msg in sys_msg:
-        if msg.get("role") == "user":
-            user_content = msg.get("content", "")
-            break
+#     # Extract user message to understand what's being asked
+#     user_content = ""
+#     for msg in sys_msg:
+#         if msg.get("role") == "user":
+#             user_content = msg.get("content", "")
+#             break
 
-    # Parse skill and course from user content for more realistic responses
-    skill_mentioned = "skill" in user_content.lower()
-    course_mentioned = "course" in user_content.lower()
+#     # Parse skill and course from user content for more realistic responses
+#     skill_mentioned = "skill" in user_content.lower()
+#     course_mentioned = "course" in user_content.lower()
 
-    # Dummy proficiency levels (typically 1-5 based on common frameworks)
-    proficiency_levels = [1, 2, 3, 4, 5]
-    confidence_levels = ["high", "medium", "low"]
+#     # Dummy proficiency levels (typically 1-5 based on common frameworks)
+#     proficiency_levels = [1, 2, 3, 4, 5]
+#     confidence_levels = ["high", "medium", "low"]
 
-    # Generate realistic dummy reasons based on common skill assessment scenarios
-    reasons = [
-        "Course content aligns well with level requirements and learning objectives.",
-        "Training materials demonstrate practical application at this proficiency level.",
-        "Learning outcomes match the knowledge and ability requirements.",
-        "Course depth and complexity correspond to expected proficiency standards.",
-        "Assessment criteria and activities support this proficiency classification.",
-        "Content coverage spans multiple competency areas at appropriate depth.",
-        "Practical exercises and case studies indicate advanced skill development.",
-        "Basic concepts and foundational knowledge align with entry-level expectations.",
-        "Intermediate skills development evident through course structure and content.",
-    ]
+#     # Generate realistic dummy reasons based on common skill assessment scenarios
+#     reasons = [
+#         "Course content aligns well with level requirements and learning objectives.",
+#         "Training materials demonstrate practical application at this proficiency level.",
+#         "Learning outcomes match the knowledge and ability requirements.",
+#         "Course depth and complexity correspond to expected proficiency standards.",
+#         "Assessment criteria and activities support this proficiency classification.",
+#         "Content coverage spans multiple competency areas at appropriate depth.",
+#         "Practical exercises and case studies indicate advanced skill development.",
+#         "Basic concepts and foundational knowledge align with entry-level expectations.",
+#         "Intermediate skills development evident through course structure and content.",
+#     ]
 
-    # Create mock response
-    mock_response = {
-        "proficiency": random.choice(proficiency_levels),
-        "reason": random.choice(reasons),
-        "confidence": random.choice(confidence_levels),
-    }
+#     # Create mock response
+#     mock_response = {
+#         "proficiency": random.choice(proficiency_levels),
+#         "reason": random.choice(reasons),
+#         "confidence": random.choice(confidence_levels),
+#     }
 
-    print(f"[DUMMY] Generated mock response: {mock_response}")
-    return mock_response
+#     print(f"[DUMMY] Generated mock response: {mock_response}")
+#     return mock_response
 
 
 # ------------------------------------------------------------
