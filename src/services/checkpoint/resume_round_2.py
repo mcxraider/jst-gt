@@ -74,9 +74,6 @@ def resume_round_2(
 
     total = len(pending) + len(results)
 
-    # Time estimation parameters (assuming similar rate to Round 1)
-    ROUND2_RATE = 1.79  # rows per second, same as Round 1
-
     pbar = tqdm(
         total=total, initial=len(results), desc="Round2 rows processed", unit="row"
     )
@@ -84,37 +81,77 @@ def resume_round_2(
     # Track start time for better estimation
     start_time = time.time()
 
-    def update_caption_with_eta(processed, total):
+    def update_caption_with_eta(processed, total, api_calls):
         if caption is not None:
             remaining = total - processed
+            elapsed = time.time() - start_time
+
             if processed > 0:
-                # Calculate dynamic rate based on actual progress
-                elapsed = time.time() - start_time
-                actual_rate = processed / elapsed if elapsed > 0 else ROUND2_RATE
-                # Use a blend of actual rate and expected rate for stability
-                estimated_rate = (actual_rate + ROUND2_RATE) / 2
+                # Calculate how many sleep periods we've had and will have
+                sleeps_completed = api_calls // 60
+                total_sleep_time_so_far = sleeps_completed * 10  # 10s per sleep
+
+                # Calculate remaining sleeps
+                remaining_calls = remaining
+                current_batch_position = api_calls % 60
+
+                # Calculate future sleeps more accurately
+                if current_batch_position + remaining_calls <= 60:
+                    # All remaining calls fit in current batch
+                    future_sleeps = 0
+                else:
+                    # Calculate how many complete batches remain after current
+                    calls_to_complete_current_batch = 60 - current_batch_position
+                    calls_after_current_batch = (
+                        remaining_calls - calls_to_complete_current_batch
+                    )
+                    future_sleeps = 1 + (calls_after_current_batch // 60)
+
+                # Pure processing time (without sleeps)
+                pure_processing_time = elapsed - total_sleep_time_so_far
+
+                if pure_processing_time > 0:
+                    # Calculate rate based on pure processing time
+                    actual_processing_rate = processed / pure_processing_time
+
+                    # Estimate remaining processing time
+                    remaining_processing_time = remaining / actual_processing_rate
+
+                    # Add future sleep time
+                    remaining_sleep_time = future_sleeps * 10
+
+                    # Total ETA
+                    eta_seconds = remaining_processing_time + remaining_sleep_time
+                else:
+                    # Fallback if we haven't processed enough yet
+                    eta_seconds = remaining * 0.6  # rough estimate: 0.6s per item
             else:
-                estimated_rate = ROUND2_RATE
-
-            eta_seconds = remaining / estimated_rate if estimated_rate > 0 else 0
-
+                # Initial estimate - be conservative
+                estimated_sleeps = total // 60
+                eta_seconds = (total * 0.6) + (
+                    estimated_sleeps * 10
+                )  # Format user-friendly time display
             if eta_seconds > 3600:  # More than 1 hour
-                eta_minutes = int(
-                    (eta_seconds / 60) + 0.5
-                )  # Round up to nearest minute
-                eta_str = f"ETA {eta_minutes} minutes"
+                hours = int(eta_seconds // 3600)
+                minutes = int((eta_seconds % 3600) // 60)
+                if minutes > 0:
+                    time_display = f"About {hours} hour{'s' if hours > 1 else ''} and {minutes} minute{'s' if minutes > 1 else ''} remaining"
+                else:
+                    time_display = (
+                        f"About {hours} hour{'s' if hours > 1 else ''} remaining"
+                    )
             elif eta_seconds > 60:  # More than 1 minute
-                eta_minutes = int(
-                    (eta_seconds / 60) + 0.5
-                )  # Round up to nearest minute
-                eta_str = f"ETA {eta_minutes} minutes"
+                minutes = int((eta_seconds / 60) + 0.5)  # Round up
+                time_display = (
+                    f"About {minutes} minute{'s' if minutes > 1 else ''} remaining"
+                )
             else:
-                eta_str = "ETA less than 1 minute"
+                time_display = "Less than 1 minute remaining"
 
-            caption.caption(f"[Status] Processing 2nd Stage... ({eta_str})")
+            caption.caption(f"[Status] Processing 2nd Stage... {time_display}")
 
     # Initial caption update
-    update_caption_with_eta(processed, total)
+    update_caption_with_eta(processed, total, api_calls)
 
     # 4) Process in batches of 10
     while pending:
@@ -164,7 +201,7 @@ def resume_round_2(
                     progress_bar.progress(progress)
 
                 # Update caption with ETA
-                update_caption_with_eta(processed, total)
+                update_caption_with_eta(processed, total, api_calls)
 
                 # rate-limit pause
                 if api_calls % 60 == 0:
