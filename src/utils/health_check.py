@@ -1,24 +1,32 @@
 # src/utils/health_check.py
 from openai import OpenAI
 import os
-import streamlit as st
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure logger
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 def check_openai_api_health():
     """
     Performs a simple health check of the OpenAI API.
-    Displays the status in Streamlit.
+    Logs the status to the console.
     """
     # This is the health check function.
     # To disable it, simply comment out the call to this function in `login_page.py`.
-    st.write("Performing OpenAI API health check...")
+    logger.info("Performing OpenAI API health check...")
     try:
         api_key = os.getenv("API_KEY")
         if not api_key:
-            st.error("OpenAI API health check failed: `API_KEY` environment variable is not set.")
+            logger.error(
+                "OpenAI API health check failed: `API_KEY` environment variable is not set."
+            )
             return
 
         client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
@@ -31,9 +39,9 @@ def check_openai_api_health():
         )
 
         if response.choices and response.choices[0].message.content:
-            st.success("OpenAI API connection successful.")
+            logger.info("OpenAI API connection successful.")
         else:
-            st.error("OpenAI API health check failed: Received an empty response.")
+            logger.error("OpenAI API health check failed: Received an empty response.")
     except Exception as e:
-        st.error(f"OpenAI API health check failed: {e}")
+        logger.error(f"OpenAI API health check failed: {e}", exc_info=True)
 
