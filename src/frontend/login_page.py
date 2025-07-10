@@ -23,7 +23,7 @@ def login_page():
     """Main login page with modular components"""
 
     with st.empty().container(border=False):
-        col1, col2, col3 = st.columns([3, 4, 3])
+        _, col2, _ = st.columns([3, 4, 3])
 
         with col2:
             # Add top spacing

@@ -8,10 +8,9 @@ import os
 import pandas as pd
 from pathlib import Path
 import logging
-import uuid
 
-from config import USE_S3
-from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
+from config import USE_S3, S3_BUCKET_NAME
+from .s3_client import get_s3_client, parse_s3_path
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)

@@ -3,12 +3,10 @@ from openai import OpenAI
 import os
 import logging
 from dotenv import load_dotenv
-import boto3
-from botocore.exceptions import NoCredentialsError, ClientError, PartialCredentialsError
-
-from services.storage.s3_client import get_s3_client, S3_BUCKET_NAME
+from botocore.exceptions import ClientError
+from services.storage.s3_client import get_s3_client
+from config import S3_BUCKET_NAME
 from exceptions.storage_exceptions import S3Error
-
 
 load_dotenv()
 
@@ -26,10 +24,10 @@ def check_openai_api_health():
     """
     logger.info("Performing OpenAI API health check...")
     try:
-        api_key = os.getenv("API_KEY")
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             logger.error(
-                "OpenAI API health check failed: `API_KEY` environment variable is not set."
+                "OpenAI API health check failed: `OPENAI_API_KEY` environment variable is not set."
             )
             return False
 

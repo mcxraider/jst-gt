@@ -21,9 +21,6 @@ from .data_writers import (
     write_r1_invalid_to_s3,
     write_r1_valid_to_s3,
     write_irrelevant_to_s3,
-    write_r2_raw_to_s3,
-    write_missing_to_s3,
-    write_rest_to_s3,
 )
 from .session_management import wipe_db
 from .async_wrappers import async_write_input_to_s3, async_write_output_to_s3
@@ -46,9 +43,6 @@ __all__ = [
     "write_r1_invalid_to_s3",
     "write_r1_valid_to_s3",
     "write_irrelevant_to_s3",
-    "write_r2_raw_to_s3",
-    "write_missing_to_s3",
-    "write_rest_to_s3",
     # Session management
     "wipe_db",
     # Async wrappers

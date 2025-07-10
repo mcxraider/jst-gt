@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.health_check import check_openai_api_health, check_s3_health
+from config import USE_S3
 
 
 def check_all_systems_health():
@@ -7,8 +8,13 @@ def check_all_systems_health():
     Performs health checks for all critical systems.
     Returns a tuple: (all_systems_healthy, openai_healthy, s3_healthy)
     """
-    openai_healthy = check_openai_api_health()
-    s3_healthy = check_s3_health()
+    if USE_S3:
+        openai_healthy = check_openai_api_health()
+        s3_healthy = check_s3_health()
+    else:
+        openai_healthy = True
+        s3_healthy = True
+
     all_healthy = openai_healthy and s3_healthy
     return all_healthy, openai_healthy, s3_healthy
 
@@ -30,6 +36,6 @@ def display_system_health(openai_healthy: bool, s3_healthy: bool):
     all_healthy = openai_healthy and s3_healthy
     if not all_healthy:
         st.markdown(
-            "<p style='text-align: center; font-size: small;'>We're preventing you from logging in due to a failed system. Please contact jerry_yang_from.tp_tech.gov.sg for assistance.</p>",
+            "<p style='text-align: center; font-size: small;'>We're preventing you from logging in due to a failed system.</p>",
             unsafe_allow_html=True,
         )

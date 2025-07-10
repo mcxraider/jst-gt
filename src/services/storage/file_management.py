@@ -7,8 +7,8 @@ from pathlib import Path
 import os
 import logging
 
-from config import USE_S3
-from .s3_client import get_s3_client, parse_s3_path, S3_BUCKET_NAME
+from config import USE_S3, ALLOWED_S3_BUCKET_PREFIXES, S3_BUCKET_NAME
+from .s3_client import get_s3_client, parse_s3_path
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
@@ -121,15 +121,6 @@ def delete_all(directory):
     """
     deletion_summary = {"deleted_count": 0, "errors": []}
 
-    # Define allowed S3 prefixes for deletion
-    ALLOWED_S3_PREFIXES = [
-        "idd-ai-pl-tagging-bucket_checkpoint",
-        "idd-ai-pl-tagging-bucket_input",
-        "idd-ai-pl-tagging-bucket_intermediate",
-        "idd-ai-pl-tagging-bucket_misc_output",
-        "idd-ai-pl-tagging-bucket_output",
-    ]
-
     if USE_S3:
         try:
             logger.info(f"🗑️  S3 DELETION INITIATED for directory: {directory}")
@@ -150,18 +141,18 @@ def delete_all(directory):
             prefix_normalized = prefix.lstrip("/").rstrip("/")
 
             logger.info(f"🔍 SAFETY CHECK: Validating prefix '{prefix_normalized}'")
-            logger.info(f"🛡️  Allowed prefixes: {ALLOWED_S3_PREFIXES}")
+            logger.info(f"🛡️  Allowed prefixes: {ALLOWED_S3_BUCKET_PREFIXES}")
 
             # Check if the prefix starts with any of the allowed prefixes
             is_allowed = any(
                 prefix_normalized.startswith(allowed_prefix)
-                for allowed_prefix in ALLOWED_S3_PREFIXES
+                for allowed_prefix in ALLOWED_S3_BUCKET_PREFIXES
             )
 
             if not is_allowed:
                 error_msg = (
                     f"Deletion not allowed for prefix '{prefix_normalized}'. "
-                    f"Only allowed prefixes: {', '.join(ALLOWED_S3_PREFIXES)}"
+                    f"Only allowed prefixes: {', '.join(ALLOWED_S3_BUCKET_PREFIXES)}"
                 )
                 logger.error(f"❌ SAFETY CHECK FAILED: {error_msg}")
                 print(f"[DEBUG] {error_msg}")

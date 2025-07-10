@@ -10,13 +10,10 @@ from concurrent.futures import ThreadPoolExecutor
 from services.llm_pipeline.r2_utils import *
 from services.checkpoint.checkpoint_manager import CheckpointManager
 from config import skill_proficiency_level_details
-from services.db.data_writers import (
-    write_r2_raw_to_s3,
-    write_missing_to_s3,
-)
+
+
 from services.db.data_loaders import (
     load_r1_valid,
-    load_sector_file,
 )
 
 
@@ -112,7 +109,7 @@ def resume_round_2(
                     )
                 except Exception as e:
                     error_msg = f"Round2 failed for {uid}: {e}"
-                    print(f"[ERROR] {error_msg}")  # Changed from st.error to print
+                    # print(f"[ERROR] {error_msg}")  # debug removed
                     results.append(
                         {"unique_id": uid, "pl": 0, "reason": "", "confidence": ""}
                     )
@@ -126,19 +123,17 @@ def resume_round_2(
                     progress = processed / total
                     progress_bar.progress(progress)
 
-                # rate‐limit pause
+                # rate-limit pause
                 if api_calls % 60 == 0:
-                    print(
-                        "[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits..."
-                    )
+                    # print("[RateLimiter] ⏸ Pausing for 10 seconds to respect API rate limits...")
                     time.sleep(10)
 
                 # checkpoint every 30 rows
                 if processed % 30 == 0:
+                    # print(f"Checkpoint saved at {processed}/{total} rows processed.")
                     ckpt.state["r2_pending"] = pending
                     ckpt.state["r2_results"] = results
                     ckpt.save()
-                    print(f"Checkpoint saved at {processed}/{total} rows processed.")
 
     # final checkpoint
     ckpt.state["r2_pending"] = pending
@@ -160,23 +155,12 @@ def resume_round_2(
     sub = result_df[result_df.unique_id.isin(data.unique_id)]
     merged = data.merge(sub, on="unique_id", how="left")
 
-    # c) Diagnostics
-    num_untagged = (merged.proficiency_level_rac_chart == 0).sum()
-    num_processed = sub.shape[0]
     total = data.shape[0]
-    print(f"[Round 2 Summary] 🏷️ Untagged skills remaining: {num_untagged}")
-    print(f"[Round 2 Summary] ✅ Skills processed in this round: {num_processed}")
-    print(f"[Round 2 Summary] 🔄 Skills carried over from Round 1: {total}")
-    print(
-        "[Round 2 Post-processing] 🗂️ Finalizing and exporting results to CSV files..."
-    )
 
     # d) Drop helper columns and save raw
     merged.drop(columns=["course_text", "unique_text", "unique_id"], inplace=True)
-    merged["proficiency_level"] = merged["proficiency_level"].astype(
-        int
-    )  # original R1 PL
-    write_r2_raw_to_s3(merged, target_sector_alias)
+    merged["proficiency_level"] = merged["proficiency_level"].astype(int)
+
     # e) Split untagged vs tagged
     r2_untagged = merged[merged.proficiency_level_rac_chart == 0]
     r2_tagged = merged[merged.proficiency_level_rac_chart > 0].reset_index(drop=True)
@@ -254,18 +238,9 @@ def resume_round_2(
     # Concatenate first, then handle duplicate columns
     all_valid = pd.concat([r1_valid, r2_vout], ignore_index=True)
 
-    # Debug: Print column names before cleaning
-    print(f"[DEBUG] Columns before cleaning: {list(all_valid.columns)}")
-    print(
-        f"[DEBUG] Duplicate columns found: {[col for col in all_valid.columns if list(all_valid.columns).count(col) > 1]}"
-    )
-
     # Remove any duplicate columns using pandas loc with unique column selection
     # This is more robust than manual iteration
     all_valid = all_valid.loc[:, ~all_valid.columns.duplicated()]
-
-    # Debug: Print column names after duplicate removal
-    print(f"[DEBUG] Columns after duplicate removal: {list(all_valid.columns)}")
 
     # Check for column existence in the concatenated dataframe before dropping
     columns_to_drop = ["invalid_pl", "Skill Title_y"]
@@ -281,27 +256,22 @@ def resume_round_2(
         # After renaming, remove duplicates again if any were created
         all_valid = all_valid.loc[:, ~all_valid.columns.duplicated()]
 
-    # Debug: Print final column names
-    print(f"[DEBUG] Final columns: {list(all_valid.columns)}")
-    print(
-        f"[DEBUG] Any remaining duplicates: {[col for col in all_valid.columns if list(all_valid.columns).count(col) > 1]}"
-    )
+    # Commmenting out to reduce S3 I/O tasks
 
-    # i) Poor-data-quality courses
-    # Calling the S3 load_sector_file directly from services.db.data_readers
-    orig = load_sector_file()
-    raw_course = load_sector_file(cols=["Skill Title", "Course Reference Number"])
+    # # i) Poor-data-quality courses
+    # # Calling the S3 load_sector_file directly from services.db.data_readers
+    # orig = load_sector_file()
+    # raw_course = load_sector_file(cols=["Skill Title", "Course Reference Number"])
 
-    merged_crs = pd.merge(orig, raw_course, on="Course Reference Number", how="inner")
+    # merged_crs = pd.merge(orig, raw_course, on="Course Reference Number", how="inner")
 
-    poor = merged_crs[
-        ~merged_crs["Course Reference Number"].isin(merged["Course Reference Number"])
-    ]
+    # poor = merged_crs[
+    #     ~merged_crs["Course Reference Number"].isin(merged["Course Reference Number"])
+    # ]
 
-    missing = poor[poor["Course Title"].isnull()]
-    write_missing_to_s3(missing, target_sector_alias)
+    # missing = poor[poor["Course Title"].isnull()]
+    # write_missing_to_s3(missing, target_sector_alias)
 
-    print("[Round 2 Complete] All processing complete, results saved to files.")
     r2_invalid = pd.concat([r2_untagged, r2_invalid], ignore_index=True)
     # The return type here is a tuple of DataFrames
     return r2_valid, r2_invalid, all_valid

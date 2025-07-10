@@ -14,7 +14,6 @@ def resume_round_1(work_df, sfw_df, ckpt, progress_bar=None):
       - Checkpoint every 30
       - Show tqdm progress bar and Streamlit progress
     """
-    # client = get_openai_client(api_key, base_url)
     client = None
 
     # pull pending + results from checkpoint

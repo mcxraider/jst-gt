@@ -10,11 +10,11 @@ This module provides S3 client functionality for Kubernetes environments with:
 import os
 import logging
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError, ProfileNotFound
+from botocore.exceptions import ClientError, NoCredentialsError
 from dotenv import load_dotenv
 from functools import lru_cache
 
-from config import AWS_REGION
+from config import AWS_REGION, S3_BUCKET_NAME, K8S_SERVICE_ACCOUNT_NAME
 from exceptions.storage_exceptions import S3Error, ValidationError
 
 
@@ -22,12 +22,6 @@ load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-# Hardcoded bucket name for now
-S3_BUCKET_NAME = "t-gen-stg-ssg-test-s3"
-
-# Kubernetes service account configuration
-K8S_SERVICE_ACCOUNT_NAME = "ns-writer"
 
 
 def check_s3_permissions(s3_client, bucket_name):

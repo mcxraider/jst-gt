@@ -5,8 +5,12 @@ Handles database cleanup and session state management.
 """
 import streamlit as st
 
+import logging
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+
 from config import (
-    BASE_DIR,
     INPUT_DATA_PATH,
     INTERMEDIATE_OUTPUT_PATH,
     OUTPUT_PATH,
@@ -32,7 +36,7 @@ def wipe_db(caption):
 
     # change this to check pkl existence
     if not check_pkl_existence():
-        print("pkl file not found")
+        logger.warning("PKL file not found, no session to wipe.")
         return
 
     # Perform cleanup
