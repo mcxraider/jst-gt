@@ -123,11 +123,11 @@ def delete_all(directory):
 
     # Define allowed S3 prefixes for deletion
     ALLOWED_S3_PREFIXES = [
-        "s3_checkpoint",
-        "s3_input",
-        "s3_intermediate",
-        "s3_misc_output",
-        "s3_output",
+        "idd-ai-pl-tagging-bucket_checkpoint",
+        "idd-ai-pl-tagging-bucket_input",
+        "idd-ai-pl-tagging-bucket_intermediate",
+        "idd-ai-pl-tagging-bucket_misc_output",
+        "idd-ai-pl-tagging-bucket_output",
     ]
 
     if USE_S3:
