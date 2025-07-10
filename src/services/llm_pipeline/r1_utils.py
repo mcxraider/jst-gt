@@ -28,9 +28,7 @@ def get_openai_client():
         if not api_key:
             raise ValueError("API_KEY environment variable is not set.")
         # Create a new client for this thread and store it in thread_local.
-        thread_local.client = OpenAI(
-            api_key=api_key
-        )
+        thread_local.client = OpenAI(api_key=api_key)
     return thread_local.client
 
 
@@ -248,17 +246,6 @@ def process_row(
         3,
         thread_client,  # Pass the thread-local client
     )
-    if proficiency_level_with_reason == "":
-        with open(bad_course_filepath, "a") as fi:  # Use 'a' for append
-            fi.write(f"""{row["Course Reference Number"]}\n""")
-        res_dict = {
-            "proficiency_level": 0,
-            "reason": "LLM call failed or returned empty response",
-            "confidence": "none",
-            "Skill Title": row["Skill Title"],
-            "Course Reference Number": row["Course Reference Number"],
-        }
-        return res_dict
 
     try:
         res_dict = json.loads(proficiency_level_with_reason)

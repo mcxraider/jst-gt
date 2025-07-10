@@ -3,6 +3,9 @@ from openai import OpenAI
 import os
 import logging
 from dotenv import load_dotenv
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError, PartialCredentialsError
+
 
 load_dotenv()
 
@@ -16,10 +19,8 @@ logger = logging.getLogger(__name__)
 def check_openai_api_health():
     """
     Performs a simple health check of the OpenAI API.
-    Logs the status to the console.
+    Returns True if healthy, False otherwise.
     """
-    # This is the health check function.
-    # To disable it, simply comment out the call to this function in `login_page.py`.
     logger.info("Performing OpenAI API health check...")
     try:
         api_key = os.getenv("API_KEY")
@@ -27,12 +28,15 @@ def check_openai_api_health():
             logger.error(
                 "OpenAI API health check failed: `API_KEY` environment variable is not set."
             )
-            return
+            return False
 
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://litellm.govtext.gov.sg/",
+        )
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-prd-gcc2-lb",
             messages=[{"role": "user", "content": "Hello"}],
             max_tokens=5,
             timeout=10,
@@ -40,7 +44,57 @@ def check_openai_api_health():
 
         if response.choices and response.choices[0].message.content:
             logger.info("OpenAI API connection successful.")
+            return True
         else:
             logger.error("OpenAI API health check failed: Received an empty response.")
+            return False
     except Exception as e:
         logger.error(f"OpenAI API health check failed: {e}", exc_info=True)
+        return False
+
+
+def check_s3_health():
+    """
+    Performs a health check on the S3 bucket by writing and deleting a test object.
+    Returns True if healthy, False otherwise.
+    """
+    logger.info("Performing S3 bucket health check...")
+    s3_bucket = os.getenv("S3_BUCKET")
+    if not s3_bucket:
+        logger.error(
+            "S3 health check failed: `S3_BUCKET` environment variable is not set."
+        )
+        return False
+
+    s3_client = boto3.client("s3")
+    test_object_key = "health_check_test.tmp"
+
+    try:
+        # 1. Test Put Operation
+        s3_client.put_object(
+            Bucket=s3_bucket, Key=test_object_key, Body=b"health_check"
+        )
+        logger.info(f"S3 PutObject to bucket '{s3_bucket}' successful.")
+
+        # 2. Test Delete Operation
+        s3_client.delete_object(Bucket=s3_bucket, Key=test_object_key)
+        logger.info(f"S3 DeleteObject from bucket '{s3_bucket}' successful.")
+
+        logger.info("S3 bucket operations (Put, Delete) are fully functional.")
+        return True
+
+    except (NoCredentialsError, PartialCredentialsError):
+        logger.error("S3 health check failed: AWS credentials not found or incomplete.")
+        return False
+    except ClientError as e:
+        # Check for specific error codes, e.g., 403 Forbidden (Access Denied)
+        if e.response["Error"]["Code"] == "AccessDenied":
+            logger.error(
+                f"S3 health check failed: Access Denied. Check IAM permissions for bucket '{s3_bucket}'."
+            )
+        else:
+            logger.error(f"S3 health check failed with a client error: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"S3 health check failed with an unexpected error: {e}")
+        return False

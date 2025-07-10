@@ -35,9 +35,7 @@ def get_openai_client():
             raise ValueError("API_KEY environment variable is not set.")
 
         # Create a new client for this thread and store it in thread_local.
-        thread_local.client = OpenAI(
-            api_key=api_key
-        )
+        thread_local.client = OpenAI(api_key=api_key)
     return thread_local.client
 
 

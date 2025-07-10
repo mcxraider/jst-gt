@@ -2,10 +2,9 @@ import streamlit as st
 from frontend.components.login import (
     login_header,
     login_form,
-    security_notice,
 )
 from utils.time_auth_utils import generate_valid_passwords
-from utils.health_check import check_openai_api_health
+from utils.health_check import check_openai_api_health, check_s3_health
 
 
 def simulate_password_provision():
@@ -31,18 +30,28 @@ def login_page():
             # Header section
             login_header()
 
-            # --- OpenAI API Health Check ---
-            # To disable, comment out the line below
-            check_openai_api_health()
-            # -----------------------------
-
             # Login form
             login_form()
 
             simulate_password_provision()
 
-            # Security notice
-            # security_notice()
+            # --- System Health Status ---
+            st.write("---")
+            st.write("**System Health**")
+
+            openai_healthy = check_openai_api_health()
+            s3_healthy = check_s3_health()
+
+            if openai_healthy:
+                st.write("OpenAI API: 🟢 Healthy")
+            else:
+                st.write("OpenAI API: 🔴 Unhealthy")
+
+            if s3_healthy:
+                st.write("S3 Bucket: 🟢 Healthy")
+            else:
+                st.write("S3 Bucket: 🔴 Unhealthy")
+            # -----------------------------
 
             # Add bottom spacing
             st.write("")
