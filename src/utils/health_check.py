@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError, PartialCredentialsError
 
+from services.storage.s3_client import get_s3_client, S3_BUCKET_NAME
+from exceptions.storage_exceptions import S3Error
+
 
 load_dotenv()
 
@@ -60,17 +63,16 @@ def check_s3_health():
     Returns True if healthy, False otherwise.
     """
     logger.info("Performing S3 bucket health check...")
-    s3_bucket = os.getenv("S3_BUCKET")
-    aws_region = os.getenv("AWS_REGION", "ap-southeast-1")  # Default to your region
+    s3_bucket = S3_BUCKET_NAME
 
     if not s3_bucket:
         logger.error(
-            "S3 health check failed: `S3_BUCKET` environment variable is not set."
+            "S3 health check failed: `S3_BUCKET_NAME` is not configured in s3_client.py."
         )
         return False
 
     try:
-        s3_client = boto3.client("s3", region_name=aws_region)
+        s3_client = get_s3_client()
         # Use a unique key to avoid potential race conditions if multiple checks run
         test_object_key = f"health_check/health_check_{os.urandom(8).hex()}.tmp"
 
@@ -90,8 +92,8 @@ def check_s3_health():
         logger.info("S3 bucket operations (Put, Delete) are fully functional.")
         return True
 
-    except (NoCredentialsError, PartialCredentialsError):
-        logger.error("S3 health check failed: AWS credentials not found or incomplete.")
+    except S3Error as e:
+        logger.error(f"S3 health check failed during client creation: {e}")
         return False
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code")
