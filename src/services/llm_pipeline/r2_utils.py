@@ -36,7 +36,7 @@ def get_openai_client():
 
         # Create a new client for this thread and store it in thread_local.
         thread_local.client = OpenAI(
-            api_key=api_key, base_url="https://ai-api.analytics.gov.sg"
+            api_key=api_key
         )
     return thread_local.client
 

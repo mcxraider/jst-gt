@@ -29,7 +29,7 @@ def check_openai_api_health():
             )
             return
 
-        client = OpenAI(api_key=api_key, base_url="https://ai-api.analytics.gov.sg")
+        client = OpenAI(api_key=api_key)
 
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -44,4 +44,3 @@ def check_openai_api_health():
             logger.error("OpenAI API health check failed: Received an empty response.")
     except Exception as e:
         logger.error(f"OpenAI API health check failed: {e}", exc_info=True)
-
