@@ -24,8 +24,7 @@ def login_header():
             st.markdown(
                 f"""
             <div style="text-align: center; margin-top: 1rem;">
-                <h2 style="color: #2c3e50; margin-bottom: 1rem;">Welcome to {APP_NAME_DISPLAY}</h2>
-                <p style="color: #7f8c8d; font-size: 1.1rem;">Enter your email and password to access the app</p>
+                <h2 style="color: #2c3e50; margin-bottom: 1rem;">Welcome to the {APP_NAME_DISPLAY}</h2>
             </div>
             """,
                 unsafe_allow_html=True,
@@ -35,8 +34,7 @@ def login_header():
         st.markdown(
             f"""
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="color: #2c3e50; margin-bottom: 1rem;">Welcome to {APP_NAME_DISPLAY}</h1>
-            <p style="color: #7f8c8d; font-size: 1.1rem;">Enter your email and password to access the app</p>
+            <h1 style="color: #2c3e50; margin-bottom: 1rem;">Welcome to the {APP_NAME_DISPLAY}</h1>
         </div>
         """,
             unsafe_allow_html=True,

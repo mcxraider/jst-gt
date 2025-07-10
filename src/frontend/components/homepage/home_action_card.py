@@ -15,7 +15,7 @@ def home_action_card(pkl_available, load_checkpoint_enabled):
     with col1:
         st.markdown('<div class="primary-button">', unsafe_allow_html=True)
         if st.button(
-            f"⬆️ Upload New File & Run New Process",
+            f"⬆️ Upload New Files & Run New Process",
             key="upload_new",
             use_container_width=True,
         ):

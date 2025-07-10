@@ -11,20 +11,9 @@ def simulate_password_provision():
     """Display the current valid time-based passwords for authentication"""
     valid_passwords = generate_valid_passwords()
 
-    # UI Presentation
-    st.info("🔐 Simulated Password Provision")
-
     # Display current hour password (primary)
-    st.write("**Current Hour Password:**")
+    st.write("**Simulated Password:**")
     st.code(valid_passwords[0], language="text")
-
-    # Display next hour password (backup)
-    st.write("**Next Hour Password (backup):**")
-    st.code(valid_passwords[1], language="text")
-
-    st.caption(
-        "Copy either password above for authentication. Please use the current hour password for now."
-    )
 
 
 def login_page():
@@ -47,7 +36,7 @@ def login_page():
             simulate_password_provision()
 
             # Security notice
-            security_notice()
+            # security_notice()
 
             # Add bottom spacing
             st.write("")

@@ -13,7 +13,7 @@ auth:
 ui:
   page_title: "SAIL - Skills Proficiency Tagging Portal"
   page_icon: "../public/assets/images/SAIL logo.png"
-  app_name_display: "SAIL"
+  app_name_display: "Skills Proficiency Tagging Portal"
 
 # Directory paths (local)
 base_dir: "../s3_bucket"

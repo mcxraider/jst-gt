@@ -4,7 +4,6 @@ import streamlit as st
 import time
 from utils.db_handler import authenticate_user
 from utils.session_cache import save_session
-from utils.validation_utils import test_s3_put_delete_object
 
 
 def login_form():
@@ -12,12 +11,10 @@ def login_form():
     # email = st.text_input("E-mail", placeholder="Enter your SSG email address")
     email = "Test user"
     password = st.text_input(
-        "Password", placeholder="Enter your password", type="password"
+        "Password", placeholder="Enter your copied password", type="password"
     )
 
     if st.button("Login", use_container_width=True):
-        test_s3_put_delete_object(password)
-        time.sleep(2)
         if not (password):
             st.error("You must have a password to Log in!")
         elif authenticate_user(email, password):
