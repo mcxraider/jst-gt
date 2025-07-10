@@ -35,12 +35,14 @@ def get_openai_client():
             raise ValueError("API_KEY environment variable is not set.")
 
         # Create a new client for this thread and store it in thread_local.
-        thread_local.client = OpenAI(api_key=api_key)
+        thread_local.client = OpenAI(
+            api_key=api_key, base_url="https://litellm.govtext.gov.sg/"
+        )
     return thread_local.client
 
 
 # The actual get_gpt_completion function (commented out for testing)
-def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
+def get_gpt_completion(sys_msg, model="gpt-4o-prd-gcc2-lb", temperature=0.1):
     """
     Calls the OpenAI API to get a completion.
     """
@@ -55,7 +57,11 @@ def get_gpt_completion(sys_msg, model="gpt-4o", temperature=0.1):
             seed=6800,
             temperature=temperature,
         )
-        completion_output = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if content:
+            completion_output = json.loads(content)
+        else:
+            completion_output = {}
 
     except ValueError as e:
         # Catches the specific error from get_openai_client if API key is missing

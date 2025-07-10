@@ -28,7 +28,9 @@ def get_openai_client():
         if not api_key:
             raise ValueError("API_KEY environment variable is not set.")
         # Create a new client for this thread and store it in thread_local.
-        thread_local.client = OpenAI(api_key=api_key)
+        thread_local.client = OpenAI(
+            api_key=api_key, base_url="https://litellm.govtext.gov.sg/"
+        )
     return thread_local.client
 
 
@@ -110,7 +112,7 @@ def get_proficiency_level(
     Function to call OpenAI API.
     """
     formatted_data = format_for_openai(skill_info, setup)
-    sys_messages: list[dict[str, str]] = [
+    sys_messages = [
         {"role": "system", "content": R1_SYSTEM_PROMPT},
         {
             "role": "user",
@@ -124,7 +126,7 @@ def get_proficiency_level(
     ]
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-prd-gcc2-lb",
             messages=sys_messages,
             response_format={"type": "json_object"},
             seed=6800,

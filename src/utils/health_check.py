@@ -55,24 +55,31 @@ def check_openai_api_health():
 
 def check_s3_health():
     """
-    Performs a health check on the S3 bucket by writing and deleting a test object.
+    Performs a health check on the S3 bucket by writing and deleting a test object,
+    mirroring the application's primary S3 operations.
     Returns True if healthy, False otherwise.
     """
     logger.info("Performing S3 bucket health check...")
     s3_bucket = os.getenv("S3_BUCKET")
+    aws_region = os.getenv("AWS_REGION", "ap-southeast-1")  # Default to your region
+
     if not s3_bucket:
         logger.error(
             "S3 health check failed: `S3_BUCKET` environment variable is not set."
         )
         return False
 
-    s3_client = boto3.client("s3")
-    test_object_key = "health_check_test.tmp"
-
     try:
-        # 1. Test Put Operation
+        s3_client = boto3.client("s3", region_name=aws_region)
+        # Use a unique key to avoid potential race conditions if multiple checks run
+        test_object_key = f"health_check/health_check_{os.urandom(8).hex()}.tmp"
+
+        # 1. Test Put Operation (similar to save_parquet)
         s3_client.put_object(
-            Bucket=s3_bucket, Key=test_object_key, Body=b"health_check"
+            Bucket=s3_bucket,
+            Key=test_object_key,
+            Body=b"health_check",
+            ServerSideEncryption="AES256",
         )
         logger.info(f"S3 PutObject to bucket '{s3_bucket}' successful.")
 
@@ -87,8 +94,8 @@ def check_s3_health():
         logger.error("S3 health check failed: AWS credentials not found or incomplete.")
         return False
     except ClientError as e:
-        # Check for specific error codes, e.g., 403 Forbidden (Access Denied)
-        if e.response["Error"]["Code"] == "AccessDenied":
+        error_code = e.response.get("Error", {}).get("Code")
+        if error_code == "AccessDenied":
             logger.error(
                 f"S3 health check failed: Access Denied. Check IAM permissions for bucket '{s3_bucket}'."
             )
