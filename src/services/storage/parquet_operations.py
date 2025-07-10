@@ -76,30 +76,21 @@ def save_parquet(df, path, compression="snappy"):
                 f"📊 SAVE_PARQUET: DataFrame info - Shape: {df.shape}, Memory usage: {df.memory_usage(deep=True).sum()} bytes"
             )
 
-            # Save the parquet file to a fixed temp location before uploading
-            fixed_temp_dir = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "../../../s3_bucket/s3_temp")
-            )
-            os.makedirs(fixed_temp_dir, exist_ok=True)
-            unique_id = uuid.uuid4().hex
-            local_path = os.path.join(fixed_temp_dir, f"temp-dataframe-{unique_id}.parquet")
-
-            logger.info(f"💾 SAVE_PARQUET: Writing to fixed temp file: {local_path}")
-            df.to_parquet(
-                local_path, index=False, compression=compression, engine="auto"
-            )
-
-            file_size = os.path.getsize(local_path)
+            # Save the parquet file to a BytesIO buffer before uploading
+            buffer = io.BytesIO()
+            df.to_parquet(buffer, index=False, compression=compression, engine="auto")
+            buffer.seek(0)
+            file_size = buffer.getbuffer().nbytes
             logger.info(
-                f"📄 SAVE_PARQUET: Fixed temp file created - Size: {file_size} bytes"
+                f"📄 SAVE_PARQUET: Parquet buffer created - Size: {file_size} bytes"
             )
 
-            # Upload the file from the fixed temp path to S3
+            # Upload the buffer to S3
             logger.info(
-                f"🚀 SAVE_PARQUET: Starting S3 upload from {local_path} to s3://{S3_BUCKET_NAME}/{key}"
+                f"🚀 SAVE_PARQUET: Starting S3 upload from buffer to s3://{S3_BUCKET_NAME}/{key}"
             )
-            get_s3_client().upload_file(
-                local_path,
+            get_s3_client().upload_fileobj(
+                buffer,
                 S3_BUCKET_NAME,
                 key,
                 ExtraArgs={

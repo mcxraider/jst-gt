@@ -5,7 +5,14 @@ Handles database cleanup and session state management.
 """
 import streamlit as st
 
-from config import BASE_DIR
+from config import (
+    BASE_DIR,
+    INPUT_DATA_PATH,
+    INTERMEDIATE_OUTPUT_PATH,
+    OUTPUT_PATH,
+    MISC_OUTPUT_PATH,
+    CHECKPOINT_PATH,
+)
 from services.storage import delete_all
 from services.db import check_pkl_existence
 
@@ -29,7 +36,14 @@ def wipe_db(caption):
         return
 
     # Perform cleanup
-    delete_all(BASE_DIR)
+    for path in [
+        INPUT_DATA_PATH,
+        INTERMEDIATE_OUTPUT_PATH,
+        OUTPUT_PATH,
+        MISC_OUTPUT_PATH,
+        CHECKPOINT_PATH,
+    ]:
+        delete_all(path)
 
     # Reset session state flags
     st.session_state["csv_yes"] = False
